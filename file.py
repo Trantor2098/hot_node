@@ -22,15 +22,16 @@ import os, shutil, json, zipfile
 from . version_control import version
 
 addon_dir_path = os.path.dirname(__file__)
-pack_root_dir_path = os.path.join(addon_dir_path, 'preset_packs')
-pack_selected_dir_path = os.path.join(pack_root_dir_path, 'NONE')
+pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
+pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
 pack_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
 pack_meta_cache = {}
 root_meta_cache = {}
 
 
-def init_data_files():
+# Sync Check
+def refresh_root_meta_cache():
     global root_meta_cache
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
@@ -38,7 +39,28 @@ def init_data_files():
         root_meta_cache["pack_selected"] = ""
         write_root_meta()
     else:
-        root_meta_cache = read_json(pack_meta_path)
+        root_meta_cache = read_root_meta()
+        
+        
+def check_sync():
+    if root_meta_cache != read_root_meta():
+        return False
+    if pack_meta_cache != {} and pack_meta_cache != read_pack_meta():
+        return False
+    return True
+        
+        
+def check_pack_existing():
+    if os.path.exists(pack_selected_dir_path):
+        return True
+    return False
+
+
+def check_preset_existing(preset_name):
+    preset_path = os.path.join(pack_selected_dir_path, preset_name)
+    if os.path.exists(preset_path):
+        return True
+    return False
         
 
 # CRUD of Json
@@ -53,8 +75,8 @@ def read_json(file_path) -> dict:
     
     
 def write_pack_meta():
-    preset_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
-    write_json(preset_meta_path, pack_meta_cache)
+    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
+    write_json(pack_meta_path, pack_meta_cache)
     
     
 def write_root_meta():
@@ -65,8 +87,24 @@ def write_root_meta():
 def write_meta():
     pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
     root_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
-    write_json(pack_meta_path, pack_meta_cache)
     write_json(root_meta_path, root_meta_cache)
+    write_json(pack_meta_path, pack_meta_cache)
+    
+    
+def read_pack_meta():
+    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
+    return read_json(pack_meta_path)
+    
+    
+def read_root_meta():
+    pack_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
+    return read_json(pack_meta_path)
+    
+    
+def read_meta():
+    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
+    root_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
+    return read_json(root_meta_path), read_json(pack_meta_path)
     
     
 def check_read_pack_meta(pack_name):
@@ -76,7 +114,6 @@ def check_read_pack_meta(pack_name):
     metadata: dict = read_json(pack_meta_path)
     keys = list(metadata.keys())
     if keys != ["order", "tree_types", "version"]:
-        print(keys)
         return 'INVALID_META'
     return read_json(pack_meta_path)
 
@@ -89,7 +126,6 @@ def create_pack(pack_name):
     pack_selected_dir_path = os.path.join(pack_root_dir_path, pack_name)
     # create pack metadata
     root_meta_cache["pack_selected"] = pack_name
-    root_meta_cache["version"] = version
     pack_meta_cache = {}
     pack_meta_cache["order"] = []
     pack_meta_cache["tree_types"] = {}
@@ -129,8 +165,9 @@ def select_pack(pack_name):
     global pack_selected_dir_path
     if pack_name != "":
         pack_selected_dir_path = os.path.join(pack_root_dir_path, pack_name)
-        preset_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
-        pack_meta_cache = read_json(preset_meta_path)
+        pack_meta_cache = read_pack_meta()
+    else:
+        pack_meta_cache = {}
     root_meta_cache["pack_selected"] = pack_name
     write_root_meta()
     

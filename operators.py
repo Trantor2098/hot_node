@@ -26,6 +26,13 @@ from . import utils, file, properties, node_parser, node_generator
 
 
 # Tool Functions
+def sync_data(context: bpy.types.Context):
+    file.refresh_root_meta_cache()
+    properties.pack_selected = file.root_meta_cache["pack_selected"]
+    properties.packs = file.read_packs()
+    select_pack(context, properties.pack_selected)
+    
+    
 def select_pack(context, pack):
     # to escaping overwrite 
     scene = context.scene
@@ -79,6 +86,15 @@ def top_to_bottom(presets):
     presets[length - 1].type = type
     
     
+def ensure_sync(ops: Operator, context: bpy.types.Context):
+    if file.check_sync():
+        return True
+    else:
+        sync_data(context)
+        ops.report({'WARNING'}, "Out of sync. Nothing happend but the add-on's auto refreshing. Now everything is ok!")
+        return False
+    
+    
 def poll_preset_ops(context):
     return properties.pack_selected != '' and context.space_data.edit_tree is not None
 
@@ -95,34 +111,29 @@ class HOTNODE_OT_preset_create(Operator):
         return poll_preset_ops(context)
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
         edit_tree = context.space_data.edit_tree
-
-        # create pack if there is no pack
-        # if properties.pack_selected == '':
-        #     bpy.ops.node.hot_node_pack_create('EXEC_DEFAULT')
             
         pack_name = properties.pack_selected
-
         presets = scene.hot_node_presets
+        # escape rename. The default name is "Preset"... Do this first to check sync
+        new_full_name = utils.ensure_unique_name_dot("Preset", -1, presets)
+        
         presets.add()
-
         # select newly created set
         length = len(presets)
         preset_selected_idx = length - 1
         scene.hot_node_preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
-        # escape rename
-        old_full_name = presets[preset_selected_idx].name
-        new_full_name = utils.ensure_unique_name_dot(old_full_name, preset_selected_idx, presets)
-        if old_full_name != new_full_name:
-            # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
-            properties.skip_update = True
-            presets[preset_selected_idx].name = new_full_name
-            properties.preset_selected = new_full_name
-            properties.skip_update = False
+        # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
+        properties.skip_update = True
+        presets[preset_selected_idx].name = new_full_name
+        properties.preset_selected = new_full_name
+        properties.skip_update = False
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         node_parser.parse_node_preset(edit_tree)
@@ -143,12 +154,15 @@ class HOTNODE_OT_preset_delete(Operator):
         return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
 
         length = len(presets)
         preset_selected_idx = scene.hot_node_preset_selected
         preset_name = presets[preset_selected_idx].name
+        
         if length > 0:
             presets.remove(preset_selected_idx)
             if preset_selected_idx == length - 1:
@@ -178,6 +192,8 @@ class HOTNODE_OT_preset_clear(Operator):
         return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         file.clear_preset(properties.pack_selected)
         scene.hot_node_presets.clear()
@@ -202,15 +218,17 @@ class HOTNODE_OT_preset_move(Operator):
         return poll_preset_ops(context)
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
-
+        preset_selected_idx = scene.hot_node_preset_selected
+        
         length = len(presets)
         if length < 2:
             return {'FINISHED'}
         
         properties.skip_update = True
-        preset_selected_idx = scene.hot_node_preset_selected
 
         reorder = True
         if self.direction == 'UP':
@@ -263,6 +281,8 @@ class HOTNODE_OT_preset_save(Operator):
         return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
         preset_selected_idx = scene.hot_node_preset_selected
@@ -270,7 +290,7 @@ class HOTNODE_OT_preset_save(Operator):
         preset_name = preset_selected.name
         pack_name = properties.pack_selected
         edit_tree = context.space_data.edit_tree
-
+        
         presets[preset_selected_idx].type = edit_tree.bl_idname
         # in node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         node_parser.parse_node_preset(edit_tree)
@@ -281,6 +301,14 @@ class HOTNODE_OT_preset_save(Operator):
         self.report(type={'INFO'}, message="Preset saved.")
 
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        if context.scene.hot_node_confirm:
+            wm = context.window_manager
+            result = wm.invoke_confirm(self, event, title='Save Preset (Can\'t Undo)', confirm_text='Save')
+        else:
+            result = self.execute(context)
+        return result
     
 
 class HOTNODE_OT_preset_apply(Operator):
@@ -294,6 +322,8 @@ class HOTNODE_OT_preset_apply(Operator):
         return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
     
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
 
@@ -325,6 +355,8 @@ class HOTNODE_OT_texture_save(Operator):
         return properties.allow_tex_save
     
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         scene = context.scene
         presets = scene.hot_node_presets
         preset_selected_idx = scene.hot_node_preset_selected
@@ -354,6 +386,14 @@ class HOTNODE_OT_texture_save(Operator):
         
         return {'FINISHED'}
     
+    def invoke(self, context, event):
+        if context.scene.hot_node_confirm:
+            wm = context.window_manager
+            result = wm.invoke_confirm(self, event, title='Save Texture (Can\'t Undo)', confirm_text='Save')
+        else:
+            result = self.execute(context)
+        return result
+    
 
 class HOTNODE_OT_pack_create(Operator):
     bl_idname = "node.hot_node_pack_create"
@@ -362,20 +402,14 @@ class HOTNODE_OT_pack_create(Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         packs = properties.packs
-        pack = properties.pack_selected
-        scene = context.scene
-        
-        packs.append('Pack')
+        new_full_name = utils.ensure_unique_name("Pack", -1, packs)
+        packs.append(new_full_name)
         # select newly created pack
         length = len(packs)
-        new_pack_idx = length - 1
-        # ensure unique name
-        properties.skip_update = True
-        new_full_name = packs[new_pack_idx]
-        new_full_name = utils.ensure_unique_name(new_full_name, new_pack_idx, packs)
-        packs[new_pack_idx] = new_full_name
-        properties.skip_update = False
+        properties.pack_selected = packs[length - 1]
 
         file.create_pack(new_full_name)
         select_pack(context, new_full_name)
@@ -394,25 +428,32 @@ class HOTNODE_OT_pack_delete(Operator):
         return properties.pack_selected != ''
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
         packs = properties.packs
-        pack = properties.pack_selected
-        pack_selected_idx = packs.index(pack)
+        pack_name = properties.pack_selected
+        pack_selected_idx = packs.index(pack_name)
         
+        
+        packs.remove(pack_name)
+        file.delete_pack(pack_name)
+        # note the length is the original length - 1
         length = len(packs)
-        if pack_selected_idx == length - 1:
-            pack_selected_idx -= 1
-
-        packs.remove(pack)
-        file.delete_pack(pack)
 
         # select another pack if there is one
-        if length > 1:
-            pack = packs[pack_selected_idx]
+        if length > 0:
+            # if deleted pack's idx is the last one, and not the only one, select the idx - 1
+            if pack_selected_idx == length and pack_selected_idx > 0:
+                pack_name = packs[pack_selected_idx - 1]
+            # or let the next pack come up
+            else:
+                pack_name = packs[pack_selected_idx]
+        # no pack last
         else:
-            properties.pack_selected = ''
-            pack = ''
+            properties.pack_selected = ""
+            pack_name = ""
 
-        select_pack(context, pack)
+        select_pack(context, pack_name)
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -437,6 +478,10 @@ class HOTNODE_OT_pack_select(Operator):
     ) # type: ignore
     
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
+        # if not ensure_pack_sync(self, context):
+        #     return {'CANCELLED'}
         select_pack(context, self.pack)
         
         return {'FINISHED'}
@@ -462,6 +507,9 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
         return poll_preset_ops(context)
     
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
+        
         length = len(self.files)
         backslash_idx = self.filepath.rfind("\\")
         dir_path = self.filepath[:backslash_idx]
@@ -528,6 +576,9 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
     files : bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'}) # type: ignore
 
     def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
+        
         to_file_path = utils.ensure_has_suffix(self.filepath, ".zip")
         if self.filename == ".zip" or self.filename == "":
             self.report({'ERROR'}, "Export Failed: Pack name cannot be empty.")
@@ -549,12 +600,8 @@ class HOTNODE_OT_refresh(Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        
-        properties.pack_selected = file.root_meta_cache["pack_selected"]
-        if properties.pack_selected != "":
-            select_pack(context, properties.pack_selected)
+        sync_data(context)
         self.report({'INFO'}, "Presets & packs refreshed")
-        
         return {'FINISHED'}
 
 

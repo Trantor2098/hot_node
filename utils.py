@@ -38,12 +38,12 @@ def split_by_slash(string: str):
 
 
 def split_name_suffix(full_name: str):
-    '''Split blender name style str into name and int suffix. Example: Obj.001 -> Obj 1'''
+    '''Split blender name style str into name and int suffix. Example: Obj.001 -> Obj 1. No suffix means -1.'''
     last_dot_idx = full_name.rfind('.')
     name: str = full_name
     int_suffix: int = 0
     if last_dot_idx != -1:
-        name = full_name[ : last_dot_idx]
+        name = full_name[ :last_dot_idx]
         str_suffix: str = full_name[last_dot_idx + 1: ]
         if str_suffix.isdecimal():
             int_suffix = int(str_suffix)
@@ -51,7 +51,7 @@ def split_name_suffix(full_name: str):
 
 
 def combine_name_suffix(name: str, suffix: int):
-    '''Combine name and int suffix to blender style. Example: Obj + 1 = Obj.001.'''
+    '''Combine name and int suffix to blender style. Example: Obj + 1 = Obj.001. Obj + -1 = Obj.'''
     if suffix == 0:
         return name
     str_suffix = str(suffix)
@@ -64,7 +64,8 @@ def combine_name_suffix(name: str, suffix: int):
 
 
 def find_min_vacant_number(number_list: list):
-    '''Help to find the minimum number in a series of numbers, with time & space complexity O(n).'''
+    '''Help to find the minimum number in a series of numbers, with time & space complexity O(2n).'''
+    # XXX actually, blender allows Foo.000, but here we consider Foo as Foo.000.
     if number_list == []:
         return 0
     max_num = max(number_list)
@@ -78,10 +79,10 @@ def find_min_vacant_number(number_list: list):
 
 
 def ensure_unique_name_dot(new_full_name: str, new_idx: int, collection):
-    '''Change <new_full_name> with blender style if re-name exists in <collection.name>, with time & space complexity O(n).
+    '''Change <new_full_name> with blender style if re-name exists in <collection.name>, with time & space complexity O(2n).
     
     - new_idx: new_full_name's index in the collection, will be used to skip the new name itself. so if dont have new name in the name list, pass a value like -1.'''
-    new_name, new_suffix =split_name_suffix(new_full_name)
+    new_name, new_suffix = split_name_suffix(new_full_name)
     suffix_list = []
     # find all renamed preset and collect their suffix
     for i in range(len(collection)):
@@ -91,17 +92,23 @@ def ensure_unique_name_dot(new_full_name: str, new_idx: int, collection):
         name, suffix = split_name_suffix(full_name)
         if name == new_name:
             suffix_list.append(suffix)
+    if suffix_list == []:
+        return new_full_name
     # find a available suffix number. 0 means dont need suffix
     available_suffix = find_min_vacant_number(suffix_list)
+    max_suffix = max(suffix_list)
     # allow user to change suffix to a bigger number
-    if new_suffix < available_suffix:
+    if new_suffix <= available_suffix:
         new_suffix = available_suffix
+    # if change Foo.001 to Foo.002 and Foo.002 already exists, go into this branch. The result is same as blender's rename logic.
+    else:
+        new_suffix = max_suffix + 1
     result = combine_name_suffix(new_name, new_suffix)
     return result
 
 
 def ensure_unique_name(new_full_name: str, new_idx: int, name_list):
-    '''Change <new_full_name> with blender style if re-name exists in <collection>, with time & space complexity O(n).
+    '''Change <new_full_name> with blender style if re-name exists in <collection>, with time & space complexity O(2n).
     
     - new_idx: new_full_name's index in the collection, will be used to skip the new name itself. so if dont have new name in the name list, pass a value like -1.'''
     new_name, new_suffix =split_name_suffix(new_full_name)
@@ -114,11 +121,17 @@ def ensure_unique_name(new_full_name: str, new_idx: int, name_list):
         name, suffix = split_name_suffix(full_name)
         if name == new_name:
             suffix_list.append(suffix)
+    if suffix_list == []:
+        return new_full_name
     # find a available suffix number. 0 means dont need suffix
     available_suffix = find_min_vacant_number(suffix_list)
+    max_suffix = max(suffix_list)
     # allow user to change suffix to a bigger number
-    if new_suffix < available_suffix:
+    if new_suffix <= available_suffix:
         new_suffix = available_suffix
+    # if change Foo.001 to Foo.002 and Foo.002 already exists, go into this branch. The result is same as blender's rename logic.
+    else:
+        new_suffix = max_suffix + 1
     result = combine_name_suffix(new_name, new_suffix)
     return result
 
@@ -163,7 +176,7 @@ def compare_size_same(file_path1: str, file_path2: str, tolerance: int=4):
             return True
         else:
             return False
-
+        
 
 def exchange_idx(list, idx1, idx2):
     temp = list[idx1]

@@ -88,7 +88,7 @@ def compare_same(obj1, obj2, ignore_attr_owners=(), owner="", grand_owner="", gr
     - ignore_attr_owners: ((attr1, owner1, grand_owner1), (attr2, owner2, grand_owner2), ...), "" means any owner is ok. For list elements the owner will be the attr who own the list.
     - owner: Only for recursively call.
     - grand_owner: Only for recursively call.
-    - greate_owner: Only for recursively call, for list to get their grand owner.'''
+    - great_owner: Only for recursively call, for list to get their grand owner.'''
     if isinstance(obj1, (bool, int, float, str)) and isinstance(obj2, (bool, int, float, str)):
         if not obj1 == obj2:
             # print(obj1, obj2)

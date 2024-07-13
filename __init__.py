@@ -35,20 +35,20 @@ bl_info = {
 from . import gui, properties, operators
 
 
-# def dev_reload():
-#     import importlib
-#     from . import utils, file, node_parser, node_generator
-#     importlib.reload(gui)
-#     importlib.reload(properties)
-#     importlib.reload(operators)
-#     importlib.reload(node_parser)
-#     importlib.reload(node_generator)
-#     importlib.reload(utils)
-#     importlib.reload(file)
+def dev_reload():
+    import importlib
+    from . import utils, file, node_parser, node_generator
+    importlib.reload(gui)
+    importlib.reload(properties)
+    importlib.reload(operators)
+    importlib.reload(node_parser)
+    importlib.reload(node_generator)
+    importlib.reload(utils)
+    importlib.reload(file)
 
 
 def register():
-    # dev_reload()
+    dev_reload()
 
     gui.register()
     properties.register()

@@ -46,7 +46,7 @@ skip_update = False
 # XXX For now i havent find a way to init preset collection before user making a explicit UI / OPS action...
 def init():
     global packs
-    file.init_data_files()
+    file.refresh_root_meta_cache()
     packs = file.read_packs()
     
     
@@ -70,6 +70,7 @@ def node_preset_type_update(self, context):
 
 def node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
+    global skip_update
     if skip_update:
         return
     global preset_selected
@@ -78,9 +79,14 @@ def node_preset_name_update(self, context):
     preset_selected_idx = scene.hot_node_preset_selected
     new_full_name = presets[preset_selected_idx].name
     if preset_selected != new_full_name:
+        # this second if is for checking user renaming
         ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
+        print(ensured_new_full_name, new_full_name)
         if ensured_new_full_name != new_full_name:
+            # XXX should we skip update again? will the callback be invoked by callback itself?
+            skip_update = True
             presets[preset_selected_idx].name = ensured_new_full_name
+            skip_update = False
         file.rename_preset(preset_selected, ensured_new_full_name)
         preset_selected = ensured_new_full_name
 

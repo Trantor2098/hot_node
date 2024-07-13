@@ -35,7 +35,9 @@ Usage
 - "Create", "Save", "Delete" operations **cannot be undo** in current version of Hot Node. For now you can open the "Extra Comformation" option in Node Preset Specials Menu to prevent misoperation.
 
 ### Refresh
-- When newly opened a .blend file / switched between .blend file / newly enabled hot node add-on, you should click Node Preset > Node Preset Specials (a drop-down menu next to the preset select window) > Refresh Presets & Packs, to let the preset data be in sync.
+When newly opened a .blend file / switched between .blend file / newly enabled hot node add-on, you should click Node Preset > Node Preset Specials (a drop-down menu next to the preset select window) > Refresh Presets & Packs, to let the preset data be in sync.
+
+If not doing this, a warning may pupop: "Out of sync. Nothing happend but the add-on's auto refreshing. Now everything is ok!". This means your cross-file operation is out of sync. Nothing happend but the add-on's auto refreshing, and then you can do operations normally.
 
 ### Manage Preset Pack
 - To create / select pack, in Node Preset panel, you can select a preset pack by clicking the collecetion box icon button on the left of the pack slot. If there is no pack yet, click the plus icon button next to the pack slot to create one.
@@ -67,7 +69,11 @@ In Textures > Apply, there are two settings:
 - Folder Path - The directory path to try find images when in Auto / Compare / Key Words mode.
 
 ### Save Texture Preset
-To save some specific image, choose the image node, then in Textures > Save, select the mode for this image and click button "Save Texture". If the mode is "Keys", you will need to enter key(s) for the image.
+To save some image in specific mode, do:
+1. Save the node preset first, ensure your last saved preset contains the image node you want to edit.
+2. Select the image node, then in Textures > Save, select a mode for this image.
+3. If the mode is "Keys", you will need to enter key(s) for the image.
+4. Click button "Save Texture", this image node will follows the new settings next time you apply the preset.
 
 ### Pack Sharing
 Packs can be imported / exported as zip files. 
