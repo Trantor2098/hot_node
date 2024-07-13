@@ -18,5 +18,7 @@
 # END GPL LICENSE BLOCK #####
 
 
+# TODO If the future data structure changes, we will update the old data here...
+
 # current Hot Node's version
 version = (0, 1, 0, "beta")
