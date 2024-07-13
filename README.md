@@ -10,7 +10,7 @@ Save, apply, share node presets across files in real-time, light-weightly.
 
 Requirement
 --------
-- Blender 4.2 to 3.0 compatible.
+- Blender 4.0 and later compatible.
 
 Features
 --------
