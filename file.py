@@ -30,8 +30,10 @@ pack_meta_cache = {}
 root_meta_cache = {}
 
 
-def init_root_meta():
+def init_data_files():
     global root_meta_cache
+    if not os.path.exists(pack_root_dir_path):
+        os.mkdir(pack_root_dir_path)
     if not os.path.exists(pack_meta_path):
         root_meta_cache["pack_selected"] = ""
         write_root_meta()

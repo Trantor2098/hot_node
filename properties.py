@@ -46,7 +46,7 @@ skip_update = False
 # XXX For now i havent find a way to init preset collection before user making a explicit UI / OPS action...
 def init():
     global packs
-    file.init_root_meta()
+    file.init_data_files()
     packs = file.read_packs()
     
     
