@@ -22,7 +22,7 @@ import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty
 
-from . import utils, file, properties, node_parser, node_generator
+from . import node_setter, utils, file, properties, node_parser
 
 
 # Tool Functions
@@ -335,7 +335,7 @@ class HOTNODE_OT_preset_apply(Operator):
             self.report({'ERROR'}, f"Cannot apply preset: It is a {preset.type} but current edit tree is a {edit_tree_type}.")
             return {'CANCELLED'}
         
-        failed_tex_num = node_generator.generate_preset(context, preset.name)
+        failed_tex_num = node_setter.apply_preset(context, preset.name)
         if failed_tex_num > 0:
             self.report({'INFO'}, f"Nodes preset applied. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
         else:

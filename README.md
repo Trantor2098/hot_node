@@ -6,7 +6,7 @@ See 'release/text/readme.html' for the end user read-me.
 
 Hot Node
 ========
-Save, apply, share node presets across files in real-time, light-weightly.
+Save, apply, share node presets across files in real-time, light-weight.
 
 Requirement
 --------

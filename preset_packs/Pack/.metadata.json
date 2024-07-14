@@ -1,0 +1,15 @@
+{
+ "order": [
+  "Preset"
+ ],
+ "tree_types": {
+  "Preset": "GeometryNodeTree",
+  "Preset.001": "ShaderNodeTree"
+ },
+ "version": [
+  0,
+  1,
+  0,
+  "beta"
+ ]
+}

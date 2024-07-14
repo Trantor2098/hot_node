@@ -36,15 +36,17 @@ from . import file, utils, node_parser
 # or have side effect, or customized like HN prefixed attrs, etc.
 # The lowest type should be in the front, if there are parent relation between two types.
 type_black_attrs = (
-    (bpy.types.NodeTreeInterfaceItem, 
-    ("HN_ref", "HN_idx", "item_type", "socket_type", "in_out", "identifier", "index", "HN_parent_idx", "position", "HN_nt_name", "HN_parent_name")),
-    (bpy.types.Node,
-    ("HN_ref", "HN_idx", "HN_nt_name", "HN_parent_name")),
+    ((bpy.types.NodeTreeInterfaceItem, ),
+    ("item_type", "socket_type", "in_out", "identifier", "index", "position")),
+    # (bpy.types.Node,
+    # ("HN_ref", "HN_idx", "HN_nt_name", "HN_parent_name")),
     (bpy.types.NodeSocket,
-    ("label", "HN_idx", )),
+    ("label", )),
     (bpy.types.Image,
-    ("HN_color_space", "HN_open_mode", "HN_tex_keys", "filepath", "name")),
+    ("filepath", "name")),
 )
+
+node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 failed_tex_num = 0
     
@@ -239,8 +241,8 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             for i in range(clength):
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         elif length < clength:
-            # may be the new node should append list manually, like curve[i].points. here we do this.
-            for i in range(0, clength):
+            # may be the new node should append list manually, like curve[i].points, simulationInputs, etc. here we do this.
+            for i in range(clength):
                 if i > length - 1:
                     new_element(obj, cobj[i], attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
@@ -251,7 +253,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
     elif isinstance(cobj, dict):
         for attr, cvalue in cobj.items():
             # XXX i'm not sure whether using startswith("HN_") or using black list is more efficient...
-            if attr in black_attrs:
+            if attr in black_attrs or attr.startswith("HN_"):
                 continue
             elif isinstance(cvalue, list) and not check_common(cvalue):
                 sub_obj = getattr(obj, attr)
@@ -268,83 +270,83 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
                 if attr == "subtype" and cvalue == '':
                     cvalue = 'NONE'
+                print('====EEEEE====')
+                print(obj)
+                print(cobj)
+                print(attr)
+                print(cvalue)
+                print()
                 setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
     elif cobj and attr_name not in black_attrs:
         obj = cobj
         
 
-def new_element(obj, cattr, attr_name):
+def new_element(obj, cobj, attr_name):
     '''New an element of bpy_prop_collection by new() function in blender
     
     - obj: bpy prop collection
     - cattr: An element of the collection, will be used as new()'s input parameter
     - attr_name: Attributs' name, will be used to find what new() to use'''
     def new(*parameter):
-        getattr(obj, 'new')(*parameter)
+        getattr(obj, "new")(*parameter)
     # XXX it's weak. we should use some other way to specify it. maybe need to add an attr_owner...
-    if attr_name == 'elements':
-        new(cattr['position'])
+    if attr_name == "elements":
+        new(cobj["position"])
     elif attr_name == "points":
-        new(cattr['location'][0], cattr['location'][1])
-
-
-def generate_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, set_tree_io=False, link_group_io=True):
-    global failed_tex_num
-    nodes = node_tree.nodes
-    links = node_tree.links
-    interface = node_tree.interface
-    
-    # Some Preparations: Deselect Nodes
-    for node in nodes:
-        node.select = False
+        new(cobj["location"][0], cobj["location"][1])
         
-    # Setup Tree Interface if there are group io nodes in the preset
-    if set_tree_io:
-        interface.clear()
-        cinterface = cnode_tree["interface"]
-        clength = len(cinterface)
-        child_parent_pairs = []
-        # dont know why, after we newed all the items, their index will change. so we store references.
-        for i in range(clength):
-            citem = cinterface[i]
-            name = citem["name"]
-            item_type = citem["item_type"]
-            # invoke new() to create item
-            if item_type == 'SOCKET':
-                in_out = citem["in_out"]
-                socket_type = citem["socket_type"]
-                item = interface.new_socket(name, in_out=in_out, socket_type=socket_type)
-            elif item_type == 'PANEL':
-                item = interface.new_panel(name)
-                
-            # set item attributes
-            interface.move(item, citem["position"])
-            set_attrs(item, citem)
-            citem["HN_ref"] = item
-            
-            # get parent relations
-            if citem["HN_parent_idx"] != -1:
-                child_parent_pairs.append((item, citem["HN_parent_idx"], citem["position"]))
         
-        # set item parent
-        for item, HN_parent_idx, to_position in child_parent_pairs:
-            interface.move_to_parent(item, cinterface[HN_parent_idx]["HN_ref"], to_position)
-            
-    # Generate Nodes & Set Node Attributes & Set IO Socket Value
-    cnodes = cnode_tree["nodes"]
+def set_interface(interface, cinterface):
+    interface.clear()
+    clength = len(cinterface)
     child_parent_pairs = []
+    # dont know why, after we newed all the items, their index will change. so we store references.
+    for i in range(clength):
+        citem = cinterface[i]
+        name = citem["name"]
+        item_type = citem["item_type"]
+        # invoke new() to create item
+        if item_type == 'SOCKET':
+            in_out = citem["in_out"]
+            socket_type = citem["socket_type"]
+            item = interface.new_socket(name, in_out=in_out, socket_type=socket_type)
+        elif item_type == 'PANEL':
+            item = interface.new_panel(name)
+            
+        # set item attributes
+        interface.move(item, citem["position"])
+        set_attrs(item, citem)
+        citem["HN_ref"] = item
+        
+        # get parent relations
+        if citem["HN_parent_idx"] != -1:
+            child_parent_pairs.append((item, citem["HN_parent_idx"], citem["position"]))
+    
+    # set item parent
+    for item, HN_parent_idx, to_position in child_parent_pairs:
+        interface.move_to_parent(item, cinterface[HN_parent_idx]["HN_ref"], to_position)
+        
+        
+def set_nodes(nodes, cnodes, cnode_trees):
+    node_attr_ref2nodenames = []
+    later_setup_cnodes = {}
     for cnode in cnodes.values():
         bl_idname = cnode["bl_idname"]
-        # new node
+        # new node and get ref
         node = nodes.new(type=bl_idname)
-        # set name (may be auto re-named by blender if a same name node exists, so update the cnode name and record it)
+        cnode["HN_ref"] = node
+        # set name
         node.name = cnode['name']
+        # record sub node this node refers to, set it and set node refs after all nodes were created
+        ref_to_attr_name = cnode.get("HN_ref2_node_attr", None)
+        if ref_to_attr_name:
+            node_attr_ref2nodenames.append((node, cnode, ref_to_attr_name, cnode["HN_ref2_node_name"]))
         # set node's sub node tree if node is ng
-        if cnode["bl_idname"] == 'ShaderNodeGroup':
+        if bl_idname in node_group_id_names:
             node.node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
         # set node's image
-        if cnode.get("image", None):
+        elif cnode.get("image", None):
             tex = open_tex(cnode["image"])
             if tex == 'DIR_NOT_FOUND' or tex == 'FILE_INEXIST' or tex =='NO_MATCHED_TEX':
                 failed_tex_num += 1
@@ -352,24 +354,46 @@ def generate_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, s
                 pass
             else:
                 node.image = tex
-            
-        # if bl_idname not in ("NodeGroupInput", "NodeGroupOutput") or set_tree_io or not link_group_io:
+        elif bl_idname == "GeometryNodeSimulationOutput":
+            cstate_items = cnode.get("state_items", [])
+            length = len(cstate_items)
+            # idx 0 is a build-in geometry socket, skip it
+            for i in range(1, length):
+                citem = cstate_items[i]
+                node.state_items.new(citem["socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeCaptureAttribute":
+            capture_items = cnode.get("capture_items", [])
+            for citem in capture_items:
+                node.capture_items.new(citem["HN_socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeSimulationInput":
+            later_setup_cnodes[cnode['name']] = (node, cnode)
+            continue
+        
         # set attributes, io sockets
         set_attrs(node, cnode)
-        # get parent relations
-        if cnode["HN_parent_name"]:
-            child_parent_pairs.append((node, cnode["HN_parent_name"]))
-        cnode["HN_ref"] = node
-    
-    # Set Node Parent
-    for node, HN_parent_name in child_parent_pairs:
+            
+    # Set Referenced Nodes to The Nodes refering them, Then
+    for node, cnode, attr, ref2_node_name in node_attr_ref2nodenames:
         # BUG if have nested frame, when first created and with auto create select, dragging will make 
         # them dance crazily. for now the solution is click some where then select them again...
         # I guess it's because the location and size we set for the frame complict with auto frame adjust...
-        node.parent = cnodes[HN_parent_name]["HN_ref"]
-
-    # Generate Links
-    clinks = cnode_tree['links']
+        cref2_node = cnodes.get(ref2_node_name, None)
+        if cref2_node is not None:
+            if attr == "paired_output":
+                node.pair_with_output(cnodes[ref2_node_name]["HN_ref"])
+            else:
+                setattr(node, attr, cnodes[ref2_node_name]["HN_ref"])
+        # dont have paired output in our data, remove input in late set list
+        elif attr == "paired_output":
+            node.location = cnode["location"]
+            del later_setup_cnodes[cnode["name"]]
+        
+    # Late Set, for nodes refering to another node
+    for node, cnode in later_setup_cnodes.values():
+        set_attrs(node, cnode)
+        
+        
+def set_links(links, clinks, cnodes, link_group_io=True):
     for clink in clinks:
         HN_from_socket_idx = clink['HN_from_socket_idx']
         HN_to_socket_idx = clink['HN_to_socket_idx']
@@ -378,13 +402,36 @@ def generate_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, s
         to_node = cnodes[clink['HN_to_node_name']]["HN_ref"]
 		
         if link_group_io or (from_node.bl_idname != "NodeGroupInput" and to_node.bl_idname != "NodeGroupOutput"):
-            from_socket = from_node.outputs[HN_from_socket_idx]
-            to_socket = to_node.inputs[HN_to_socket_idx]
-            links.new(from_socket, to_socket)
+            if (HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs)):
+                from_socket = from_node.outputs[HN_from_socket_idx]
+                to_socket = to_node.inputs[HN_to_socket_idx]
+                links.new(from_socket, to_socket)
             
 
-def generate_preset(context: bpy.types.Context, preset_name: str):
-    '''Generate nodes for the current edit tree'''
+def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, set_tree_io=False, link_group_io=True):
+    global failed_tex_num
+    nodes = node_tree.nodes
+    links = node_tree.links
+    interface = node_tree.interface
+    
+    # Deselect Nodes
+    for node in nodes:
+        node.select = False
+        
+    # Setup Tree Interface if there are group io nodes in the preset
+    if set_tree_io:
+        set_interface(interface, cnode_tree["interface"])
+            
+    cnodes = cnode_tree["nodes"]
+    # Generate Nodes & Set Node Attributes & Set IO Socket Value
+    set_nodes(nodes, cnodes, cnode_trees)
+
+    # Generate Links
+    set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
+            
+
+def apply_preset(context: bpy.types.Context, preset_name: str):
+    '''Set nodes for the current edit tree'''
     global failed_tex_num
     failed_tex_num = 0
     node_groups = bpy.data.node_groups
@@ -420,7 +467,7 @@ def generate_preset(context: bpy.types.Context, preset_name: str):
         # didnt find the same tree, create one
         cname = utils.ensure_unique_name(cname, -1, node_groups.keys())
         node_tree = node_groups.new(cname, cnode_tree["bl_idname"])
-        generate_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True)
+        set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True)
         cnode_tree["HN_ref"] = node_tree
         
     # Generate Main Node Tree To Current Editing Tree
@@ -442,6 +489,6 @@ def generate_preset(context: bpy.types.Context, preset_name: str):
     else:
         set_tree_io = False
         link_group_io = True
-    generate_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, set_tree_io=set_tree_io, link_group_io=link_group_io)
+    set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, set_tree_io=set_tree_io, link_group_io=link_group_io)
     
     return failed_tex_num

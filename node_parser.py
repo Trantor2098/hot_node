@@ -39,37 +39,79 @@ required_attr_types = (
     bpy.types.Image,
 )
 
+# ignored_attr_types = (
+#     bpy.types.NodeSocketVirtual,
+# )
+
 node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
-# <type>, <white attrs>, <black attrs> | white & black list for parsing attributes.
+# <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes.
 # the lowest type should be in the front, if there are parent relation between two types.
+# NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 type_wb_attrs = (
     (bpy.types.NodeTreeInterfaceItem, 
     ("item_type", "socket_type", "in_out", "index", "position", "identifier"), 
-    ()),
+    (),
+    None),
     (bpy.types.NodeSocket,
     (),
-    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "type", "identifier", "is_linked", "is_unavailable")),
+    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output"),
+    None),
     ((bpy.types.ShaderNodeGroup, bpy.types.GeometryNodeGroup, bpy.types.CompositorNodeGroup),
      ("bl_idname",),
-     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "interface")),
+     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "interface"),
+    None),
     (bpy.types.Node,
-    ("bl_idname",),
-    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "outputs")),
+    ("bl_idname", "location"),
+    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type"),
+    None),
     ((bpy.types.ColorRampElement, bpy.types.CurveMapPoint),
     ("position", "location"),
-    ()),
+    (),
+    None),
     ((bpy.types.Image),
     ("name", "alpha_mode", "colorspace_settings", "filepath", "source"),
-    ()),
+    (),
+    None),
+    (bpy.types.SimulationStateItem,
+    ("socket_type", "name",),
+    ("color", "rna_type"),
+    None),
+    (bpy.types.GeometryNodeCaptureAttribute,
+    ("socket_type",),
+    ("color", "rna_type"),
+    "parse_capture_attribute_item"),
 )
+
+# TODO replace inner special logic by this class.
+# For special attributes that need unique logic to parse, containing delegates for parser to invoke.
+class SpecialParser():
     
-def get_white_black_attrs(obj):
+    @staticmethod
+    def parse_capture_attribute_item(obj, cobj):
+        # XXX data_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
+        # why blender dont have a socket_type attribute on this node??
+        # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
+        # NOT COMPLETED, cobj = {} will overwrite this.
+        capture_items = obj.capture_items
+        for item in capture_items:
+            data_type = item.data_type
+            if data_type.find('VECTOR') != -1:
+                cobj["HN_socket_type"] = 'VECTOR'
+            else:
+                cobj["HN_socket_type"] = data_type
+    
+    
+def get_whites_blacks_delegate(obj):
     for item in type_wb_attrs:
+        if item[3] is not None:
+            delegate = getattr(SpecialParser, item[3])
+        else:
+            delegate = None
         if isinstance(obj, item[0]):
-            return item[1], item[2]
+            return item[1], item[2], delegate
     # fallback black list
-    return (), ("rna_type", )
+    return (), ("rna_type", ), delegate
 
 
 def get_attrs_values(obj, white_attrs: list|tuple=(), black_attrs: list|tuple=(), white_only=False):
@@ -104,15 +146,34 @@ def decode_compare_value(value, ivalue=None):
                             mathutils.Color, 
                             bpy.types.bpy_prop_array)):
         vector = list(value)
-        if ivalue != None and list(ivalue) == vector and vector != None:
+        if ivalue is not None and type(value) == type(ivalue) and list(ivalue) == vector and vector != None:
             is_default = True
+        # XXX precision control, i'm not sure if i should add this user optional function...
+        # length = len(vector)
+        # result = [0.0] * length
+        # for i in length:
+        #     result[i] = round(4)
         result = vector
     elif isinstance(value, (bool, int, str, float, bpy.types.EnumProperty)):
-        if ivalue != None and value == ivalue:
+        if ivalue is not None and value == ivalue:
             is_default = True
         result = value
         
     return result, is_default
+
+
+def parse_attrs_simply(obj, attrs: tuple):
+    cobj = {}
+    for attr in attrs:
+        if hasattr(obj, attr):
+            value = getattr(obj, attr)
+            if isinstance(value, (mathutils.Vector, 
+                            mathutils.Euler, 
+                            mathutils.Color, 
+                            bpy.types.bpy_prop_array)):
+                value = list(value)
+            cobj[attr] = value
+    return cobj
 
 
 def parse_attrs(obj, iobj=None, white_only=False):
@@ -124,10 +185,12 @@ def parse_attrs(obj, iobj=None, white_only=False):
     '''
     # cobj is a dict that mirrors the obj to record attr values
     cobj = {}
-    white_attrs, black_attrs = get_white_black_attrs(obj)
+    white_attrs, black_attrs, parse_special = get_whites_blacks_delegate(obj)
+    if parse_special is not None:
+        parse_special(obj, cobj)
     attrs_values = get_attrs_values(obj, white_attrs=white_attrs, black_attrs=black_attrs, white_only=white_only)
     for attr, value in attrs_values.items():
-        ivalue = getattr(iobj, attr) if iobj is not None else None
+        ivalue = getattr(iobj, attr) if iobj is not None and hasattr(iobj, attr) else None
         result, is_default = decode_compare_value(value, ivalue)
         
         # Parse common attrs that dont contains another class, dict... 
@@ -144,22 +207,25 @@ def parse_attrs(obj, iobj=None, white_only=False):
             for i in range(length):
                 element = value[i]
                 celement = None
-                # In some prop collection like color ramp's elements, the number of the element may be dynamic, 
-                # here we escape index out of range error.
+                
                 if ilength == 0:
                     ielement = None
+                # In some prop collection like color ramp's elements, the number of the element may be dynamic, 
+                # here we escape index out of range error.
                 elif i > ilength - 1:
-                    ielement = ivalue[0]
+                    # XXX It's safer to set it None, but it will waste some space...
+                    # ielement = ivalue[0]
+                    ielement = None
                 else:
                     ielement = ivalue[i]
                 result, is_default = decode_compare_value(element, ielement)
                 
+                # some common value
                 if result:
-                    # some common value
                     if not is_default or attr in white_attrs:
                         celement = result
+                # some class...
                 else:
-                    # some class...
                     celement = parse_attrs(element, ielement)
                     
                 # NOTE HN_idx is our custom attribute to help record the element index in the original list, 
@@ -171,9 +237,13 @@ def parse_attrs(obj, iobj=None, white_only=False):
             if cattr:
                     cobj[attr] = cattr
                 
-        # parse the specfic class attr
+        # parse special classes
         elif isinstance(value, bpy.types.Image):
             cobj[attr] = parse_image(value, bpy.context.scene.hot_node_tex_default_mode)
+        # if a node refers to a related node attributes, we just get refered node's name for our setter to get a ref
+        elif isinstance(value, bpy.types.Node) and attr != "node":
+            cobj["HN_ref2_node_attr"] = attr
+            cobj["HN_ref2_node_name"] = value.name
         elif isinstance(value, required_attr_types):
             cobj[attr] = parse_attrs(value, ivalue)
             
@@ -238,17 +308,11 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
                 cnode = parse_attrs(node, inode)
                 # this is a custom attribute
                 cnode["HN_nt_name"] = node.node_tree.name
-            # elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeSimulationOutput"):
-            #     node.select = False
-            #     continue
+            elif bl_idname == "NodeReroute":
+                cnode = parse_attrs_simply(node, ("bl_idname", "location", "name", "display_shape"))
             else:
                 cnode = parse_attrs(node, inode)
                 
-            if node.parent and node.parent.select:
-                # this is a custom attribute
-                cnode["HN_parent_name"] = node.parent.name
-            else:
-                cnode["HN_parent_name"] = None
             nodes.remove(inode)
             cnodes[name] = cnode
     return cnodes
