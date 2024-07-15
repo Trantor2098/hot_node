@@ -381,7 +381,7 @@ class HOTNODE_OT_texture_save(Operator):
                 self.report(type={'ERROR'}, message="Current selected preset is not the last saved one. Do a save first.")
             return {'CANCELLED'}
         else:
-            file.create_preset(preset_name, cpreset)
+            file.update_preset(preset_name, cpreset)
             self.report({'INFO'}, f"Texture saved.")
         
         return {'FINISHED'}
@@ -595,7 +595,7 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
 
 class HOTNODE_OT_refresh(Operator):
     bl_idname = "node.hot_node_refresh"
-    bl_label = "Refresh Presets & Packs"
+    bl_label = "Refresh Data"
     bl_description = "Refresh presets and packs, useful for cross-file sync"
     bl_options = {'REGISTER'}
 

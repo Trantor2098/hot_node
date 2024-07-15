@@ -196,7 +196,7 @@ def register():
         # options=set(),
         items=[
             ('AUTO', "Auto", "Try to open textures with the order Name Compare > Fixed Path > Stay Empty"),
-            ('COMPARE', "Compare", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
+            ('SIMILAR', "Similar", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
             ('KEYWORD', "Keys", "Using keywords to match texture in an user selected folder"),
             ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
             ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
@@ -209,7 +209,7 @@ def register():
         # options=set(),
         items=[
             ('AUTO', "Auto", "Try to open textures with the order Name Compare > Fixed Path > Stay Empty"),
-            ('COMPARE', "Compare", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
+            ('SIMILAR', "Similar", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
             ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
             ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
         ]

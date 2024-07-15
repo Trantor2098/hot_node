@@ -143,17 +143,20 @@ def open_tex(cobj):
         tex_names = file.get_tex_names_in_dir(tex_dir_path)
         if tex_names == 'DIR_NOT_FOUND':
             return 'DIR_NOT_FOUND'
-        match_num = 0
         max_match_num = 0
         tex_name: str = None
-        for tex_name in tex_names:
+        for name in tex_names:
+            match_num = 0
+            lower_name = name.lower()
             for tex_key in tex_keys:
-                if tex_name.lower().find(tex_key.lower()) != -1:
+                if lower_name.find(tex_key.lower()) != -1:
                     match_num += 1
             if match_num > max_match_num:
-                tex_name = tex_name
+                print(tex_name, match_num)
+                tex_name = name
+                max_match_num = match_num
         tex_path = "\\".join((tex_dir_path, tex_name))
-        if not tex_name:
+        if tex_name is None:
             return 'NO_MATCHED_TEX'
     # Stay Empty Mode
     elif open_mode == 'STAY_EMPTY':
@@ -164,8 +167,8 @@ def open_tex(cobj):
         tex_name = cobj["name"]
         if not os.path.exists(tex_path):
             return 'FILE_INEXIST'
-    # Compare Mode
-    elif open_mode == 'COMPARE':
+    # Similar Mode
+    elif open_mode == 'SIMILAR':
         tex_names = file.get_tex_names_in_dir(tex_dir_path)
         if tex_names == 'DIR_NOT_FOUND':
             return 'DIR_NOT_FOUND'
