@@ -38,8 +38,6 @@ from . import file, utils, node_parser
 type_black_attrs = (
     ((bpy.types.NodeTreeInterfaceItem, ),
     ("item_type", "socket_type", "in_out", "identifier", "index", "position")),
-    # (bpy.types.Node,
-    # ("HN_ref", "HN_idx", "HN_nt_name", "HN_parent_name")),
     (bpy.types.NodeSocket,
     ("label", )),
     (bpy.types.Image,
@@ -245,6 +243,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             for i in range(clength):
                 if i > length - 1:
                     new_element(obj, cobj[i], attr_name)
+                print(obj,attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         else:
             # length > clength, for when we only recorded part of the list
@@ -270,12 +269,6 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
                 if attr == "subtype" and cvalue == '':
                     cvalue = 'NONE'
-                print('====EEEEE====')
-                print(obj)
-                print(cobj)
-                print(attr)
-                print(cvalue)
-                print()
                 setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
     elif cobj and attr_name not in black_attrs:

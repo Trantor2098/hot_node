@@ -46,7 +46,7 @@ required_attr_types = (
 node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 # <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes.
-# the lowest type should be in the front, if there are parent relation between two types.
+# NOTE the lowest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 type_wb_attrs = (
     (bpy.types.NodeTreeInterfaceItem, 
@@ -61,6 +61,10 @@ type_wb_attrs = (
      ("bl_idname",),
      ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "interface"),
     None),
+    (bpy.types.GeometryNodeCaptureAttribute,
+    ("bl_idname",),
+    ("rna_type", "dimensions", 'select', 'is_active_output', "internal_links", "rna_type"),
+    "parse_capture_items"),
     (bpy.types.Node,
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type"),
@@ -73,42 +77,39 @@ type_wb_attrs = (
     ("name", "alpha_mode", "colorspace_settings", "filepath", "source"),
     (),
     None),
-    (bpy.types.SimulationStateItem,
+    ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem),
     ("socket_type", "name",),
     ("color", "rna_type"),
     None),
-    (bpy.types.GeometryNodeCaptureAttribute,
-    ("socket_type",),
-    ("color", "rna_type"),
-    "parse_capture_attribute_item"),
 )
 
 # TODO replace inner special logic by this class.
+# TODO reduce special logics
 # For special attributes that need unique logic to parse, containing delegates for parser to invoke.
 class SpecialParser():
     
     @staticmethod
-    def parse_capture_attribute_item(obj, cobj):
+    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj):
         # XXX data_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
-        # why blender dont have a socket_type attribute on this node??
+        # why blender dont have a socket_type attribute in CaptureAttributeItem??
         # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
-        # NOT COMPLETED, cobj = {} will overwrite this.
         capture_items = obj.capture_items
-        for item in capture_items:
-            data_type = item.data_type
+        ccapture_items = cobj["capture_items"]
+        length = len(capture_items)
+        for i in range(length):
+            data_type = capture_items[i].data_type
             if data_type.find('VECTOR') != -1:
-                cobj["HN_socket_type"] = 'VECTOR'
+                ccapture_items[i]["HN_socket_type"] = 'VECTOR'
             else:
-                cobj["HN_socket_type"] = data_type
+                ccapture_items[i]["HN_socket_type"] = data_type
     
     
 def get_whites_blacks_delegate(obj):
+    delegate = None
     for item in type_wb_attrs:
-        if item[3] is not None:
-            delegate = getattr(SpecialParser, item[3])
-        else:
-            delegate = None
         if isinstance(obj, item[0]):
+            if item[3] is not None:
+                delegate = getattr(SpecialParser, item[3])
             return item[1], item[2], delegate
     # fallback black list
     return (), ("rna_type", ), delegate
@@ -186,8 +187,6 @@ def parse_attrs(obj, iobj=None, white_only=False):
     # cobj is a dict that mirrors the obj to record attr values
     cobj = {}
     white_attrs, black_attrs, parse_special = get_whites_blacks_delegate(obj)
-    if parse_special is not None:
-        parse_special(obj, cobj)
     attrs_values = get_attrs_values(obj, white_attrs=white_attrs, black_attrs=black_attrs, white_only=white_only)
     for attr, value in attrs_values.items():
         ivalue = getattr(iobj, attr) if iobj is not None and hasattr(iobj, attr) else None
@@ -203,7 +202,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
         elif isinstance(value, bpy.types.bpy_prop_collection):
             length = len(value)
             ilength = len(ivalue)
-            cattr = []
+            celements = []
             for i in range(length):
                 element = value[i]
                 celement = None
@@ -232,10 +231,10 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 # because we only have part of the list been recorded. 
                 # this can help reducing the json space, escaping repeat {} merely for occupying a right index.
                 if celement:
-                    cattr.append(celement)
+                    celements.append(celement)
                     celement["HN_idx"] = i
-            if cattr:
-                    cobj[attr] = cattr
+            if celements:
+                    cobj[attr] = celements
                 
         # parse special classes
         elif isinstance(value, bpy.types.Image):
@@ -246,6 +245,10 @@ def parse_attrs(obj, iobj=None, white_only=False):
             cobj["HN_ref2_node_name"] = value.name
         elif isinstance(value, required_attr_types):
             cobj[attr] = parse_attrs(value, ivalue)
+    
+    # at the end we merge some extra things with special logic to cobj
+    if parse_special is not None:
+        parse_special(obj, cobj)
             
     return cobj
 
