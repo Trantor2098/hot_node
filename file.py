@@ -286,5 +286,9 @@ def get_tex_names_in_dir(tex_dir_path):
     except FileNotFoundError:
         return 'DIR_NOT_FOUND'
     
-    tex_names = [file for file in files if file.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".tga", ".exr", ".tiff"))]
+    tex_names = [file for file in files if file.lower().endswith((".bmp", ".sgi", ".rgb", ".bw", 
+                                                                  ".png", ".jpg", ".jpeg", ".jp2",
+                                                                  ".j2c", ".tga", ".cin", ".dpx",
+                                                                  ".exr", ".hdr", ".tif", ".tiff",
+                                                                  ".webp"))]
     return tex_names
