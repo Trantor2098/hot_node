@@ -28,10 +28,6 @@ from . import utils, properties
 # Attributes starts with "HN" means it's not correspond to blender's data structures, 
 # so cant be put in the has/get/setattr(). They are just for convenience.
 
-# last saved preset
-cpreset_cache = {}
-cpreset_name_cache = ''
-
 # Only class attributes whose type is in this tuple will be parsed in the progress of parsing another type.
 required_attr_types = (
     bpy.types.ColorRamp,
@@ -39,13 +35,9 @@ required_attr_types = (
     bpy.types.Image,
 )
 
-# ignored_attr_types = (
-#     bpy.types.NodeSocketVirtual,
-# )
-
 node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
-# <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes.
+# <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes, and special later parser func for special attrs.
 # NOTE the lowest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 type_wb_attrs = (
@@ -85,7 +77,7 @@ type_wb_attrs = (
 
 # TODO replace inner special logic by this class.
 # TODO reduce special logics
-# For special attributes that need unique logic to parse, containing delegates for parser to invoke.
+# For special attributes that need unique logic to parse, containing delegates for parser to invoke. The delegate will be used as Unity's late_update().
 class SpecialParser():
     
     @staticmethod
@@ -116,7 +108,7 @@ def get_whites_blacks_delegate(obj):
 
 
 def get_attrs_values(obj, white_attrs: list|tuple=(), black_attrs: list|tuple=(), white_only=False):
-    '''Get object's attributes, ignoring attrs that match name in ignore_attrs.'''
+    '''Get object's attributes, the result will depend on the parameters white_attrs, black_attrs, white_only.'''
     attrs = dir(obj)
     if white_only:
         attrs_values = {attr: getattr(obj, attr) for attr in white_attrs}
@@ -246,14 +238,14 @@ def parse_attrs(obj, iobj=None, white_only=False):
         elif isinstance(value, required_attr_types):
             cobj[attr] = parse_attrs(value, ivalue)
     
-    # at the end we merge some extra things with special logic to cobj
+    # Late Parse. at the end we merge some extra things with special logic to cobj
     if parse_special is not None:
         parse_special(obj, cobj)
             
     return cobj
 
 
-def parse_image(image: bpy.types.Image, open_mode: str, tex_key: str=""):
+def parse_image(image: bpy.types.Image | None, open_mode: str, tex_key: str=""):
     cimage = {}
     iimage = bpy.data.images.new("HOTNODE_IMAGE_FOR_COMPARE", width=1, height=1)
     cimage = parse_attrs(image, iimage, white_only=True)
@@ -262,7 +254,6 @@ def parse_image(image: bpy.types.Image, open_mode: str, tex_key: str=""):
     if image is not None:
         cimage["HN_color_space"] = image.colorspace_settings.name
     elif open_mode == 'FIXED_PATH':
-        # dont worry, image may be None and this may be reached.
         open_mode = 'STAY_EMPTY'
     cimage["HN_open_mode"] = open_mode
     cimage["HN_tex_keys"] = utils.split_by_slash(tex_key)
@@ -283,8 +274,9 @@ def parse_interface(node_tree: bpy.types.NodeTree):
         elif item.item_type == 'PANEL':
             iitem = iinterface.new_panel("HOTNODE_SOCKET_FOR_COMPARE")
         citem = parse_attrs(item, iitem)
-        # "HN_parent_HN_idx" is not a blender attr, it's a sugar to get parent in hot node logic.
+        # "HN_parent_idx" is not a blender attr, it's a sugar to get parent in hot node logic.
         # XXX dont know why, if no parent, we can still get item.parent.index as -1. our generate logic is based on this.
+        # TODO this special logic can be merged into universal logic
         citem["HN_parent_idx"] = item.parent.index
         citems_tree.append(citem)
         
@@ -371,12 +363,11 @@ def parse_node_tree(node_tree: bpy.types.NodeTree, parse_all=False):
 def parse_node_preset(edit_tree: bpy.types.NodeTree):
     '''Top level parser, parse edit_tree and it's sons into hot node json data. Will update the preset cache.
     
-    - edit_tree: Node tree on current user node editor interface.
-    - ops: The operator who called this function. Will be used to report error infos.'''
+    - edit_tree: Node tree on current user node editor interface.'''
     global cpreset_cache
     cpreset_cache = {}
     sorted_ngs = record_node_group_names(edit_tree)
-    # sort ng name by level, ensure the higher level ones are ranked first
+    # sort ng name by level, ensure the lower ones are ranked first
     for nt_name, level in sorted_ngs:
         ng_tree = bpy.data.node_groups[nt_name]
         cnode_tree = parse_node_tree(ng_tree, parse_all=True)
@@ -392,7 +383,8 @@ def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, le
     '''Record all node group the node tree need, and sort their name into a list by level descending order.
     
     - node_tree: The node_tree that need to record it's sub node trees.
-    - required_ngs: The dict reference for recursive call, keep None if is first called and it will be automatically created.'''
+    - required_ngs: The dict reference for recursive call, keep None if is first called and it will be automatically created.
+    - lever: Only for recursively call, for ranking ngs by their hierarchy.'''
     if not required_ngs:
         required_ngs = {}
     nodes = edit_tree.nodes

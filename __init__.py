@@ -26,18 +26,18 @@ bl_info = {
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Manage node presets across files in real-time",
     "warning": "",
-    "wiki_url": "https://github.com/Trantor2098/Hot-Node",
+    "wiki_url": "https://github.com/Trantor2098/hot_node",
     "category": "Node",
-    "tracker_url": "https://github.com/Trantor2098/Hot-Node"
+    "tracker_url": "https://github.com/Trantor2098/hot_node"
 }
 
 
-from . import gui, node_setter, properties, operators
+from . import gui,  properties, operators
 
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser
+    from . import utils, file, node_parser, node_setter
     importlib.reload(gui)
     importlib.reload(properties)
     importlib.reload(operators)
@@ -48,7 +48,7 @@ def dev_reload():
 
 
 def register():
-    dev_reload()
+    # dev_reload()
 
     gui.register()
     properties.register()

@@ -34,7 +34,7 @@ Usage
 - ```Undo``` of ```Create```, ```Save```, ```Delete``` operations **haven't been supported yet**. For now you can turn on the ```Extra Comformation``` option in ```Node Preset Specials``` menu to prevent misoperation.
 
 ### Manage Preset Pack
-Pack are a folder to store presets.
+Pack is a folder to store presets.
 - To create a pack, click the ```Plus``` icon button next to the pack slot to create one.
 - To select a pack, click the ```Collecetion``` icon button on the left of the pack slot, choose one in the pop-up menu.
 - To rename a pack, just modify the pack name showed in the pack slot.
@@ -49,7 +49,7 @@ When you selected a pack:
 
 ### Apply Preset
 Select a pack and a preset, click ```Apply``` button to setup nodes to the current edit tree. 
-```Apply``` button will be greyed-out if node editor's window don't contain a node tree.
+```Apply``` button will be greyed-out if node editor's window doesn't contain a node tree.
 
 ### Texture Preset Mode
 Hot Node have several texture saving mode:

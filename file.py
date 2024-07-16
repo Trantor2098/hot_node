@@ -24,7 +24,7 @@ from . version_control import version
 addon_dir_path = os.path.dirname(__file__)
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
 pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
-pack_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
+root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
 pack_meta_cache = {}
 root_meta_cache = {}
@@ -35,7 +35,7 @@ def refresh_root_meta_cache():
     global root_meta_cache
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
-    if not os.path.exists(pack_meta_path):
+    if not os.path.exists(root_meta_path):
         root_meta_cache["pack_selected"] = ""
         write_root_meta()
     else:
@@ -236,6 +236,7 @@ def delete_preset(preset_name):
 def clear_preset(pack_name):
     delete_pack(pack_name)
     create_pack(pack_name)
+
 
 def read_preset_infos():
     metadata_path = os.path.join(pack_selected_dir_path, ".metadata.json")

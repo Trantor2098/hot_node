@@ -18,18 +18,18 @@
 # END GPL LICENSE BLOCK #####
 
 
-# TODO This is note finished yet.
+# TODO This is not finished yet.
 eng = {
     'greeting': 'hello',
 }
 
-chn = {
+chm = {
     'greeting': '你好',
 }
 
 languages = {
     'english': eng,
-    'chinese_s': chn
+    'chinese': chm
 }
 
 texts = languages["english"]
