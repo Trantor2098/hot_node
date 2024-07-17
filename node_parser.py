@@ -230,7 +230,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 
         # parse special classes
         elif isinstance(value, bpy.types.Image):
-            cobj[attr] = parse_image(value, bpy.context.scene.hot_node_tex_default_mode)
+            cobj[attr] = parse_image(value, bpy.context.scene.hot_node_props.tex_default_mode)
         # if a node refers to a related node attributes, we just get refered node's name for our setter to get a ref
         elif isinstance(value, bpy.types.Node) and attr != "node":
             cobj["HN_ref2_node_attr"] = attr

@@ -31,11 +31,6 @@ type_icon = {
     "TextureNodeTree": 'NODE_TEXTURE',
 }
 
-        
-def gui_update(scene):
-    '''XXX This is a hack. Update something in this function if they need when gui update. '''
-    pass
-
 
 class HOTNODE_MT_pack_select(Menu):
     bl_label = "Packs"
@@ -51,7 +46,7 @@ class HOTNODE_MT_specials(Menu):
     bl_label = "Node Preset Specials"
     
     def draw(self, context):
-        scene = context.scene
+        props = context.scene.hot_node_props
         layout = self.layout
         
         # Refresh
@@ -68,12 +63,12 @@ class HOTNODE_MT_specials(Menu):
         
         # Some Bool Options
         layout.separator()
-        layout.prop(scene, "hot_node_overwrite_tree_io")
-        layout.prop(scene, "hot_node_confirm")
+        layout.prop(props, "overwrite_tree_io")
+        layout.prop(props, "extra_confirm")
 
         # Texture Default Mode
         layout.separator()
-        layout.prop(scene, "hot_node_tex_default_mode", text="")
+        layout.prop(props, "tex_default_mode", text="")
         
 
 class HOTNODE_UL_presets(UIList):
@@ -99,10 +94,8 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
     def draw(self, context):
         
         layout = self.layout
-        scene = context.scene
-        presets = scene.hot_node_presets
-        
-        gui_update(scene)
+        props = context.scene.hot_node_props
+        presets = props.presets
         
         # layout.label(text="Node Presets")
         
@@ -118,8 +111,8 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
             rows = 5
 
         row = layout.row()
-        row.template_list("HOTNODE_UL_presets", "", scene, "hot_node_presets",
-                          scene, "hot_node_preset_selected", rows=rows)
+        row.template_list("HOTNODE_UL_presets", "", props, "presets",
+                          props, "preset_selected", rows=rows)
         
         col = row.column(align=True)
         col.operator("node.hot_node_preset_create", icon='ADD', text="")
@@ -127,7 +120,7 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         col.separator()
         # special options menu
         col.menu("HOTNODE_MT_specials", icon='DOWNARROW_HLT', text="")
-
+        # move up & down
         if presets:
             col.separator()
 
@@ -137,14 +130,10 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         # Pack Select UI
         row = layout.row(align=True)
         row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
-        row.prop(scene, "hot_node_pack_selected_name")
+        row.prop(props, "pack_selected_name")
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
 
-        # Texture Area
-        # layout.separator()
-        # layout.label(text="Texture Settings")
-        
         
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
     bl_label = "Textures"
@@ -189,16 +178,16 @@ class HOTNODE_PT_texture_apply(HOTNODE_PT_parent, Panel):
     def draw(self, context):
         
         layout = self.layout
-        scene = context.scene
+        props = context.scene.hot_node_props
         
         layout.use_property_split = True
         layout.use_property_decorate = False
         
         # Texture Apply
         row = layout.row()
-        row.prop(scene, "hot_node_compare_tolerance", text="Tolerance")
+        row.prop(props, "compare_tolerance", text="Tolerance")
         row = layout.row()
-        row.prop(scene, "hot_node_tex_dir_path", text="Folder Path")
+        row.prop(props, "tex_dir_path", text="Folder Path")
 
    
 class HOTNODE_PT_texture_save(HOTNODE_PT_parent, Panel):
@@ -208,8 +197,8 @@ class HOTNODE_PT_texture_save(HOTNODE_PT_parent, Panel):
     
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        mode = scene.hot_node_tex_preset_mode
+        props = context.scene.hot_node_props
+        mode = props.tex_preset_mode
         
         layout.use_property_split = True
         layout.use_property_decorate = False
@@ -219,11 +208,11 @@ class HOTNODE_PT_texture_save(HOTNODE_PT_parent, Panel):
         row.operator("node.hot_node_texture_save", text="Save Texture")
         
         row = layout.row()
-        row.prop(scene, "hot_node_tex_preset_mode", text="Mode")
+        row.prop(props, "tex_preset_mode", text="Mode")
         
         if mode == 'KEYWORD':
             row = layout.row()
-            row.prop(scene, "hot_node_tex_key", text="Key", placeholder="Key1 / Key2 / ...")
+            row.prop(props, "tex_key", text="Key", placeholder="Key1 / Key2 / ...")
             
             
 class HOTNODE_PT_pack_sharing(HOTNODE_PT_parent, Panel):

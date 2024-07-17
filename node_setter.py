@@ -25,7 +25,7 @@ import os
 from . import file, utils, node_parser
 
 # NOTE 
-# In our code, you can see many "HN_ref" key, they are used to escape get wrong ref because of blender's rename logic.
+# In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
 # NOTE 
 # Attributes starts with "HN" means it's not correspond to blender's data structures, 
 # so cant be put in the has/get/setattr(). They are just for convenience.
@@ -53,7 +53,7 @@ def get_black_attrs(obj):
         if isinstance(obj, item[0]):
             return item[1]
     # fallback black list
-    return ("HN_idx", "HN_parent_name")
+    return ()
 
 # Tool Method
 def check_common(cattrs):
@@ -130,8 +130,8 @@ def check_group_io_node(cnodes):
 
 
 def open_tex(cobj):
-    tex_dir_path = bpy.context.scene.hot_node_tex_dir_path
-    tolerance=bpy.context.scene.hot_node_compare_tolerance
+    tex_dir_path = bpy.context.scene.hot_node_props.tex_dir_path
+    tolerance=bpy.context.scene.hot_node_props.compare_tolerance
     open_mode = cobj["HN_open_mode"]
     tex_keys = cobj["HN_tex_keys"]
     open_mode = cobj["HN_open_mode"]
@@ -263,10 +263,6 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             elif isinstance(cvalue, dict) and not check_common(cvalue.values()):
                 sub_obj = getattr(obj, attr)
                 set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj)
-            # XXX how could a cvalue be prop collection?
-            elif isinstance(cvalue, bpy.types.bpy_prop_collection):
-                sub_obj = getattr(obj, attr)
-                set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj)
             else:
                 # BUG sometimes (often after Ctrl + G and the node group interface is autoly created) tree interface socket's subtype is "", 
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
@@ -324,8 +320,8 @@ def set_interface(interface, cinterface):
         interface.move_to_parent(item, cinterface[HN_parent_idx]["HN_ref"], to_position)
         
         
-def set_nodes(nodes, cnodes, cnode_trees):
-    node_attr_ref2nodenames = []
+def set_nodes(nodes, cnodes, cnode_trees, set_tree_io=False):
+    node_cnode_attr_ref2nodenames = []
     later_setup_cnodes = {}
     for cnode in cnodes.values():
         bl_idname = cnode["bl_idname"]
@@ -336,12 +332,18 @@ def set_nodes(nodes, cnodes, cnode_trees):
         node.name = cnode['name']
         # record sub node this node refers to, set it and set node refs after all nodes were created
         ref_to_attr_name = cnode.get("HN_ref2_node_attr", None)
-        if ref_to_attr_name:
-            node_attr_ref2nodenames.append((node, cnode, ref_to_attr_name, cnode["HN_ref2_node_name"]))
+        if ref_to_attr_name is not None:
+            node_cnode_attr_ref2nodenames.append((node, cnode, ref_to_attr_name, cnode["HN_ref2_node_name"]))
+            
+        # Set Special Nodes. TODO Change to delegates
         # set node's sub node tree if node is ng
         if bl_idname in node_group_id_names:
             node.node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
         # set node's image
+        elif bl_idname in ("NodeGroupInput", "NodeGroupOutput"):
+            if not set_tree_io:
+                node.location = cnode["location"]
+                continue
         elif cnode.get("image", None):
             tex = open_tex(cnode["image"])
             if tex == 'DIR_NOT_FOUND' or tex == 'FILE_INEXIST' or tex =='NO_MATCHED_TEX':
@@ -368,8 +370,8 @@ def set_nodes(nodes, cnodes, cnode_trees):
         # set attributes, io sockets
         set_attrs(node, cnode)
             
-    # Set Referenced Nodes to The Nodes refering them, Then
-    for node, cnode, attr, ref2_node_name in node_attr_ref2nodenames:
+    # Set Referenced Nodes to The Nodes refering to them
+    for node, cnode, attr, ref2_node_name in node_cnode_attr_ref2nodenames:
         # BUG if have nested frame, when first created and with auto create select, dragging will make 
         # them dance crazily. for now the solution is click some where then select them again...
         # I guess it's because the location and size we set for the frame complict with auto frame adjust...
@@ -395,6 +397,7 @@ def set_links(links, clinks, cnodes, link_group_io=True):
         HN_to_socket_idx = clink['HN_to_socket_idx']
         
         from_node = cnodes[clink['HN_from_node_name']]["HN_ref"]
+        print(clink['HN_to_node_name'])
         to_node = cnodes[clink['HN_to_node_name']]["HN_ref"]
 		
         if link_group_io or (from_node.bl_idname != "NodeGroupInput" and to_node.bl_idname != "NodeGroupOutput"):
@@ -420,7 +423,7 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, set_tr
             
     cnodes = cnode_tree["nodes"]
     # Generate Nodes & Set Node Attributes & Set IO Socket Value
-    set_nodes(nodes, cnodes, cnode_trees)
+    set_nodes(nodes, cnodes, cnode_trees, set_tree_io=set_tree_io)
 
     # Generate Links
     set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
@@ -479,7 +482,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str):
         link_group_io = True
     # if tree io is not capatible and has group io node, let user to choose whether to reset tree io or not
     elif check_group_io_node(cnode_trees["HN_edit_tree"]["nodes"]):
-        set_tree_io = bpy.context.scene.hot_node_overwrite_tree_io
+        set_tree_io = bpy.context.scene.hot_node_props.overwrite_tree_io
         link_group_io = set_tree_io
     # if dont have group io node, dont need to set tree io
     else:

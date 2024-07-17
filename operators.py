@@ -35,12 +35,13 @@ def sync_data(context: bpy.types.Context):
     
 def select_pack(context, pack):
     # to escaping overwrite 
-    scene = context.scene
+    props = context.scene.hot_node_props
     properties.pack_selected = pack
-    scene.hot_node_pack_selected_name = pack
-    scene.hot_node_preset_selected = 0
+    
+    props.pack_selected_name = pack
+    props.preset_selected = 0
     # load presets in the newly selected pack
-    presets = scene.hot_node_presets
+    presets = props.presets
     presets.clear()
     file.select_pack(pack)
     if pack != "":
@@ -56,34 +57,30 @@ def select_pack(context, pack):
         # properties.skip_update = False
 
 
-def exchange(preset1, preset2):
-    name, type = preset2.name, preset2.type
-    preset2.name = preset1.name
-    preset2.type = preset1.type
-    preset1.name = name
-    preset1.type = type
+# DEPRECATED
+# def preset_exchange(preset1, preset2):
+#     name, type = preset2.name, preset2.type
+#     preset2.name = preset1.name
+#     preset2.type = preset1.type
+#     preset1.name = name
+#     preset1.type = type
     
     
-def bottom_to_top(presets):
-    length = len(presets)
-    preset = presets[length - 1]
+def preset_move_to(selected_idx, dst_idx, presets):
+    preset = presets[selected_idx]
     name, type = preset.name, preset.type
-    for i in range(1, length):
-        presets[length - i].name = presets[length - 1 - i].name
-        presets[length - i].type = presets[length - 1 - i].type
-    presets[0].name = name
-    presets[0].type = type
-    
-    
-def top_to_bottom(presets):
-    length = len(presets)
-    preset = presets[0]
-    name, type = preset.name, preset.type
-    for i in range(1, length):
-        presets[i - 1].name = presets[i].name
-        presets[i - 1].type = presets[i].type
-    presets[length - 1].name = name
-    presets[length - 1].type = type
+    if selected_idx > dst_idx:
+        for i in range(selected_idx - dst_idx):
+            presets[selected_idx - i].name = presets[selected_idx - i - 1].name
+            presets[selected_idx - i].type = presets[selected_idx - i - 1].type
+    elif selected_idx < dst_idx:
+        for i in range(selected_idx, dst_idx):
+            presets[i].name = presets[i + 1].name
+            presets[i].type = presets[i + 1].type
+    else:
+        return
+    presets[dst_idx].name = name
+    presets[dst_idx].type = type
     
     
 def ensure_sync(ops: Operator, context: bpy.types.Context):
@@ -113,12 +110,10 @@ class HOTNODE_OT_preset_create(Operator):
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
+        props = context.scene.hot_node_props
+        presets = props.presets
         edit_tree = context.space_data.edit_tree
-            
         pack_name = properties.pack_selected
-        presets = scene.hot_node_presets
         # escape rename. The default name is "Preset"... Do this first to check sync
         new_full_name = utils.ensure_unique_name_dot("Preset", -1, presets)
         
@@ -126,7 +121,7 @@ class HOTNODE_OT_preset_create(Operator):
         # select newly created set
         length = len(presets)
         preset_selected_idx = length - 1
-        scene.hot_node_preset_selected = preset_selected_idx
+        props.preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
         # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
@@ -151,29 +146,29 @@ class HOTNODE_OT_preset_delete(Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
+        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
+        props = context.scene.hot_node_props
+        presets = props.presets
 
         length = len(presets)
-        preset_selected_idx = scene.hot_node_preset_selected
+        preset_selected_idx = props.preset_selected
         preset_name = presets[preset_selected_idx].name
         
         if length > 0:
             presets.remove(preset_selected_idx)
             if preset_selected_idx == length - 1:
-                scene.hot_node_preset_selected -= 1
+                props.preset_selected -= 1
                 
         file.delete_preset(preset_name)
 
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        if context.scene.hot_node_confirm:
+        if context.scene.hot_node_props.extra_confirm:
             wm = context.window_manager
             result = wm.invoke_confirm(self, event, title='Delete Preset (Can\'t Undo)', confirm_text='Delete')
         else:
@@ -189,14 +184,14 @@ class HOTNODE_OT_preset_clear(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
+        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
+        props = context.scene.hot_node_props
         file.clear_preset(properties.pack_selected)
-        scene.hot_node_presets.clear()
+        props.presets.clear()
         self.report({'INFO'}, f"All presets in pack \"{properties.pack_selected}\" were deleted.")
 
         return {'FINISHED'}
@@ -220,9 +215,9 @@ class HOTNODE_OT_preset_move(Operator):
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
-        preset_selected_idx = scene.hot_node_preset_selected
+        props = context.scene.hot_node_props
+        presets = props.presets
+        preset_selected_idx = props.preset_selected
         
         length = len(presets)
         if length < 2:
@@ -234,37 +229,33 @@ class HOTNODE_OT_preset_move(Operator):
         if self.direction == 'UP':
             if preset_selected_idx == 0:
                 dst_idx = length - 1
-                top_to_bottom(presets)
             else:
                 dst_idx = preset_selected_idx - 1
-                exchange(presets[dst_idx], presets[preset_selected_idx])
                 reorder = False
         elif self.direction == 'DOWN':
             if preset_selected_idx == length - 1:
                 dst_idx = 0
-                bottom_to_top(presets)
             else:
                 dst_idx = preset_selected_idx + 1
-                exchange(presets[dst_idx], presets[preset_selected_idx])
                 reorder = False
         elif self.direction == 'TOP':
             dst_idx = 0
-            bottom_to_top(presets)
         elif self.direction == 'BOTTOM':
             dst_idx = length - 1
-            top_to_bottom(presets)
+            
+        preset_move_to(preset_selected_idx, dst_idx, presets)
 
-        # XXX should we save json every time we move position...? so ugly...
-        # XXX the presets.keys() is supposed to work but when we move up a first created preset
-        # in a first created pack, the keys[0] will be "" some how...
+        # reoder means creating a new list to store the new order, which brings more cost
         if reorder:
             preset_names = []
             for i in range(len(presets)):
                 preset_names.append(presets[i].name)
             file.reorder_preset_meta(preset_names)
+        # exchange brings less cost
         else:
             file.exchange_order_preset_meta(dst_idx, preset_selected_idx)
-        scene.hot_node_preset_selected = dst_idx
+        props.preset_selected = dst_idx
+        
         properties.skip_update = False
 
         return {'FINISHED'}
@@ -278,14 +269,14 @@ class HOTNODE_OT_preset_save(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
+        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
-        preset_selected_idx = scene.hot_node_preset_selected
+        props = context.scene.hot_node_props
+        presets = props.presets
+        preset_selected_idx = props.preset_selected
         preset_selected = presets[preset_selected_idx]
         preset_name = preset_selected.name
         pack_name = properties.pack_selected
@@ -303,7 +294,7 @@ class HOTNODE_OT_preset_save(Operator):
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        if context.scene.hot_node_confirm:
+        if context.scene.hot_node_props.extra_confirm:
             wm = context.window_manager
             result = wm.invoke_confirm(self, event, title='Save Preset (Can\'t Undo)', confirm_text='Save')
         else:
@@ -319,15 +310,15 @@ class HOTNODE_OT_preset_apply(Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_presets) > 0
+        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
     
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
+        props = context.scene.hot_node_props
+        presets = props.presets
 
-        preset_selected_idx = scene.hot_node_preset_selected
+        preset_selected_idx = props.preset_selected
         preset = presets[preset_selected_idx]
         
         edit_tree_type = context.space_data.edit_tree.bl_idname
@@ -357,15 +348,15 @@ class HOTNODE_OT_texture_save(Operator):
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        scene = context.scene
-        presets = scene.hot_node_presets
-        preset_selected_idx = scene.hot_node_preset_selected
+        props = context.scene.hot_node_props
+        presets = props.presets
+        preset_selected_idx = props.preset_selected
         preset_selected = presets[preset_selected_idx]
         preset_name = preset_selected.name
         pack_name = properties.pack_selected
         
-        open_mode = scene.hot_node_tex_preset_mode
-        tex_key = scene.hot_node_tex_key
+        open_mode = props.tex_preset_mode
+        tex_key = props.tex_key
 
         cpreset = node_parser.set_texture_rule(context.space_data.edit_tree, preset_name, pack_name, open_mode, tex_key)
         if not isinstance(cpreset, dict):
@@ -387,7 +378,7 @@ class HOTNODE_OT_texture_save(Operator):
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        if context.scene.hot_node_confirm:
+        if context.scene.hot_node_props.extra_confirm:
             wm = context.window_manager
             result = wm.invoke_confirm(self, event, title='Save Texture (Can\'t Undo)', confirm_text='Save')
         else:
@@ -457,7 +448,7 @@ class HOTNODE_OT_pack_delete(Operator):
         return {'FINISHED'}
     
     def invoke(self, context, event):
-        if context.scene.hot_node_confirm:
+        if context.scene.hot_node_props.extra_confirm:
             wm = context.window_manager
             result = wm.invoke_confirm(self, event, title='Delete Pack (Can\'t Undo)', confirm_text='Delete')
         else:

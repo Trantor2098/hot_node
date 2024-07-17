@@ -19,7 +19,6 @@
 
 
 import bpy
-from bpy.types import Scene, PropertyGroup
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
 from . import utils, file
@@ -74,9 +73,9 @@ def node_preset_name_update(self, context):
     if skip_update:
         return
     global preset_selected
-    scene = context.scene
-    presets = scene.hot_node_presets
-    preset_selected_idx = scene.hot_node_preset_selected
+    props = context.scene.hot_node_props
+    presets = props.presets
+    preset_selected_idx = props.preset_selected
     new_full_name = presets[preset_selected_idx].name
     if preset_selected != new_full_name:
         # this second if is for checking user renaming
@@ -95,9 +94,9 @@ def node_preset_select_update(self, context):
     if skip_update:
         return
     global preset_selected, allow_tex_save
-    scene = context.scene
-    presets = scene.hot_node_presets
-    preset_selected_idx = scene.hot_node_preset_selected
+    props = context.scene.hot_node_props
+    presets = props.presets
+    preset_selected_idx = props.preset_selected
     if len(presets) > 0:
         preset_selected = presets[preset_selected_idx].name
     else:
@@ -105,26 +104,18 @@ def node_preset_select_update(self, context):
     allow_tex_save = False
     
 
-def node_preset_active_update(self, context):
-    pass
-
-
-def node_pack_active_update(self, context):
-    pass
-
-
-def node_pack_selected_name_update(self, context):
+def pack_selected_name_update(self, context):
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
     global pack_selected
-    scene = context.scene
+    props = context.scene.hot_node_props
     old_name = pack_selected
-    new_name = scene.hot_node_pack_selected_name
+    new_name = props.pack_selected_name
     if old_name == new_name:
         return
     if len(packs) > 0:
         rename_pack(old_name, new_name)
     else:
-        scene.hot_node_pack_selected_name = ''
+        props.pack_selected_name = ''
         
         
 # def reduce_file_size_update(self, context):
@@ -135,7 +126,7 @@ def node_pack_selected_name_update(self, context):
 #         indent = 1
 
 
-class NodePreset(PropertyGroup):
+class HotNodePreset(bpy.types.PropertyGroup):
     # This class stores the presets infos in a pack
     name: StringProperty(
         name='Node Preset',
@@ -156,41 +147,28 @@ class NodePreset(PropertyGroup):
         default='ShaderNodeTree',
         update=node_preset_type_update
     ) # type: ignore
-
-
-classes = (
-    NodePreset,
-)
-
-
-def register():
-    for cls in classes:
-        bpy.utils.register_class(cls)
-
-    init()
     
-    Scene.hot_node_presets = CollectionProperty(
+    
+class HotNodeProps(bpy.types.PropertyGroup):
+    
+    presets: CollectionProperty(
         name='Node Presets',
-        type=NodePreset
-    )
+        type=HotNodePreset
+    ) # type: ignore
 
-    Scene.hot_node_preset_selected = IntProperty(
+    preset_selected: IntProperty(
         name='Selected Preset',
         update=node_preset_select_update
-    )
-
-    Scene.hot_node_preset_active = IntProperty(
-        update=node_preset_active_update
-    )
-
+    ) # type: ignore
+    
     # for user to change pack name.
-    Scene.hot_node_pack_selected_name = StringProperty(
+    pack_selected_name: StringProperty(
         name='',
         default=pack_selected,
-        update=node_pack_selected_name_update
-    )
+        update=pack_selected_name_update
+    ) # type: ignore
     
-    Scene.hot_node_tex_preset_mode = EnumProperty(
+    tex_preset_mode: EnumProperty(
         name="Texture Preset Mode",
         description="Texture saving mode",
         # options=set(),
@@ -201,9 +179,9 @@ def register():
             ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
             ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
         ]
-    )
+    ) # type: ignore
     
-    Scene.hot_node_tex_default_mode = EnumProperty(
+    tex_default_mode: EnumProperty(
         name="Texture Default Mode",
         description="Default texture saving mode when save the preset",
         # options=set(),
@@ -213,41 +191,60 @@ def register():
             ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
             ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
         ]
-    )
+    ) # type: ignore
     
-    Scene.hot_node_tex_key = StringProperty(
+    tex_key: StringProperty(
         name="Texture Key",
         description="When open texture, try to find best matched tex with keys. Use / to separate multiple keys",
         default=""
-    )
+    ) # type: ignore
     
-    Scene.hot_node_compare_tolerance = FloatProperty(
+    compare_tolerance: FloatProperty(
         name="Compare Tolerance",
         description="The tolerance of the texture name comparation, higher means that more dissimilar textures can pass the comparation rather than stay empty. Default 0.50 as a moderate tolerance",
         default=0.5,
         min = 0.01,
         max = 0.99,
         step=1
-    )
+    ) # type: ignore
     
-    Scene.hot_node_tex_dir_path = StringProperty(
+    tex_dir_path: StringProperty(
         name="Texture Directory",
         description="Searching textures in this directory when apply preset",
         default="",
         subtype='DIR_PATH'
-    )
+    ) # type: ignore
     
-    Scene.hot_node_overwrite_tree_io = BoolProperty(
+    overwrite_tree_io: BoolProperty(
         name='Overwrite Tree IO',
         description="Overwrite node tree interface (IO sockets, panels) if the existing one is not capatibale with the one in preset. Note: If open, your original node tree interface will be changed and the links to them will be disappeared",
         default=False,
-    )
+    ) # type: ignore
 
-    Scene.hot_node_confirm = BoolProperty(
+    extra_confirm: BoolProperty(
         name='Extra Confirmation',
         description="Popup a confirmation window when save & delete preset or packs, since it can't be undo",
         default=False,
-    )
+    ) # type: ignore
+
+
+classes = (
+    HotNodePreset,
+    HotNodeProps,
+)
+
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+    init()
+    
+    bpy.types.Scene.hot_node_props = bpy.props.PointerProperty(
+        name='Hot Node Prop Group',
+        type=HotNodeProps
+    ) # type: ignore
+    
     
     # XXX Not sure should i add this feature...
     # Scene.hot_node_reduce_file_size = BoolProperty(
@@ -256,34 +253,10 @@ def register():
     #     default=False,
     #     update=reduce_file_size_update
     # )
-    
-    # NOTE Deprecated, now by default we compare two ngs
-    # Scene.hot_node_ng_reuse = BoolProperty(
-    #     name='Try Re-use Node Group',
-    #     description="When apply a preset, compare and re-use the totally same existing node group, rather than create a copy with an unique name",
-    #     default=True
-    # )
-    
-    # NOTE Deprecated, now by default we compare two images
-    # Scene.hot_node_tex_reuse = BoolProperty(
-    #     name='Try Re-use Texture',
-    #     description="When apply a preset, use the existing texture with the same name, rather than load a copy with an unique name",
-    #     default=True
-    # )
+
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-
-    del Scene.hot_node_presets
-    del Scene.hot_node_preset_selected
-    del Scene.hot_node_preset_active
-    del Scene.hot_node_pack_selected_name
-    del Scene.hot_node_confirm
-    del Scene.hot_node_tex_preset_mode
-    del Scene.hot_node_tex_key
-    del Scene.hot_node_compare_tolerance
-    del Scene.hot_node_tex_dir_path
-    del Scene.hot_node_tex_default_mode
-    del Scene.hot_node_overwrite_tree_io
+    del bpy.types.Scene.hot_node_props
