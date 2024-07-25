@@ -41,9 +41,10 @@ Presets are nodes templetes that can be stored, modified, applied.
 
 ##### Manage & Apply Presets
 You can manage & apply presets across .blend files:
-- **Create** in 2 ways, then a new preset recording the current selected nodes will be created:
-    - ```Plus``` icon button on the right of the preset select window.
-    - ```Shift + A``` at node editor window then in ```Add``` > ```Nodes``` > ```Quick Menu``` > ```Fast Create Preset``` enter the new preset's name.
+- **Create**
+    - Click ```Plus``` icon button on the right of the preset select window.
+    - Or use ```Shift + A``` at node editor window then in ```Add``` > ```Nodes``` > ```Quick Menu``` > ```Fast Create Preset``` enter the new preset's name.
+    Then a new preset recording the current selected nodes will be created:
 - **Save** - select the nodes, click ```Save```, these selected nodes will be saved to the current selected preset.
 - **Delete** - select the preset and click the ```Minus``` icon button on the right of the preset select window.
 - **Reorder** - use the ```Up``` / ```Down``` icon button next to the preset select window.
