@@ -26,6 +26,7 @@ from . import utils, file
 
 # NOTE selected preset is saved by blender property, and the python string is a mirror. But pack is saved by python string.
 
+# packs will be loaded once the blender open
 packs = []
 # for script to get current pack.
 pack_selected = ""
@@ -118,6 +119,39 @@ def pack_selected_name_update(self, context):
         props.pack_selected_name = ''
         
         
+def fast_create_preset_name_update(self, context):
+    global skip_update
+    global preset_selected
+    props = context.scene.hot_node_props
+    presets = props.presets
+    fast_name = props.fast_create_preset_name
+    if fast_name == "":
+        return
+    ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
+    edit_tree = context.space_data.edit_tree
+        
+    presets.add()
+    # select newly created set
+    length = len(presets)
+    preset_selected_idx = length - 1
+    props.preset_selected = preset_selected_idx
+    # set type
+    presets[preset_selected_idx].type = edit_tree.bl_idname
+    # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
+    skip_update = True
+    presets[preset_selected_idx].name = ensured_fast_name
+    preset_selected = ensured_fast_name
+    skip_update = False
+    
+    # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
+    from . import node_parser
+    node_parser.parse_node_preset(edit_tree)
+    cpreset = node_parser.set_preset_data(ensured_fast_name, pack_selected)
+    file.create_preset(ensured_fast_name, cpreset)
+    
+    props.fast_create_preset_name = ""
+        
+        
 # def reduce_file_size_update(self, context):
 #     global indent
 #     if context.scene.hot_node_reduce_file_size:
@@ -166,6 +200,14 @@ class HotNodeProps(bpy.types.PropertyGroup):
         name='',
         default=pack_selected,
         update=pack_selected_name_update
+    ) # type: ignore
+    
+    # for user to fast create preset by Shift A.
+    fast_create_preset_name: StringProperty(
+        name="Fast Create Preset Name",
+        default="",
+        description="Create preset with current selected nodes by this name",
+        update=fast_create_preset_name_update
     ) # type: ignore
     
     tex_preset_mode: EnumProperty(

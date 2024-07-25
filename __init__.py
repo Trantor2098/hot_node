@@ -37,7 +37,7 @@ from . import gui,  properties, operators
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser, node_setter
+    from . import utils, file, node_parser, node_setter, version_control
     importlib.reload(gui)
     importlib.reload(properties)
     importlib.reload(operators)
@@ -45,6 +45,7 @@ def dev_reload():
     importlib.reload(node_setter)
     importlib.reload(utils)
     importlib.reload(file)
+    importlib.reload(version_control)
 
 
 def register():

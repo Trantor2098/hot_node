@@ -68,7 +68,39 @@ class HOTNODE_MT_specials(Menu):
 
         # Texture Default Mode
         layout.separator()
-        layout.prop(props, "tex_default_mode", text="")
+        layout.prop(props, "tex_default_mode", icon='PREFERENCES', text="")
+        
+        
+class HOTNODE_MT_nodes_add_specials(Menu):
+    bl_label = "Quick Menu"
+    
+    def draw(self, context):
+        props = context.scene.hot_node_props
+        layout = self.layout
+        layout.operator("node.hot_node_refresh", icon='FILE_REFRESH')
+        layout.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION')
+        layout.separator()
+        layout.prop(props, "fast_create_preset_name", icon='ADD', text="", placeholder="Fast Create Preset")
+        
+        
+class HOTNODE_MT_nodes_add(Menu):
+    bl_label = "Nodes"
+    
+    def draw(self, context):
+        layout = self.layout
+        edit_tree_type = context.space_data.edit_tree.bl_idname
+        props = context.scene.hot_node_props
+        presets = props.presets
+        
+        for preset in presets:
+            if preset.type == edit_tree_type:
+                preset_name = preset.name
+                # layout.operator("node.hot_node_nodes_add", text=preset_name, icon=type_icon[preset.type]).preset_name = preset_name
+                layout.operator("node.hot_node_nodes_add", text=preset_name).preset_name = preset_name
+                
+        layout.separator()
+        # layout.menu("HOTNODE_MT_pack_select", icon='DOT')
+        layout.menu("HOTNODE_MT_nodes_add_specials")
         
 
 class HOTNODE_UL_presets(UIList):
@@ -104,12 +136,16 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         row = col.row(align=True)
         row.operator("node.hot_node_preset_apply", text="Apply")
         row.operator("node.hot_node_preset_save", text="Save")
+        row.separator(factor=1.45)
+        col = row.column()
+        col.operator("node.hot_node_refresh", icon='FILE_REFRESH', text="")
 
         # Preset Select UI
         rows = 3
         if presets:
             rows = 5
 
+        layout.separator(factor=0.1)
         row = layout.row()
         row.template_list("HOTNODE_UL_presets", "", props, "presets",
                           props, "preset_selected", rows=rows)
@@ -118,8 +154,10 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         col.operator("node.hot_node_preset_create", icon='ADD', text="")
         col.operator("node.hot_node_preset_delete", icon='REMOVE', text="")
         col.separator()
+        
         # special options menu
         col.menu("HOTNODE_MT_specials", icon='DOWNARROW_HLT', text="")
+        
         # move up & down
         if presets:
             col.separator()
@@ -229,12 +267,21 @@ class HOTNODE_PT_pack_sharing(HOTNODE_PT_parent, Panel):
         # row.label(text="Packs")
         row = col.row(align=True)
         row.operator("import.hot_node_pack_import", icon="IMPORT", text="Import")
+        row = col.row(align=True)
         row.operator("export.hot_node_pack_export", icon="EXPORT", text="Export")
+        row.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
+        
+        
+def hot_node_shift_a_menu(self, context):
+    self.layout.separator()
+    self.layout.menu(HOTNODE_MT_nodes_add.__name__, text="Nodes")
 
 
 classes = (
     HOTNODE_MT_pack_select,
     HOTNODE_MT_specials,
+    HOTNODE_MT_nodes_add_specials,
+    HOTNODE_MT_nodes_add,
     HOTNODE_UL_presets,
     HOTNODE_PT_main,
     HOTNODE_PT_texture,
@@ -247,8 +294,12 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+        
+    bpy.types.NODE_MT_add.append(hot_node_shift_a_menu)
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+        
+    bpy.types.NODE_MT_add.remove(hot_node_shift_a_menu)

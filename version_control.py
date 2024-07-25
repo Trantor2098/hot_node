@@ -18,7 +18,25 @@
 # END GPL LICENSE BLOCK #####
 
 
-# TODO If the future data structure changes, we will update the old data here...
+from . import node_parser, file
 
 # current Hot Node's version
-version = [0, 1, 0]
+version = [0, 2, 0]
+
+
+def check_update_version(preset_name,cpreset):
+    '''If trying to apply preset, CALL THIS FIRST'''
+    cdata = cpreset["HN_preset_data"]
+    preset_version = cdata["version"]
+    if preset_version != version:
+        if preset_version == [0, 1, 0]:
+            cpreset = version_update_0_1_0(preset_name, cpreset)
+    return cpreset
+    
+    
+def version_update_0_1_0(preset_name, cpreset):
+    cdata = cpreset["HN_preset_data"]
+    pack_name = cdata["pack_name"]
+    cpreset = node_parser.set_preset_data(preset_name, pack_name, cpreset=cpreset)
+    file.update_preset(preset_name, cpreset)
+    return cpreset

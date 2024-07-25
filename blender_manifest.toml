@@ -3,9 +3,9 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "hot_node"
-version = "0.1.0"
+version = "0.2.0"
 name = "Hot Node"
-tagline = "Manage node presets across files in real-time"
+tagline = "Save nodes, then add nodes like adding node, without library"
 maintainer = "Trantor2098 <trantor2098@163.com>"
 # Supported types: "add-on", "theme"
 type = "add-on"
@@ -60,7 +60,7 @@ license = [
 #
 [permissions]
 # network = "Need to sync motion-capture data to server"
-files = "Import/export ZIP from/to disk, CRUD JSON at add-on path."
+files = "Import/export ZIP from/to disk, CRUD JSON at add-on path"
 # clipboard = "Copy and paste bone transforms"
 
 # Optional: build settings.

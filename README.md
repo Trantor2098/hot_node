@@ -1,19 +1,20 @@
 Hot Node
 ========
 
-Save, apply, share node presets across files in real-time, light-weight.
+Save nodes, then add nodes like adding node, without library.
+
+Features
+--------
+
+- Save any nodes and their attributes, then add nodes just like adding a single node, fast and cross-file.
+- Load image by automaticlly seraching and set their color-space & alpha mode.
+- Store / share nodes packs light-weightly without a big .blend file as it's library (usually smaller than 1 MiB).
+
 
 Requirement
 --------
 
 - Blender 4.2 compatible.
-
-Features
---------
-
-- Save node presets and keep them update across any .blend files in real-time.
-- Load image by automaticlly seraching and set their color-space & alpha mode.
-- Share nodes light-weightly without a big .blend file as it's library (usually a preset pack is smaller than 1 MiB).
 
 
 Installation
@@ -25,20 +26,27 @@ Installation
 After Hot Node was installed, you are able to see the Hot Node panel in node editor's sidebar.
 
 
+Before Using It
+--------
+
+**EXPORT ALL NODE PRESET PACKS BEFORE UPDATING / UNINSTALL HOT NODE**
+Because nodes data is stored in add-on's path and will be deleted by blender's extension system without warning.
+
 Usage
 --------
 
 ### Presets
-Presets are the nodes templete that can be stored, modified, applied.
+Presets are nodes templetes that can be stored, modified, applied.
 
 ##### Manage & Apply Presets
-You can manage them across .blend files:
-- Create - click the ```Plus``` icon button on the right of the preset select window, a new preset recording the current selected nodes will be created.
-- Save - select the nodes, click ```Save```, these selected nodes will be saved to the current selected preset.
-- Delete - select the preset and click the ```Minus``` icon button on the right of the preset select window.
-- Reorder - use the ```Up``` / ```Down``` icon button next to the preset select window.
-
-You can apply presets to the current editing node tree by pressing ```Apply```.
+You can manage & apply presets across .blend files:
+- **Create** in 2 ways, then a new preset recording the current selected nodes will be created:
+    - ```Plus``` icon button on the right of the preset select window.
+    - ```Shift + A``` at node editor window then in ```Add``` > ```Nodes``` > ```Quick Menu``` > ```Fast Create Preset``` enter the new preset's name.
+- **Save** - select the nodes, click ```Save```, these selected nodes will be saved to the current selected preset.
+- **Delete** - select the preset and click the ```Minus``` icon button on the right of the preset select window.
+- **Reorder** - use the ```Up``` / ```Down``` icon button next to the preset select window.
+- **Apply** - selected preset to the current editing node tree by pressing ```Apply``` or in ```Shift + A``` > ```Nodes```.
 
 ##### Textures in Preset
 Hot Node supports automaticlly opening, settings image file for node containing image, and supports the modes below:
@@ -48,14 +56,14 @@ Hot Node supports automaticlly opening, settings image file for node containing 
 - ```Fixed Path``` - Open the same image with the original path.
 - ```Stay Empty``` - Don't open image.
 
-When applying preset, there are settings influencing how textures will be applied in ```Textures``` > ```Apply``` panel:
+Settings of texutre applying:
 - ```Tolerance``` - The tolerance of the image name comparation when the texture's mode is ```Similar```, higher means that more dissimilar images can pass the comparation and be loaded rather than using fixed path & stay empty. Default 0.50 as a moderate tolerance.
 - ```Folder Path``` - The directory path to try find images when in ```Auto``` / ```Similar``` / ```Keys``` mode.
 
-Textures in preset can be modified in ```Textures``` > ```Save``` panel:
+To modify texture preset:
 1. Ensure your **last saved** preset contains the image node you want to edit.
-2. Select the image node, and select a ```Mode``` for this image.
-3. If the mode is ```Keys```, you will need to enter key(s) for the image. You can have mutiple keys split by ```/```, e.g. ```upper_body / base_color / .png```.
+2. Select the image node, then in ```Textures``` > ```Save```, select a ```Mode``` for this image.
+3. If the mode is ```Keys```, you will need to enter key(s) for the image. You can have mutiple keys splited by ```/```, e.g. ```upper_body / base_color / .png```.
 4. Click ```Save Texture``` button, and this image node will follow the new setting next time you apply the preset.
 
 
@@ -63,44 +71,40 @@ Textures in preset can be modified in ```Textures``` > ```Save``` panel:
 Packs are folders storing presets.
 
 ##### Manage Packs
-- Create - click the ```Plus``` icon button next to the pack slot to create one.
-- Select - click the ```Collecetion``` icon button on the left of the pack slot, choose one in the pop-up menu.
-- Rename - just modify the pack name showed in the pack slot.
-- Delete click the ```Trash``` icon button, the current selected pack will be deleted.
+- **Create** - click the ```Plus``` icon button next to the pack slot.
+- **Select** - click the ```Collecetion``` icon button on the left of the pack slot, choose one in the pop-up menu.
+- **Rename** - just modify the pack name showed in the pack slot.
+- **Delete** - click the ```Trash``` icon button, the current selected pack will be deleted.
 
 ##### Share Packs
 Packs can be imported / exported as zip files. In ```Pack Sharing``` panel:
-- Import - Click ```Import``` button to import pack(s). The waiting-for-import pack should be in .zip format.
-- Export - Click ```Export``` button to export the current selected pack as a zip file for sharing.
+- **Import** - Click ```Import``` button to import pack(s). The waiting-for-import pack should be in .zip format.
+- **Export** - Click ```Export``` button to export the current selected pack as a zip file.
+- **Export All** - Click ```Export All``` button to export the all packs as a zip files, useful for backup.
 
 
 ### Details of Usage
-Here are some features in detailed which may help you better using the Hot Node.
+Here are some features in detail which may help you better using the Hot Node.
 
 ##### Undo & Redo
 - ```Undo``` of ```Create```, ```Save```, ```Delete``` operations **haven't been supported yet**. For now you can turn on the ```Extra Comformation``` option in ```Node Preset Specials``` menu to prevent misoperation.
 
 ##### Keep Sync
-When switched between .blend files and doing something to your preset in the new file, a warning may pop-up:
+When switched between .blend files and doing some operations, a warning may pop-up:
 ```
 "Out of sync. Nothing happend but the add-on's auto refreshing. Now everything is ok!"
 ```
 Just as the message said, Hot Node refreshed itself, and now you can do the things you want.
-You can also refresh menually by clicking ```Refresh Data``` in Hot Node's side special menu.
+You can also refresh menually by clicking ```Refresh``` button.
 
 ##### Node Tree Interface Setup
-If your preset contains nodes like ```NodeGroupInput```, or your preset type is geometry, a node tree interface that contains IO sockets will be needed. But applying tree interface may destroy the current tree interface you had setted up. Hot Node will check whether the tree interface is as same as the current edit tree's, and if not, check ```Overwrite Tree IO``` option in the ```Node Preset Specials``` menu to allow overwriting tree interface, or the links heading to IO nodes won't be created.
+If your preset contains nodes like ```NodeGroupInput```, or your preset type is geometry, a node tree interface containing IO sockets will be needed. Hot Node will check whether the tree interface is as same as the current edit tree's, and if not, check ```Overwrite Tree IO``` option in the ```Node Preset Specials``` menu to allow overwriting tree interface, or the links heading to IO nodes won't be created.
 
 ##### Texture Reuse
 If exists a image having the same name with the auto matched image when applying preset, Hot Node will compare the file size and reuse the existing one if the size is the same, rather than loading the image with unique names like image.001.
 
 ##### Node Group Reuse
 If exists a node group having the same name with the group that the preset is trying to setup, Hot Node will compare every inner node of them and reuse the existing one if the two groups are totally same, rather than create a new group with unique name like NodeGroup.001.
-
-Known Bugs
---------
-
-- If have ```NodeFrame``` as node's parent, the frame's ```location``` will be unpredictable.
 
 
 Future Plan

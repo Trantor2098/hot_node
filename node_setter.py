@@ -21,8 +21,9 @@
 import bpy
 
 import os
+from mathutils import Vector
 
-from . import file, utils, node_parser
+from . import file, utils, node_parser, version_control
 
 # NOTE 
 # In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
@@ -37,11 +38,11 @@ from . import file, utils, node_parser
 # The lowest type should be in the front, if there are parent relation between two types.
 type_black_attrs = (
     ((bpy.types.NodeTreeInterfaceItem, ),
-    ("item_type", "socket_type", "in_out", "identifier", "index", "position")),
+    ("location", "item_type", "socket_type", "in_out", "identifier", "index", "position")),
     (bpy.types.NodeSocket,
-    ("label", )),
+    ("location", "label", )),
     (bpy.types.Image,
-    ("filepath", "name")),
+    ("location", "filepath", "name")),
 )
 
 node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
@@ -53,7 +54,7 @@ def get_black_attrs(obj):
         if isinstance(obj, item[0]):
             return item[1]
     # fallback black list
-    return ()
+    return ("location",)
 
 # Tool Method
 def check_common(cattrs):
@@ -152,7 +153,6 @@ def open_tex(cobj):
                 if lower_name.find(tex_key.lower()) != -1:
                     match_num += 1
             if match_num > max_match_num:
-                print(tex_name, match_num)
                 tex_name = name
                 max_match_num = match_num
         tex_path = "\\".join((tex_dir_path, tex_name))
@@ -246,7 +246,6 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             for i in range(clength):
                 if i > length - 1:
                     new_element(obj, cobj[i], attr_name)
-                print(obj,attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         else:
             # length > clength, for when we only recorded part of the list
@@ -320,7 +319,7 @@ def set_interface(interface, cinterface):
         interface.move_to_parent(item, cinterface[HN_parent_idx]["HN_ref"], to_position)
         
         
-def set_nodes(nodes, cnodes, cnode_trees, set_tree_io=False):
+def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False):
     node_cnode_attr_ref2nodenames = []
     later_setup_cnodes = {}
     for cnode in cnodes.values():
@@ -330,6 +329,7 @@ def set_nodes(nodes, cnodes, cnode_trees, set_tree_io=False):
         cnode["HN_ref"] = node
         # set name
         node.name = cnode['name']
+        
         # record sub node this node refers to, set it and set node refs after all nodes were created
         ref_to_attr_name = cnode.get("HN_ref2_node_attr", None)
         if ref_to_attr_name is not None:
@@ -342,7 +342,7 @@ def set_nodes(nodes, cnodes, cnode_trees, set_tree_io=False):
         # set node's image
         elif bl_idname in ("NodeGroupInput", "NodeGroupOutput"):
             if not set_tree_io:
-                node.location = cnode["location"]
+                # node.location = cnode["location"]
                 continue
         elif cnode.get("image", None):
             tex = open_tex(cnode["image"])
@@ -379,16 +379,29 @@ def set_nodes(nodes, cnodes, cnode_trees, set_tree_io=False):
         if cref2_node is not None:
             if attr == "paired_output":
                 node.pair_with_output(cnodes[ref2_node_name]["HN_ref"])
+            # for parent NodeFrames, set parent location means change all sons' locations
             else:
+                node.location = Vector(cnode["location"]) + node_offset
                 setattr(node, attr, cnodes[ref2_node_name]["HN_ref"])
         # dont have paired output in our data, remove input in late set list
         elif attr == "paired_output":
-            node.location = cnode["location"]
+            # node.location = Vector(cnode["location"]) + node_offset
             del later_setup_cnodes[cnode["name"]]
         
-    # Late Set, for nodes refering to another node
+    # Late Attribute Set, for nodes refering to another node
     for node, cnode in later_setup_cnodes.values():
         set_attrs(node, cnode)
+        
+    # Late Set, for some attributes that should be set in last
+    # set location at the end, because parent assign will destroy the location
+    for cnode in cnodes.values():
+        # set location
+        # XXX deselect frames, otherwise the move ops will be wrong. Must have some better way to solve this... May be rewriting a move ops?
+        if cnode["bl_idname"] == "NodeFrame":
+            # node's real location = node location + frame location. so dont apply duplicated offset to frames
+            cnode["HN_ref"].location = Vector(cnode["location"])
+        else:
+            cnode["HN_ref"].location = Vector(cnode["location"]) + node_offset
         
         
 def set_links(links, clinks, cnodes, link_group_io=True):
@@ -397,7 +410,6 @@ def set_links(links, clinks, cnodes, link_group_io=True):
         HN_to_socket_idx = clink['HN_to_socket_idx']
         
         from_node = cnodes[clink['HN_from_node_name']]["HN_ref"]
-        print(clink['HN_to_node_name'])
         to_node = cnodes[clink['HN_to_node_name']]["HN_ref"]
 		
         if link_group_io or (from_node.bl_idname != "NodeGroupInput" and to_node.bl_idname != "NodeGroupOutput"):
@@ -407,7 +419,7 @@ def set_links(links, clinks, cnodes, link_group_io=True):
                 links.new(from_socket, to_socket)
             
 
-def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, set_tree_io=False, link_group_io=True):
+def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False, link_group_io=True):
     global failed_tex_num
     nodes = node_tree.nodes
     links = node_tree.links
@@ -423,18 +435,21 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, set_tr
             
     cnodes = cnode_tree["nodes"]
     # Generate Nodes & Set Node Attributes & Set IO Socket Value
-    set_nodes(nodes, cnodes, cnode_trees, set_tree_io=set_tree_io)
+    set_nodes(nodes, cnodes, cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io)
 
     # Generate Links
     set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
             
 
-def apply_preset(context: bpy.types.Context, preset_name: str):
+def apply_preset(context: bpy.types.Context, preset_name: str, apply_offset=False):
     '''Set nodes for the current edit tree'''
     global failed_tex_num
     failed_tex_num = 0
+    space_data = context.space_data
     node_groups = bpy.data.node_groups
+    # maybe cdata, but we call it cnode_trees
     cnode_trees = file.load_preset(preset_name)
+    cnode_trees = version_control.check_update_version(preset_name, cnode_trees)
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():
@@ -470,10 +485,10 @@ def apply_preset(context: bpy.types.Context, preset_name: str):
         cnode_tree["HN_ref"] = node_tree
         
     # Generate Main Node Tree To Current Editing Tree
-    edit_tree = context.space_data.edit_tree
+    edit_tree = space_data.edit_tree
     cedit_interface = node_parser.parse_interface(edit_tree)
     # if is base node tree, skip setting io for trees except geo tree
-    if edit_tree is context.space_data.node_tree and edit_tree.bl_idname != "GeometryNodeTree":
+    if edit_tree is space_data.node_tree and edit_tree.bl_idname != "GeometryNodeTree":
         set_tree_io = False
         link_group_io = False
     # if the existing tree interface is capatibale with our preset, just use it
@@ -488,6 +503,12 @@ def apply_preset(context: bpy.types.Context, preset_name: str):
     else:
         set_tree_io = False
         link_group_io = True
-    set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, set_tree_io=set_tree_io, link_group_io=link_group_io)
+    if apply_offset:
+        cnode_center = cnode_trees["HN_preset_data"]["node_center"]
+        cursor_location = space_data.cursor_location
+        node_offset = cursor_location - Vector(cnode_center)
+    else:
+        node_offset = Vector((0.0, 0.0))
+    set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io, link_group_io=link_group_io)
     
     return failed_tex_num

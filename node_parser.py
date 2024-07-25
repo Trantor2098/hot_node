@@ -57,6 +57,10 @@ type_wb_attrs = (
     ("bl_idname",),
     ("rna_type", "dimensions", 'select', 'is_active_output', "internal_links", "rna_type"),
     "parse_capture_items"),
+    (bpy.types.NodeFrame,
+    ("bl_idname", "location"),
+    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "width", "height"),
+    None),
     (bpy.types.Node,
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type"),
@@ -94,8 +98,8 @@ class SpecialParser():
                 ccapture_items[i]["HN_socket_type"] = 'VECTOR'
             else:
                 ccapture_items[i]["HN_socket_type"] = data_type
-    
-    
+                
+
 def get_whites_blacks_delegate(obj):
     delegate = None
     for item in type_wb_attrs:
@@ -379,13 +383,25 @@ def parse_node_preset(edit_tree: bpy.types.NodeTree):
     return cpreset_cache
 
 
+# def record_node_frames(nodes: bpy.types.Nodes, parse_all=False, frames=None, level=1):
+#     if frames is None:
+#         frames = {}
+#     for node in nodes:
+#         # note that in a node group every nodes are un-selected, we should consider it.
+#         if node.bl_idname == "NodeFrame" and (parse_all or node.select):
+#             frames[node.name] = level
+#             record_node_frames(nodes, parse_all=parse_all, frames=frames, level=level + 1)
+#     sorted_frames = sorted(frames.items(), key = lambda x: x[1], reverse=True)
+#     return sorted_frames
+
+
 def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, level=1) -> list:
     '''Record all node group the node tree need, and sort their name into a list by level descending order.
     
     - node_tree: The node_tree that need to record it's sub node trees.
     - required_ngs: The dict reference for recursive call, keep None if is first called and it will be automatically created.
     - lever: Only for recursively call, for ranking ngs by their hierarchy.'''
-    if not required_ngs:
+    if required_ngs is None:
         required_ngs = {}
     nodes = edit_tree.nodes
     for node in nodes:
@@ -411,7 +427,8 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
         return 'NO_NODE_SELECTED'
     if not hasattr(node, "image"):
         return 'NOT_TEX_NODE'
-    if not properties.allow_tex_save:
+    from . properties import allow_tex_save
+    if not allow_tex_save:
         return 'NOT_PRESET_SELECTED'
     
     # find which tree the user is setting...
@@ -430,12 +447,40 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
     return cpreset_cache
 
 
-def set_preset_data(preset_name, pack_name):
+def set_preset_data(preset_name, pack_name, cpreset=None):
     from . version_control import version
-    global cpreset_cache
-    cdata = cpreset_cache["HN_preset_data"] = {}
+    if cpreset is None:
+        global cpreset_cache
+        cedit_tree = cpreset_cache["HN_edit_tree"]
+        cdata = cpreset_cache["HN_preset_data"] = {}
+    else:
+        cpreset_cache = cpreset
+        cedit_tree = cpreset["HN_edit_tree"]
+        cdata = cpreset["HN_preset_data"] = {}
+    
+    cnodes = cedit_tree["nodes"]
+    
+    location_node_num = 0
+    node_center = [0.0, 0.0]
+    for cnode in cnodes.values():
+        if cnode["bl_idname"] != "NodeFrame":
+            clocation = cnode["location"]
+            node_center[0] += clocation[0]
+            node_center[1] += clocation[1]
+            location_node_num += 1
+        else:
+            has_node_frame = True
+    if location_node_num > 0:
+        node_center[0] /= location_node_num
+        node_center[1] /= location_node_num
+    
     cdata["preset_name"] = preset_name
     cdata["pack_name"] = pack_name
-    cdata["tree_type"] = cpreset_cache["HN_edit_tree"]["bl_idname"]
+    cdata["tree_type"] = cedit_tree["bl_idname"]
+    cdata["node_center"] = node_center
+    # NOTE version can be set only when: save preset / set by version_control.py
     cdata["version"] = version
-    return cpreset_cache
+    if cpreset is None:
+        return cpreset_cache
+    else:
+        return cpreset

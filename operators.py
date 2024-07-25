@@ -305,8 +305,21 @@ class HOTNODE_OT_preset_save(Operator):
 class HOTNODE_OT_preset_apply(Operator):
     bl_idname = "node.hot_node_preset_apply"
     bl_label = "Apply Node Preset"
-    bl_description = "Apply selected node preset to current window"
+    bl_description = "Apply selected node preset to current edit tree"
     bl_options = {'UNDO', 'REGISTER'}
+    
+    # cursor logic from https://projects.blender.org/blender/blender/src/branch/main/scripts/startup/bl_operators/node.py#L145
+    @staticmethod
+    def store_mouse_cursor(context, event):
+        space = context.space_data
+        tree = space.edit_tree
+
+        # convert mouse position to the View2D for later node placement
+        if context.region.type == 'WINDOW':
+            # convert mouse position to the View2D for later node placement
+            space.cursor_location_from_region(event.mouse_region_x, event.mouse_region_y)
+        else:
+            space.cursor_location = tree.view_center
 
     @classmethod
     def poll(cls, context):
@@ -320,19 +333,109 @@ class HOTNODE_OT_preset_apply(Operator):
 
         preset_selected_idx = props.preset_selected
         preset = presets[preset_selected_idx]
+        edit_tree = context.space_data.edit_tree
+        edit_tree_type = edit_tree.bl_idname
+        if preset.type != edit_tree_type:
+            self.report({'ERROR'}, f"Cannot apply preset: It is a {preset.type} but current edit tree is a {edit_tree_type}.")
+            return {'CANCELLED'}
+        # this line adds the nodes
+        failed_tex_num = node_setter.apply_preset(context, preset.name, apply_offset=True)
+        if failed_tex_num > 0:
+            self.report({'INFO'}, f"Nodes added. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
+        # else:
+        #     self.report({'INFO'}, "Nodes added.")
         
-        edit_tree_type = context.space_data.edit_tree.bl_idname
+        # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
+        # WHAT A SMART LOGIC!
+        selected_node_frames = []
+        for node in edit_tree.nodes:
+            if node.select and node.bl_idname == "NodeFrame":
+                selected_node_frames.append(node)
+                node.select = False
+                
+        bpy.ops.node.translate_attach_remove_on_cancel('INVOKE_DEFAULT')
+            
+        for node in selected_node_frames:
+            node.select = True
+            
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        self.store_mouse_cursor(context, event)
+        result = self.execute(context)
+
+        return result
+    
+    
+class HOTNODE_OT_nodes_add(Operator):
+    '''For Shift + A to apply presets'''
+    bl_idname = "node.hot_node_nodes_add"
+    bl_label = "Add Nodes"
+    bl_description = "Add node presets"
+    bl_options = {'UNDO', 'REGISTER'}
+    
+    preset_name: StringProperty(
+        name="Preset Name",
+        default=""
+    ) # type: ignore
+    
+    # cursor logic from https://projects.blender.org/blender/blender/src/branch/main/scripts/startup/bl_operators/node.py#L145
+    @staticmethod
+    def store_mouse_cursor(context, event):
+        space = context.space_data
+        tree = space.edit_tree
+
+        # convert mouse position to the View2D for later node placement
+        if context.region.type == 'WINDOW':
+            # convert mouse position to the View2D for later node placement
+            space.cursor_location_from_region(event.mouse_region_x, event.mouse_region_y)
+        else:
+            space.cursor_location = tree.view_center
+    
+    @classmethod
+    def poll(cls, context):
+        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+    
+    def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
+        props = context.scene.hot_node_props
+        presets = props.presets
+        preset = presets[self.preset_name]
+        edit_tree = context.space_data.edit_tree
+        edit_tree_type = edit_tree.bl_idname
         if preset.type != edit_tree_type:
             self.report({'ERROR'}, f"Cannot apply preset: It is a {preset.type} but current edit tree is a {edit_tree_type}.")
             return {'CANCELLED'}
         
-        failed_tex_num = node_setter.apply_preset(context, preset.name)
+        # this line adds the nodes
+        failed_tex_num= node_setter.apply_preset(context, preset.name, apply_offset=True)
+        
         if failed_tex_num > 0:
-            self.report({'INFO'}, f"Nodes preset applied. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
-        else:
-            self.report({'INFO'}, "Preset applied.")
+            self.report({'INFO'}, f"Nodes added. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
+        # else:
+        #     self.report({'INFO'}, "Nodes added.")
+            
+        # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
+        # WHAT A SMART LOGIC!
+        selected_node_frames = []
+        for node in edit_tree.nodes:
+            if node.select and node.bl_idname == "NodeFrame":
+                selected_node_frames.append(node)
+                node.select = False
+                
+        bpy.ops.node.translate_attach_remove_on_cancel('INVOKE_DEFAULT')
+            
+        for node in selected_node_frames:
+            node.select = True
             
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        self.store_mouse_cursor(context, event)
+        result = self.execute(context)
+
+        return result
     
     
 class HOTNODE_OT_texture_save(Operator):
@@ -471,8 +574,6 @@ class HOTNODE_OT_pack_select(Operator):
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
-        # if not ensure_pack_sync(self, context):
-        #     return {'CANCELLED'}
         select_pack(context, self.pack)
         
         return {'FINISHED'}
@@ -493,10 +594,6 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
     # selected files
     files : bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'}) # type: ignore
 
-    @classmethod
-    def poll(cls, context):
-        return poll_preset_ops(context)
-    
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
@@ -553,10 +650,6 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
     bl_description = "Export hot node preset pack with .zip suffix"
     bl_options = {'REGISTER'}
     
-    @classmethod
-    def poll(cls, context):
-        return poll_preset_ops(context)
-    
     # path of selected file
     filepath: bpy.props.StringProperty(subtype="FILE_PATH") # type: ignore
     # name of selected file with suffix
@@ -566,6 +659,10 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
     # selected files
     files : bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'}) # type: ignore
 
+    @classmethod
+    def poll(cls, context):
+        return poll_preset_ops(context)
+    
     def execute(self, context):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
@@ -575,7 +672,36 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
             self.report({'ERROR'}, "Export Failed: Pack name cannot be empty.")
             return {'CANCELLED'}
             
-        file.export_pack(to_file_path)
+        file.export_selected_pack(to_file_path)
+        self.report({'INFO'}, f"Exported pack \"{properties.pack_selected}\" to {to_file_path}.")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        self.filename = ".".join((properties.pack_selected, "zip"))
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+    
+    
+class HOTNODE_OT_pack_export_all(bpy.types.Operator):
+    bl_idname = "export.hot_node_pack_export_all"
+    bl_label = "Export All Packs"
+    bl_description = "Export all preset packs with .zip suffix"
+    bl_options = {'REGISTER'}
+    
+    # path of selected file
+    filepath: bpy.props.StringProperty(subtype="DIR_PATH") # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return poll_preset_ops(context)
+    
+    def execute(self, context):
+        if not ensure_sync(self, context):
+            return {'CANCELLED'}
+        
+        file.export_packs(properties.packs, self.filepath)
+            
+        self.report({'INFO'}, f"Exported all packs to {self.filepath}.")
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -586,7 +712,7 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
 
 class HOTNODE_OT_refresh(Operator):
     bl_idname = "node.hot_node_refresh"
-    bl_label = "Refresh Data"
+    bl_label = "Refresh"
     bl_description = "Refresh presets and packs, useful for cross-file sync"
     bl_options = {'REGISTER'}
 
@@ -603,12 +729,14 @@ classes = (
     HOTNODE_OT_preset_move,
     HOTNODE_OT_preset_save,
     HOTNODE_OT_preset_apply,
+    HOTNODE_OT_nodes_add,
     HOTNODE_OT_texture_save,
     HOTNODE_OT_pack_create,
     HOTNODE_OT_pack_delete,
     HOTNODE_OT_pack_select,
     HOTNODE_OT_pack_import,
     HOTNODE_OT_pack_export,
+    HOTNODE_OT_pack_export_all,
     HOTNODE_OT_refresh,
 )
 

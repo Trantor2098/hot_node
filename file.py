@@ -20,6 +20,7 @@
 import os, shutil, json, zipfile
 
 from . version_control import version
+from . import utils
 
 addon_dir_path = os.path.dirname(__file__)
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
@@ -192,7 +193,7 @@ def import_pack(from_file_path: str, pack_name: str):
     return 'SUCCESS'
 
 
-def export_pack(dst_file_path):
+def export_selected_pack(dst_file_path):
     global pack_selected_dir_path
     zip = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk(pack_selected_dir_path):
@@ -200,6 +201,27 @@ def export_pack(dst_file_path):
         for filename in files:
             zip.write(os.path.join(root, filename), relative_root + filename)
     zip.close()
+    
+    
+def export_packs(packs, dst_dir_path):
+    existing_file_names = os.listdir(dst_dir_path)
+    existing_zip_namebodys = []
+    for name in existing_file_names:
+        if name.endswith(".zip"):
+            existing_zip_namebodys.append(name[:-4])
+    print(existing_zip_namebodys)
+            
+    for pack in packs:
+        ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
+        pack_dir_path = os.path.join(pack_root_dir_path, ensured_pack_name)
+        file_name = ".".join((ensured_pack_name, "zip"))
+        dst_file_path = os.path.join(dst_dir_path, file_name)
+        zip = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
+        for root, dirs, files in os.walk(pack_dir_path):
+            relative_root = '' if root == pack_dir_path else root.replace(pack_dir_path, '') + os.sep
+            for filename in files:
+                zip.write(os.path.join(root, filename), relative_root + filename)
+        zip.close()
     
 
 def create_preset(preset_name: str, cpreset: dict):
@@ -260,6 +282,11 @@ def rename_preset(old_name, new_name):
     new_file_name = '.'.join((new_name, 'json'))
     new_file_path = os.path.join(pack_selected_dir_path, new_file_name)
     os.rename(old_file_path, new_file_path)
+    
+    cpreset = load_preset(new_name)
+    cpreset["HN_preset_data"]["preset_name"] = new_name
+    write_json(new_file_path, cpreset)
+    
     idx = pack_meta_cache["order"].index(old_name)
     pack_meta_cache["order"][idx] = new_name
     pack_meta_cache["tree_types"][new_name] = pack_meta_cache["tree_types"].pop(old_name)

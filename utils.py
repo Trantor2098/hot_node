@@ -28,7 +28,6 @@ def split_by_slash(string: str):
     keys = string.split(sep="/")
     for i in range(len(keys)):
         string: str = keys[i]
-        print(string)
         if string.startswith(" "):
             string = string[1:]
         if string.endswith(" "):
@@ -142,6 +141,35 @@ def ensure_has_suffix(name: str, suffix: str):
         return ''.join((name, suffix))
     else:
         return name
+    
+    
+def list_cattr(cobj: dict, attr_name: str):
+    '''Get all cobj's elements' attr as a list'''
+    result_list = []
+    for item in cobj.values():
+        result = item.get(attr_name, None)
+        result_list.append(result)
+    return result_list
+    
+    
+def get_average_vector(vector_list: list) -> list:
+    length = len(vector_list)
+    dimension = len(vector_list[0])
+    result_vector = [0.0] * dimension
+    for vector in vector_list:
+        for i in range(dimension):
+            result_vector[i] += vector[i]
+    for i in range(dimension):
+            result_vector[i] /= length
+    return result_vector
+
+
+def float_list_minus(list1, list2):
+    length = len(list1)
+    result = [0.0] * length
+    for i in range(length):
+        result[i] = list1[i] - list2[i]
+    return result
 
 
 def diff_ratio(str1: str, str2: str):
