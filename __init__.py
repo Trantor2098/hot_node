@@ -49,7 +49,7 @@ def dev_reload():
 
 
 def register():
-    dev_reload()
+    # dev_reload()
 
     gui.register()
     properties.register()
