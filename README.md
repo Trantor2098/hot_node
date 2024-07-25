@@ -30,6 +30,7 @@ Before Using It
 --------
 
 **EXPORT ALL NODE PRESET PACKS BEFORE UPDATING / UNINSTALL HOT NODE**
+
 Because nodes data is stored in add-on's path and will be deleted by blender's extension system without warning.
 
 Usage

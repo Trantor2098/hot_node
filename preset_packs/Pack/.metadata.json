@@ -1,0 +1,23 @@
+{
+ "order": [
+  "Colorful Shader",
+  "My Nodes",
+  "Bar",
+  "Universal Shader",
+  "Foo",
+  "My Shader"
+ ],
+ "tree_types": {
+  "Bar": "ShaderNodeTree",
+  "Universal Shader": "ShaderNodeTree",
+  "My Nodes": "ShaderNodeTree",
+  "Foo": "ShaderNodeTree",
+  "Colorful Shader": "ShaderNodeTree",
+  "My Shader": "ShaderNodeTree"
+ },
+ "version": [
+  0,
+  2,
+  0
+ ]
+}
