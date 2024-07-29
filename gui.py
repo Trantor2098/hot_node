@@ -120,7 +120,7 @@ class HOTNODE_PT_parent(Panel):
     
     
 class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
-    bl_label = "Node Preset"
+    bl_label = "Nodes"
     bl_idname = "HOTNODE_PT_main"
 
     def draw(self, context):
@@ -128,8 +128,6 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         layout = self.layout
         props = context.scene.hot_node_props
         presets = props.presets
-        
-        # layout.label(text="Node Presets")
         
         # Preset Usage UI
         col = layout.column(align=True)
@@ -180,32 +178,6 @@ class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
 
     def draw(self, context):
         pass
-        # layout = self.layout
-        # scene = context.scene
-        # mode = scene.hot_node_tex_preset_mode
-        
-        # layout.use_property_split = True
-        # layout.use_property_decorate = False
-        
-        # # Texture Apply
-        # layout.label(text="Apply Settings")
-        # row = layout.row()
-        # row.prop(scene, "hot_node_compare_tolerance", text="Tolerance")
-        # row = layout.row()
-        # row.prop(scene, "hot_node_tex_dir_path", text="Folder")
-        
-        # # Texture Save
-        # layout.separator()
-        # layout.label(text="Save Texture")
-        # row = layout.row()
-        # row.operator("node.hot_node_texture_save", text="Save Texture")
-        
-        # row = layout.row()
-        # row.prop(scene, "hot_node_tex_preset_mode", text="Mode")
-        
-        # if mode == 'KEYWORD':
-        #     row = layout.row()
-        #     row.prop(scene, "hot_node_tex_key", text="Key", placeholder="Key1 / Key2 / ...")
         
         
 class HOTNODE_PT_texture_apply(HOTNODE_PT_parent, Panel):

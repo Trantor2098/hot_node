@@ -209,7 +209,6 @@ def export_packs(packs, dst_dir_path):
     for name in existing_file_names:
         if name.endswith(".zip"):
             existing_zip_namebodys.append(name[:-4])
-    print(existing_zip_namebodys)
             
     for pack in packs:
         ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)

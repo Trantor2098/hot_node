@@ -21,11 +21,11 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 1, 0),
+    "version": (0, 2, 1),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
-    "description": "Manage node presets across files in real-time",
-    "warning": "",
+    "description": "Save nodes, add nodes as adding node",
+    "warning": "Before updating Hot Node, export your packs or they will be CLEARED",
     "wiki_url": "https://github.com/Trantor2098/hot_node",
     "category": "Node",
     "tracker_url": "https://github.com/Trantor2098/hot_node"
@@ -49,7 +49,7 @@ def dev_reload():
 
 
 def register():
-    dev_reload()
+    # dev_reload()
 
     gui.register()
     properties.register()

@@ -36,8 +36,8 @@ preset_selected = ""
 # poll parameters
 allow_tex_save = False
 
-# XXX to escape invoke rename update when create preset. ugly but works.
-skip_update = False
+# XXX to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
+skip_rename_callback = False
 
 # for json file indent
 # indent = 1
@@ -70,8 +70,8 @@ def node_preset_type_update(self, context):
 
 def node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
-    global skip_update
-    if skip_update:
+    global skip_rename_callback
+    if skip_rename_callback:
         return
     global preset_selected
     props = context.scene.hot_node_props
@@ -81,18 +81,17 @@ def node_preset_name_update(self, context):
     if preset_selected != new_full_name:
         # this second if is for checking user renaming
         ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
-        print(ensured_new_full_name, new_full_name)
         if ensured_new_full_name != new_full_name:
             # XXX should we skip update again? will the callback be invoked by callback itself?
-            skip_update = True
+            skip_rename_callback = True
             presets[preset_selected_idx].name = ensured_new_full_name
-            skip_update = False
+            skip_rename_callback = False
         file.rename_preset(preset_selected, ensured_new_full_name)
         preset_selected = ensured_new_full_name
 
 
 def node_preset_select_update(self, context):
-    if skip_update:
+    if skip_rename_callback:
         return
     global preset_selected, allow_tex_save
     props = context.scene.hot_node_props
@@ -120,7 +119,7 @@ def pack_selected_name_update(self, context):
         
         
 def fast_create_preset_name_update(self, context):
-    global skip_update
+    global skip_rename_callback
     global preset_selected
     props = context.scene.hot_node_props
     presets = props.presets
@@ -138,10 +137,10 @@ def fast_create_preset_name_update(self, context):
     # set type
     presets[preset_selected_idx].type = edit_tree.bl_idname
     # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
-    skip_update = True
+    skip_rename_callback = True
     presets[preset_selected_idx].name = ensured_fast_name
     preset_selected = ensured_fast_name
-    skip_update = False
+    skip_rename_callback = False
     
     # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     from . import node_parser

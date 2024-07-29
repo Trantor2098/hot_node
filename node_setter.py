@@ -56,6 +56,7 @@ def get_black_attrs(obj):
     # fallback black list
     return ("location",)
 
+
 # Tool Method
 def check_common(cattrs):
     '''Check if the cattrs is a dict or list containing common attributes like int, float, str, vector'''

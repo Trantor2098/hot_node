@@ -21,10 +21,10 @@
 from . import node_parser, file
 
 # current Hot Node's version
-version = [0, 2, 0]
+version = [0, 2, 1]
 
 
-def check_update_version(preset_name,cpreset):
+def check_update_version(preset_name, cpreset):
     '''If trying to apply preset, CALL THIS FIRST'''
     cdata = cpreset["HN_preset_data"]
     preset_version = cdata["version"]

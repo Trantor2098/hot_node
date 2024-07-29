@@ -7,7 +7,7 @@ Features
 --------
 
 - Save any nodes and their attributes, then add nodes just like adding a single node, fast and cross-file.
-- Load image by automaticlly seraching and set their color-space & alpha mode.
+- Load image by automatically seraching and set their color-space & alpha mode.
 - Store / share nodes packs light-weightly without a big .blend file as it's library (usually smaller than 1 MiB).
 
 
@@ -20,7 +20,8 @@ Requirement
 Installation
 --------
 
-- Installing via [blender extension system](https://extensions.blender.org/about/).
+- In blender, at ```Edit``` > ```Preferences``` > ```Get Extensions```, search Hot Node and click ```Install```.
+- Or Installing via [blender extension system](https://extensions.blender.org/about/).
 - Or you can download the zip file and follow the [blender add-on installation guide](https://docs.blender.org/manual/en/4.2/extensions/addons.html).
 
 After Hot Node was installed, you are able to see the Hot Node panel in node editor's sidebar.
@@ -51,7 +52,7 @@ You can manage & apply presets across .blend files:
 - **Apply** - selected preset to the current editing node tree by pressing ```Apply``` or in ```Shift + A``` > ```Nodes```.
 
 ##### Textures in Preset
-Hot Node supports automaticlly opening, settings image file for node containing image, and supports the modes below:
+Hot Node supports automatically opening, settings image file for node containing image, and supports the modes below:
 - ```Auto``` - Try to open image with mode ```Similar``` > ```Fixed Path``` > ```Stay Empty``` in order.
 - ```Similar``` - Find the best matched image according to the name similarity algorithm in user set folder.
 - ```Keys``` - Find the best matched image according to user defined keys in user set folder.
@@ -82,7 +83,7 @@ Packs are folders storing presets.
 Packs can be imported / exported as zip files. In ```Pack Sharing``` panel:
 - **Import** - Click ```Import``` button to import pack(s). The waiting-for-import pack should be in .zip format.
 - **Export** - Click ```Export``` button to export the current selected pack as a zip file.
-- **Export All** - Click ```Export All``` button to export the all packs as a zip files, useful for backup.
+- **Export All** - Click ```Export All``` button to export the all packs as zip files, useful for backup.
 
 
 ### Details of Usage

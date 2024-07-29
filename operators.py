@@ -33,7 +33,7 @@ def sync_data(context: bpy.types.Context):
     select_pack(context, properties.pack_selected)
     
     
-def select_pack(context, pack):
+def select_pack(context, pack: str):
     # to escaping overwrite 
     props = context.scene.hot_node_props
     properties.pack_selected = pack
@@ -44,27 +44,19 @@ def select_pack(context, pack):
     presets = props.presets
     presets.clear()
     file.select_pack(pack)
+    # if pack == "", means there is no pack, dont read any preset and keep pack as "", the ops will be grayed out because they will detect whether pack is "".
     if pack != "":
         preset_names, tree_types = file.read_preset_infos()
         length = len(preset_names)
-        # properties.skip_update = True
+        properties.skip_rename_callback = True
         for i in range(length):
             name = preset_names[i]
             type = tree_types[name]
             presets.add()
             presets[i].name = name
             presets[i].type = type
-        # properties.skip_update = False
+        properties.skip_rename_callback = False
 
-
-# DEPRECATED
-# def preset_exchange(preset1, preset2):
-#     name, type = preset2.name, preset2.type
-#     preset2.name = preset1.name
-#     preset2.type = preset1.type
-#     preset1.name = name
-#     preset1.type = type
-    
     
 def preset_move_to(selected_idx, dst_idx, presets):
     preset = presets[selected_idx]
@@ -125,10 +117,10 @@ class HOTNODE_OT_preset_create(Operator):
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
         # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
-        properties.skip_update = True
+        properties.skip_rename_callback = True
         presets[preset_selected_idx].name = new_full_name
         properties.preset_selected = new_full_name
-        properties.skip_update = False
+        properties.skip_rename_callback = False
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         node_parser.parse_node_preset(edit_tree)
@@ -223,7 +215,7 @@ class HOTNODE_OT_preset_move(Operator):
         if length < 2:
             return {'FINISHED'}
         
-        properties.skip_update = True
+        properties.skip_rename_callback = True
 
         reorder = True
         if self.direction == 'UP':
@@ -256,7 +248,7 @@ class HOTNODE_OT_preset_move(Operator):
             file.exchange_order_preset_meta(dst_idx, preset_selected_idx)
         props.preset_selected = dst_idx
         
-        properties.skip_update = False
+        properties.skip_rename_callback = False
 
         return {'FINISHED'}
     

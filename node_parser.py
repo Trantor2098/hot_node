@@ -21,7 +21,7 @@
 import bpy
 import mathutils
 
-from . import utils, properties
+from . import utils
 
 
 # NOTE 
@@ -189,8 +189,8 @@ def parse_attrs(obj, iobj=None, white_only=False):
         result, is_default = decode_compare_value(value, ivalue)
         
         # Parse common attrs that dont contains another class, dict... 
-        # note that 0, 0.0, False will not go into the branch so, use != None.
-        if result != None:
+        # note that 0, 0.0, False will not go into the branch so, use "is not None".
+        if result is not None:
             # Dont parse if value == default, but help white attr pass the default check
             if not is_default or attr in white_attrs:
                 cobj[attr] = result
@@ -245,7 +245,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
     # Late Parse. at the end we merge some extra things with special logic to cobj
     if parse_special is not None:
         parse_special(obj, cobj)
-            
+        
     return cobj
 
 
@@ -261,6 +261,7 @@ def parse_image(image: bpy.types.Image | None, open_mode: str, tex_key: str=""):
         open_mode = 'STAY_EMPTY'
     cimage["HN_open_mode"] = open_mode
     cimage["HN_tex_keys"] = utils.split_by_slash(tex_key)
+    
     return cimage
 
 
@@ -285,6 +286,7 @@ def parse_interface(node_tree: bpy.types.NodeTree):
         citems_tree.append(citem)
         
     bpy.data.node_groups.remove(inode_tree)
+    
     return citems_tree
 
 
@@ -383,18 +385,6 @@ def parse_node_preset(edit_tree: bpy.types.NodeTree):
     return cpreset_cache
 
 
-# def record_node_frames(nodes: bpy.types.Nodes, parse_all=False, frames=None, level=1):
-#     if frames is None:
-#         frames = {}
-#     for node in nodes:
-#         # note that in a node group every nodes are un-selected, we should consider it.
-#         if node.bl_idname == "NodeFrame" and (parse_all or node.select):
-#             frames[node.name] = level
-#             record_node_frames(nodes, parse_all=parse_all, frames=frames, level=level + 1)
-#     sorted_frames = sorted(frames.items(), key = lambda x: x[1], reverse=True)
-#     return sorted_frames
-
-
 def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, level=1) -> list:
     '''Record all node group the node tree need, and sort their name into a list by level descending order.
     
@@ -411,6 +401,7 @@ def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, le
                 required_ngs[node.node_tree.name] = level
                 record_node_group_names(node.node_tree, required_ngs=required_ngs, level=level + 1)
     sorted_ngs = sorted(required_ngs.items(), key = lambda x: x[1], reverse=True)
+    
     return sorted_ngs
 
 
@@ -444,15 +435,18 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
     
     image = node.image
     cnode["image"] = parse_image(image, open_mode, tex_key=tex_key)
+    
     return cpreset_cache
 
 
 def set_preset_data(preset_name, pack_name, cpreset=None):
     from . version_control import version
+    # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
         global cpreset_cache
         cedit_tree = cpreset_cache["HN_edit_tree"]
         cdata = cpreset_cache["HN_preset_data"] = {}
+    # we may need to modify a cpreset data, e.g. in version_control.py, in this case the cache is local
     else:
         cpreset_cache = cpreset
         cedit_tree = cpreset["HN_edit_tree"]
@@ -468,8 +462,6 @@ def set_preset_data(preset_name, pack_name, cpreset=None):
             node_center[0] += clocation[0]
             node_center[1] += clocation[1]
             location_node_num += 1
-        else:
-            has_node_frame = True
     if location_node_num > 0:
         node_center[0] /= location_node_num
         node_center[1] /= location_node_num
@@ -480,6 +472,7 @@ def set_preset_data(preset_name, pack_name, cpreset=None):
     cdata["node_center"] = node_center
     # NOTE version can be set only when: save preset / set by version_control.py
     cdata["version"] = version
+    
     if cpreset is None:
         return cpreset_cache
     else:
