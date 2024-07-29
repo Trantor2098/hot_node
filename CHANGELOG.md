@@ -1,6 +1,13 @@
 ChangeLog
 ========
 
+[0.2.1] - 2024-07-29
+--------
+
+### Fixed
+- Now error info won't appear on console when selecting a pack.
+
+
 [0.2.0] - 2024-07-25
 --------
 
