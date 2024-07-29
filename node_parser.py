@@ -448,7 +448,6 @@ def set_preset_data(preset_name, pack_name, cpreset=None):
         cdata = cpreset_cache["HN_preset_data"] = {}
     # we may need to modify a cpreset data, e.g. in version_control.py, in this case the cache is local
     else:
-        cpreset_cache = cpreset
         cedit_tree = cpreset["HN_edit_tree"]
         cdata = cpreset["HN_preset_data"] = {}
     

@@ -31,6 +31,8 @@ def check_update_version(preset_name, cpreset):
     if preset_version != version:
         if preset_version == [0, 1, 0]:
             cpreset = version_update_0_1_0(preset_name, cpreset)
+        # we may dont have a update func between small version update, but we still update it's version data.
+        cdata["version"] = version
     return cpreset
     
     
