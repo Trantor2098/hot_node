@@ -33,6 +33,7 @@ def check_update_version(preset_name, cpreset):
             cpreset = version_update_0_1_0(preset_name, cpreset)
         # we may dont have a update func between small version update, but we still update it's version data.
         cdata["version"] = version
+        file.update_preset(preset_name, cpreset)
     return cpreset
     
     
@@ -40,5 +41,4 @@ def version_update_0_1_0(preset_name, cpreset):
     cdata = cpreset["HN_preset_data"]
     pack_name = cdata["pack_name"]
     cpreset = node_parser.set_preset_data(preset_name, pack_name, cpreset=cpreset)
-    file.update_preset(preset_name, cpreset)
     return cpreset
