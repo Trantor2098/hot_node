@@ -143,6 +143,26 @@ def ensure_has_suffix(name: str, suffix: str):
         return name
     
     
+def find_name_body_before_words(name_body: str, name_list: list[str], beford_words: str):
+    '''Find is there a name whose name_body before the first <before_words>, return the name or return False if there is no such a name.'''
+    for existing_name in name_list:
+        split_idx = existing_name.find(beford_words)
+        if split_idx != -1:
+            existing_name_body = existing_name[:split_idx]
+            if name_body == existing_name_body:
+                return existing_name
+    return False
+
+
+def find_string_between_words(string, after_words: str, beford_words: str):
+    '''Find is there a string between the LAST <after_words> and the FIRST <before_words>, return the string or return False if there is no such a string.'''
+    first_idx = string.rfind(after_words) + len(after_words)
+    last_idx = string.find(beford_words)
+    if first_idx < last_idx:
+        return string[first_idx:last_idx]
+    return False
+    
+    
 def list_cattr(cobj: dict, attr_name: str):
     '''Get all cobj's elements' attr as a list'''
     result_list = []
@@ -178,7 +198,7 @@ def diff_ratio(str1: str, str2: str):
 
 
 def get_similar_str(example_str:str, str_list: list, tolerance=0.99):
-    'Return the string which is most similar to the example_str and whose similar ratio is more than the 1 - tolerance in the str_list.'
+    '''Return the string which is most similar to the example_str and whose similar ratio is more than the 1 - tolerance in the str_list.'''
     best_ratio = 0.0
     best_str = None
     for i in range(len(str_list)):

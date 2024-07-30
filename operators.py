@@ -574,9 +574,15 @@ class HOTNODE_OT_pack_select(Operator):
 class HOTNODE_OT_pack_import(bpy.types.Operator):
     bl_idname = "import.hot_node_pack_import"
     bl_label = "Import Pack"
-    bl_description = "Import hot node preset pack with .zip suffix"
+    bl_description = "Import hot node preset pack(s) with .zip suffix"
     bl_options = {'REGISTER'}
     
+    # if recovering, open the system's temp folder
+    is_recovering: bpy.props.BoolProperty(default=False, options = {'HIDDEN'}) # type: ignore
+    
+    # Blender's prop templete for file selector
+    # directory path of file selector
+    directory: bpy.props.StringProperty(subtype="DIR_PATH") # type: ignore
     # path of selected file
     filepath: bpy.props.StringProperty(subtype="FILE_PATH") # type: ignore
     # name of selected file with suffix
@@ -591,20 +597,29 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
             return {'CANCELLED'}
         
         length = len(self.files)
-        backslash_idx = self.filepath.rfind("\\")
-        dir_path = self.filepath[:backslash_idx]
+        # backslash_idx = self.filepath.rfind("\\")
+        # dir_path = self.filepath[:backslash_idx]
         success_num = 0
+        
+        # import every selected file
         for i in range(length):
             file_name = self.files[i].name
-            file_path = "\\".join((dir_path, file_name))
+                    
+            file_path = "\\".join((self.directory, file_name))
             
             if file_name == ".zip" or file_name == "":
                 self.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack name cannot be empty.")
                 continue
             
-            pack_name = file_name[:-4]
+            # cull autosave suffix
+            if self.is_recovering:
+                split_index = file_name.find("_HN_autosave_")
+                if split_index != -1:
+                    pack_name = file_name[:split_index]
+            else:
+                pack_name = file_name[:-4]
             
-            if pack_name in properties.packs:
+            if pack_name in properties.packs and not self.is_recovering:
                 self.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
                 continue
                 
@@ -619,11 +634,15 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
             else:
                 success_num += 1
                 
+        # count import infos
         if success_num > 0:
             properties.read_packs()
             select_pack(context, pack_name)
             if success_num == length:
-                self.report({'INFO'}, "Import successed.")
+                if self.is_recovering:
+                    self.report({'INFO'}, f"\"{pack_name}\" recovered.")
+                else:
+                    self.report({'INFO'}, "Import successed.")
             else:
                 self.report({'INFO'}, f"Imported {success_num} packs of all {length} packs. The others were failed to import, see the previous error infos.")
         elif length > 1:
@@ -632,6 +651,8 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        if self.is_recovering:
+            self.directory = file.temp_dir_path
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     

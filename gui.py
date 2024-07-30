@@ -119,9 +119,9 @@ class HOTNODE_PT_parent(Panel):
     bl_category = "Hot Node"
     
     
-class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
+class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
     bl_label = "Nodes"
-    bl_idname = "HOTNODE_PT_main"
+    bl_idname = "HOTNODE_PT_nodes"
 
     def draw(self, context):
         
@@ -166,7 +166,7 @@ class HOTNODE_PT_main(HOTNODE_PT_parent, Panel):
         # Pack Select UI
         row = layout.row(align=True)
         row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
-        row.prop(props, "pack_selected_name")
+        row.prop(props, "pack_selected_name", text="")
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
 
@@ -225,8 +225,8 @@ class HOTNODE_PT_texture_save(HOTNODE_PT_parent, Panel):
             row.prop(props, "tex_key", text="Key", placeholder="Key1 / Key2 / ...")
             
             
-class HOTNODE_PT_pack_sharing(HOTNODE_PT_parent, Panel):
-    bl_label = "Pack Sharing"
+class HOTNODE_PT_pack_file(HOTNODE_PT_parent, Panel):
+    bl_label = "Pack File"
     bl_idname = "HOTNODE_PT_pack_sharing"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -239,6 +239,7 @@ class HOTNODE_PT_pack_sharing(HOTNODE_PT_parent, Panel):
         # row.label(text="Packs")
         row = col.row(align=True)
         row.operator("import.hot_node_pack_import", icon="IMPORT", text="Import")
+        row.operator("import.hot_node_pack_import", icon="IMPORT", text="Recover").is_recovering = True
         row = col.row(align=True)
         row.operator("export.hot_node_pack_export", icon="EXPORT", text="Export")
         row.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
@@ -255,11 +256,11 @@ classes = (
     HOTNODE_MT_nodes_add_specials,
     HOTNODE_MT_nodes_add,
     HOTNODE_UL_presets,
-    HOTNODE_PT_main,
+    HOTNODE_PT_nodes,
     HOTNODE_PT_texture,
     HOTNODE_PT_texture_apply,
     HOTNODE_PT_texture_save,
-    HOTNODE_PT_pack_sharing,
+    HOTNODE_PT_pack_file,
     )
 
 

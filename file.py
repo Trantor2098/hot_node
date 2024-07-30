@@ -17,12 +17,13 @@
 #
 # END GPL LICENSE BLOCK #####
 
-import os, shutil, json, zipfile
+import os, shutil, json, zipfile, tempfile, time
 
 from . version_control import version
 from . import utils
 
 addon_dir_path = os.path.dirname(__file__)
+temp_dir_path = tempfile.gettempdir()
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
 pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
 root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
@@ -116,7 +117,7 @@ def check_read_pack_meta(pack_name):
     keys = list(metadata.keys())
     if keys != ["order", "tree_types", "version"]:
         return 'INVALID_META'
-    return read_json(pack_meta_path)
+    return metadata
 
 
 # CRUD of Pack and Preset
@@ -203,7 +204,7 @@ def export_selected_pack(dst_file_path):
     zip.close()
     
     
-def export_packs(packs, dst_dir_path):
+def export_packs(packs, dst_dir_path, is_autosaving=False):
     existing_file_names = os.listdir(dst_dir_path)
     existing_zip_namebodys = []
     for name in existing_file_names:
@@ -211,16 +212,28 @@ def export_packs(packs, dst_dir_path):
             existing_zip_namebodys.append(name[:-4])
             
     for pack in packs:
-        ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
-        pack_dir_path = os.path.join(pack_root_dir_path, ensured_pack_name)
-        file_name = ".".join((ensured_pack_name, "zip"))
-        dst_file_path = os.path.join(dst_dir_path, file_name)
+        pack_dir_path = os.path.join(pack_root_dir_path, pack)
+        if is_autosaving:
+            # remove the early autosaved file
+            early_zip_namebody = utils.find_name_body_before_words(pack, existing_zip_namebodys, "_HN_autosave_")
+            if early_zip_namebody is not False:
+                ealry_zip_path = os.path.join(dst_dir_path, "".join((early_zip_namebody, ".zip")))
+                os.remove(ealry_zip_path)
+            ensured_pack_name = "".join((pack, "_HN_autosave_", str(time.time())))
+        else:
+            ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
+        dst_file_name = ".".join((ensured_pack_name, "zip"))
+        dst_file_path = os.path.join(dst_dir_path, dst_file_name)
         zip = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
         for root, dirs, files in os.walk(pack_dir_path):
             relative_root = '' if root == pack_dir_path else root.replace(pack_dir_path, '') + os.sep
             for filename in files:
                 zip.write(os.path.join(root, filename), relative_root + filename)
         zip.close()
+        
+        
+def autosave_packs(packs: list):
+    export_packs(packs, temp_dir_path, is_autosaving=True)
     
 
 def create_preset(preset_name: str, cpreset: dict):

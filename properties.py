@@ -21,6 +21,8 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
+import tempfile, time
+
 from . import utils, file
 
 
@@ -35,21 +37,26 @@ preset_selected = ""
 
 # poll parameters
 allow_tex_save = False
-
-# XXX to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
+# to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
 skip_rename_callback = False
 
 # for json file indent
 # indent = 1
 
 
-# XXX For now i havent find a way to init preset collection before user making a explicit UI / OPS action...
-def init():
+# Initialize & finalize functions for props, files
+def initialize():
     global packs
     file.refresh_root_meta_cache()
     packs = file.read_packs()
+    file.autosave_packs(packs)
     
     
+def finalize():
+    file.autosave_packs(packs)
+    
+
+# Set function for global packs.
 def read_packs():
     global packs
     packs = file.read_packs()
@@ -64,6 +71,7 @@ def rename_pack(old_name, new_name):
     file.rename_pack(old_name, new_name)
 
 
+# Callbacks of hot node props updating
 def node_preset_type_update(self, context):
     pass
 
@@ -149,18 +157,10 @@ def fast_create_preset_name_update(self, context):
     file.create_preset(ensured_fast_name, cpreset)
     
     props.fast_create_preset_name = ""
-        
-        
-# def reduce_file_size_update(self, context):
-#     global indent
-#     if context.scene.hot_node_reduce_file_size:
-#         indent = None
-#     else:
-#         indent = 1
 
 
 class HotNodePreset(bpy.types.PropertyGroup):
-    # This class stores the presets infos in a pack
+    '''Info class of node preset, will be used for UI, OPS'''
     name: StringProperty(
         name='Node Preset',
         default='Preset',
@@ -183,20 +183,21 @@ class HotNodePreset(bpy.types.PropertyGroup):
     
     
 class HotNodeProps(bpy.types.PropertyGroup):
-    
+    '''Singleton class! Hot Node's properties that will be registed to blender, used for UI, OPS.'''
     presets: CollectionProperty(
-        name='Node Presets',
+        name="Node Presets",
         type=HotNodePreset
     ) # type: ignore
 
     preset_selected: IntProperty(
-        name='Selected Preset',
+        name="Selected Node Preset",
         update=node_preset_select_update
     ) # type: ignore
     
     # for user to change pack name.
     pack_selected_name: StringProperty(
-        name='',
+        name="Selected Pack",
+        description="Selected pack's name",
         default=pack_selected,
         update=pack_selected_name_update
     ) # type: ignore
@@ -279,25 +280,18 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    init()
+    initialize()
     
     bpy.types.Scene.hot_node_props = bpy.props.PointerProperty(
         name='Hot Node Prop Group',
         type=HotNodeProps
     ) # type: ignore
     
-    
-    # XXX Not sure should i add this feature...
-    # Scene.hot_node_reduce_file_size = BoolProperty(
-    #     name='Reduce Data File Size',
-    #     description="Reduce preset data file size by about 1/3, by removing line feeds in the data files. The data may be unreadable.",
-    #     default=False,
-    #     update=reduce_file_size_update
-    # )
-
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+        
+    finalize()
 
     del bpy.types.Scene.hot_node_props

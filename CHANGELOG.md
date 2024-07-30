@@ -1,6 +1,20 @@
 ChangeLog
 ========
 
+[0.3.0] - 2024-07-29
+--------
+
+### Added
+- Packs won't be lost now when updating Hot Node (But before uninstalling, exporting all packs is still important).
+- Packs will be auto saved to system's TEMP folder when opening & closing blender, and can be recovered via ```Recover``` button.
+
+### Removed
+- Removed CHANGELOG & README file in the add-on package. You can still find them on Hot Node's github repository.
+
+### Fixed
+- Fixed: When exporting all packs, if the directory exists a re-named pack.zip, our unique pack.001.zip will be empty. Now it won't be empty.
+
+
 [0.2.1] - 2024-07-29
 --------
 
