@@ -23,7 +23,7 @@ from . version_control import version
 from . import utils
 
 addon_dir_path = os.path.dirname(__file__)
-temp_dir_path = tempfile.gettempdir()
+temp_dir_path = os.path.join(tempfile.gettempdir(), "hot_node_autosave")
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
 pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
 root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
@@ -40,7 +40,7 @@ def init():
     
 def finalize():
     autosave_packs()
-    clear_outdate_autosave_packs()
+    clear_outdated_autosave_packs()
 
 # Sync Check
 def refresh_pack_root():
@@ -49,7 +49,13 @@ def refresh_pack_root():
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
         auto_recover_packs()
-    if not os.path.exists(root_meta_path):
+        packs = read_packs()
+        if len(packs) == 0:
+            root_meta_cache["pack_selected"] = ""
+        else:
+            root_meta_cache["pack_selected"] = packs[0]
+        write_root_meta()
+    elif not os.path.exists(root_meta_path):
         root_meta_cache["pack_selected"] = ""
         write_root_meta()
     else:
@@ -133,14 +139,19 @@ def check_read_pack_meta(pack_name):
 
 
 # Read Existing Files
-def read_existing_file_namebodys(dir_path, suffix=".zip"):
+def read_existing_files(dir_path, suffix=".zip", cull_suffix=True):
     existing_file_names = os.listdir(dir_path)
-    existing_file_namebodys: list[str] = []
-    suffix_length = len(suffix)
-    for name in existing_file_names:
-        if name.endswith(suffix):
-            existing_file_namebodys.append(name[:-suffix_length])
-    return existing_file_namebodys
+    filtered_file_names: list[str] = []
+    if cull_suffix:
+        suffix_length = len(suffix)
+        for file_name in existing_file_names:
+            if file_name.endswith(suffix):
+                filtered_file_names.append(file_name[:-suffix_length])
+    else:
+        for file_name in existing_file_names:
+            if file_name.endswith(suffix):
+                filtered_file_names.append(file_name)
+    return filtered_file_names
 
 
 # CRUD of Pack and Preset
@@ -179,8 +190,11 @@ def rename_pack(old_pack_name, new_pack_name):
 
 
 def read_packs():
+    if not os.path.exists(pack_root_dir_path):
+        refresh_pack_root()
     pack_names = os.listdir(pack_root_dir_path)
-    pack_names.remove(".metadata.json")
+    if ".metadata.json" in pack_names:
+        pack_names.remove(".metadata.json")
     return pack_names
 
 
@@ -215,22 +229,7 @@ def import_pack(from_file_path: str, new_pack_name: str):
         shutil.rmtree(new_pack_dir_path)
         return 'INVALID_META'
     return 'SUCCESS'
-
-
-def auto_recover_packs():
-    '''Recover all the packs that were autosaved today'''
-    existing_zip_namebodys = read_existing_file_namebodys(temp_dir_path, suffix=".zip")
-    current_time = utils.get_autosave_time()
-    for namebody in existing_zip_namebodys:
-        split_result = namebody.split("_HN_autosave_")
-        if len(split_result) == 2:
-            [pack_name, autosave_time_str] = split_result
-            autosave_time = utils.parse_autosave_time_str(autosave_time_str)
-            # a risk actually exists: if this loop starts at 23:59 and ends at 0:00... hi my users, dont do that ok?
-            if autosave_time[0] == current_time[0]:
-                file_path = os.path.join(temp_dir_path, "".join((namebody, ".zip")))
-                import_pack(file_path, pack_name)
-                    
+             
 
 def export_selected_pack(dst_file_path):
     global pack_selected_dir_path
@@ -242,23 +241,13 @@ def export_selected_pack(dst_file_path):
     zip.close()
     
     
-def export_packs(packs, dst_dir_path, is_autosaving=False):
-    existing_zip_namebodys = read_existing_file_namebodys(dst_dir_path, suffix=".zip")
+def export_packs(packs, dst_dir_path):
+    existing_zip_namebodys = read_existing_files(dst_dir_path, suffix=".zip")
             
     for pack in packs:
         pack_dir_path = os.path.join(pack_root_dir_path, pack)
         
-        # if autosave, add timestamp and remove the early renamed autosaved file
-        if is_autosaving:
-            early_zip_namebody = utils.find_name_body_before_words(pack, existing_zip_namebodys, "_HN_autosave_")
-            if early_zip_namebody is not False:
-                ealry_zip_path = os.path.join(dst_dir_path, "".join((early_zip_namebody, ".zip")))
-                os.remove(ealry_zip_path)
-            autosave_time_str = utils.get_autosave_time_str()
-            ensured_pack_name = "".join((pack, "_HN_autosave_", autosave_time_str))
-        # common save 
-        else:
-            ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
+        ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
             
         dst_file_name = ".".join((ensured_pack_name, "zip"))
         dst_file_path = os.path.join(dst_dir_path, dst_file_name)
@@ -271,21 +260,68 @@ def export_packs(packs, dst_dir_path, is_autosaving=False):
         
         
 def autosave_packs():
+    if not os.path.exists(temp_dir_path):
+        os.mkdir(temp_dir_path)
     packs = read_packs()
-    export_packs(packs, temp_dir_path, is_autosaving=True)
+    
+    existing_zips = read_existing_files(temp_dir_path, suffix=".zip", cull_suffix=False)
+    existing_packs = []
+    for i in range(len(existing_zips)):
+        file_name = existing_zips[i]
+        existing_packs.append(utils.get_string_between_words(file_name, None, ("_autosave_", "_deprecated_")))
+            
+    for pack in packs:
+        pack_dir_path = os.path.join(pack_root_dir_path, pack)
+        
+        # remove the previous autosaved file with the same name
+        if pack in existing_packs:
+            zip_idx = existing_packs.index(pack)
+            ealry_zip_path = os.path.join(temp_dir_path, existing_zips[zip_idx])
+            os.remove(ealry_zip_path)
+            
+        autosave_time_str = utils.get_autosave_time_str()
+        ensured_pack_name = "".join((pack, "_autosave_", autosave_time_str))
+            
+        dst_file_name = ".".join((ensured_pack_name, "zip"))
+        dst_file_path = os.path.join(temp_dir_path, dst_file_name)
+        file_name = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
+        for root, dirs, files in os.walk(pack_dir_path):
+            relative_root = '' if root == pack_dir_path else root.replace(pack_dir_path, '') + os.sep
+            for filename in files:
+                file_name.write(os.path.join(root, filename), relative_root + filename)
+        file_name.close()
+    
+    # if the autosaved pack no longer exists in the current packs, mark them as deprecated so that if user update the add-on these packs wont be auto recovered
+    for i in range(len(existing_packs)):
+        existing_pack = existing_packs[i]
+        if existing_pack not in packs:
+            new_zip_name = existing_zips[i].replace("_autosave_", "_deprecated_")
+            old_zip_path = os.path.join(temp_dir_path, existing_zips[i])
+            new_zip_path = os.path.join(temp_dir_path, new_zip_name)
+            os.rename(old_zip_path, new_zip_path)
+            
+   
+def auto_recover_packs():
+    '''Recover all the packs which were marked as "autosave".'''
+    existing_zips = read_existing_files(temp_dir_path, suffix=".zip", cull_suffix=False)
+    for file_name in existing_zips:
+        pack_name = utils.get_string_between_words(file_name, None, ("_autosave_",))
+        if pack_name is not False:
+            file_path = os.path.join(temp_dir_path, file_name)
+            import_pack(file_path, pack_name)
     
     
-def clear_outdate_autosave_packs():
-    '''Clear packs which were autosaved 1 day before.'''
-    existing_zip_namebodys = read_existing_file_namebodys(temp_dir_path, suffix=".zip")
+def clear_outdated_autosave_packs():
+    '''Clear packs which were autosaved 1 day before or autosaved in the last month.'''
+    existing_zip_namebodys = read_existing_files(temp_dir_path, suffix=".zip")
     current_time = utils.get_autosave_time()
     for namebody in existing_zip_namebodys:
-        # DD/HH/MM
-        autosave_time_str = utils.find_string_between_words(namebody, "_HN_autosave_", None)
+        # DDHHMM
+        autosave_time_str = utils.get_string_between_words(namebody, ("_autosave_", "_deprecated_"), None)
         if autosave_time_str is not False:
             autosave_time = utils.parse_autosave_time_str(autosave_time_str)
             day_delta = current_time[0] - autosave_time[0]
-            # if the user opened blender at same day next month, the pack will be remained... but who cares?
+            # if the user opened blender after a month, the pack will be remained... but who cares?
             if day_delta > 1 or day_delta < 0:
                 file_path = os.path.join(temp_dir_path, "".join((namebody, ".zip")))
                 os.remove(file_path)

@@ -5,17 +5,17 @@ ChangeLog
 --------
 
 ### Added
-- ★ Won't lost packs when next time you update Hot Node (But before uninstalling, exporting all packs is still safer).
-- Packs will be auto saved to system's TEMP folder when opening & closing blender, and can be recovered via ```Recover``` button.
+- ★ Packs won't be lost in the future version updating (for this time you still need to export all packs for backup!).
+- Packs will be auto saved to system's TEMP folder when opening & closing blender and will remain 2 days, and can be recovered via ```Recover``` button.
 
 ### Changed
-- Some UI grayed-out logic.
+- Some UI details.
 
 ### Removed
 - Removed CHANGELOG & README file in the add-on package. You can still find them on Hot Node's github repository.
 
 ### Fixed
-- Fixed: When exporting all packs, if the directory exists a re-named pack.zip, our unique pack.001.zip will be empty. Now it won't be empty.
+- **Severe BUG:** When exporting all packs, if the directory exists a re-named pack.zip, your exported pack with a auto set unique name like pack.001.zip will be empty. Now it's fixed.
 
 
 [0.2.1] - 2024-07-29

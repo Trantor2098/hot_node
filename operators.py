@@ -573,7 +573,7 @@ class HOTNODE_OT_pack_select(Operator):
     
 class HOTNODE_OT_pack_import(bpy.types.Operator):
     bl_idname = "import.hot_node_pack_import"
-    bl_label = "Import Pack"
+    bl_label = "Import Pack(s)"
     bl_description = "Import hot node preset pack(s) with .zip suffix"
     bl_options = {'REGISTER'}
     
@@ -588,7 +588,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
     # name of selected file with suffix
     filename: bpy.props.StringProperty(subtype="FILE_NAME") # type: ignore
     # filter suffix in file select window
-    filter_glob : StringProperty(default= "*.zip", options = {'HIDDEN'}) # type: ignore
+    filter_glob: StringProperty(default= "*.zip", options = {'HIDDEN'}) # type: ignore
     # selected files
     files : bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'}) # type: ignore
 
@@ -613,9 +613,9 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
             
             # cull autosave suffix
             if self.is_recovering:
-                pack_name = utils.find_string_between_words(file_name, None, "_HN_autosave_")
+                pack_name = utils.get_string_between_words(file_name, None, ("_autosave_", "_deprecated_"))
                 if pack_name is False:
-                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack (it should have a \"_HN_autosave_\" namebody).")
+                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack (it should have a \"_hot_node_autosave_\" namebody).")
                     continue
             else:
                 pack_name = file_name[:-4]
@@ -642,7 +642,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
                 if self.is_recovering:
                     self.report({'INFO'}, f"\"{pack_name}\" recovered.")
                 else:
-                    self.report({'INFO'}, "Import successed.")
+                    self.report({'INFO'}, f"\"{pack_name}\" imported.")
             else:
                 self.report({'INFO'}, f"Imported {success_num} packs of all {file_num} packs. The others were failed to import, see the previous error infos.")
         elif file_num > 1:

@@ -143,51 +143,66 @@ def ensure_has_suffix(name: str, suffix: str):
         return name
     
     
-def find_name_body_before_words(name_body: str, name_list: list[str], beford_words: str):
-    '''Find is there a name whose name_body before the first <before_words>, return the existing full name or return False if there is no such a name.'''
-    for existing_name in name_list:
-        split_idx = existing_name.find(beford_words)
-        if split_idx != -1:
-            existing_name_body = existing_name[:split_idx]
-            if name_body == existing_name_body:
-                return existing_name
-    return False
-
-
-def find_name_body_after_words(name_body: str, name_list: list[str], after_words: str):
-    '''Find is there a name whose name_body after the first <after_words>, return the existing full name or return False if there is no such a name.'''
-    for existing_name in name_list:
-        split_idx = existing_name.find(after_words)
-        if split_idx != -1:
-            existing_name_body = existing_name[:split_idx]
-            if name_body == existing_name_body:
-                return existing_name
-    return False
-
-
-def find_string_between_words(string: str, after_words: str|None, beford_words: str|None):
-    '''Find is there a string between the LAST <after_words> and the FIRST <before_words>, 
-    return the string or return False if there is no such a string.
-    Keep <after_words> / <before_words> None to get unilateral split.
+def find_name_body_after_before_words(name_body: str, name_list: list[str], words: tuple[str], after=True):
+    '''Find is there a name whose name_body before the first appeared <before_word> in the string, 
+    if have multiple words, the first found word in the tuple will be used.
+    
+    - after: if True, try find the namebody after the word; if False, before word.
+    - Return: the existing full name or return False if there is no such a name.
     '''
+    for existing_name in name_list:
+        split_idx = -1
+        for word in words:
+            split_idx = existing_name.find(word)
+            if split_idx != -1:
+                if after:
+                    split_idx += len(word)
+                break
+        if split_idx != -1:
+            if after:
+                existing_name_body = existing_name[split_idx:]
+            else:
+                existing_name_body = existing_name[:split_idx]
+            if name_body == existing_name_body:
+                return existing_name
+    return False
+
+
+def get_string_between_words(string: str, after_words: tuple[str]|None, before_words: tuple[str]|None):
+    '''Find is there a substring between the LAST appeared <after_word> and the FIRST appeared <before_words> in the string.
+    Keep <after_words> / <before_words> None to get one way split.
+    If there are multiple afterwords / before_words, the first found word in the tuple will be used.
+    
+    Return: the substring or False if there is no such a substring.
+    '''
+    first_idx = -1
     if after_words is None:
         first_idx = 0
     else:
-        first_idx = string.rfind(after_words)
+        for after_word in after_words:
+            first_idx = string.rfind(after_word)
+            if first_idx != -1:
+                first_idx += len(after_word)
+                break
         if first_idx == -1:
             return False
-        first_idx = string.rfind(after_words) + len(after_words)
         
-    if beford_words is None:
+    last_idx = -1
+    if before_words is None:
         # [:] will exclude last_idx, [:) in fact
         last_idx = len(string)
     else:
-        last_idx = string.find(beford_words)
+        for before_word in before_words:
+            last_idx = string.find(before_word)
+            if last_idx != -1:
+                break
         if last_idx == -1:
             return False
-    if last_idx > first_idx:
-        return string[first_idx:last_idx]
-    return False
+        
+    if last_idx <= first_idx:
+        return False
+    
+    return string[first_idx:last_idx]
 
     
 def list_cattr(cobj: dict, attr_name: str):

@@ -26,6 +26,7 @@ from . import utils, file
 
 # NOTE selected preset is saved by blender property, and the python string is a mirror. But pack is saved by python string.
 
+# TODO put packs into file.py
 # packs will be loaded once the blender open
 packs = []
 # for script to get current pack.

@@ -225,24 +225,22 @@ class HOTNODE_PT_texture_save(HOTNODE_PT_parent, Panel):
             row.prop(props, "tex_key", text="Key", placeholder="Key1 / Key2 / ...")
             
             
-class HOTNODE_PT_pack_file(HOTNODE_PT_parent, Panel):
-    bl_label = "Pack File"
-    bl_idname = "HOTNODE_PT_pack_sharing"
+class HOTNODE_PT_pack_import_export(HOTNODE_PT_parent, Panel):
+    bl_label = "Pack Import Export"
+    bl_idname = "HOTNODE_PT_pack_import_export"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
         
-        # Import / Export
-        col = layout.column()
-        # row = col.row()
-        # row.label(text="Packs")
-        row = col.row(align=True)
-        row.operator("import.hot_node_pack_import", icon="IMPORT", text="Import")
-        row.operator("import.hot_node_pack_import", icon="IMPORT", text="Recover").is_recovering = True
-        row = col.row(align=True)
-        row.operator("export.hot_node_pack_export", icon="EXPORT", text="Export")
-        row.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
+        # Import & Export Packs
+        row = layout.row()
+        col = row.column(align=True)
+        col.operator("import.hot_node_pack_import", icon="IMPORT", text="Import").is_recovering = False
+        col.operator("import.hot_node_pack_import", icon="IMPORT", text="Recover").is_recovering = True
+        col = row.column(align=True)
+        col.operator("export.hot_node_pack_export", icon="EXPORT", text="Export")
+        col.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
         
         
 def hot_node_shift_a_menu(self, context):
@@ -260,7 +258,7 @@ classes = (
     HOTNODE_PT_texture,
     HOTNODE_PT_texture_apply,
     HOTNODE_PT_texture_save,
-    HOTNODE_PT_pack_file,
+    HOTNODE_PT_pack_import_export,
     )
 
 
