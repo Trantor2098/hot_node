@@ -27,7 +27,7 @@ from . import node_setter, utils, file, properties, node_parser
 
 # Tool Functions
 def sync_data(context: bpy.types.Context):
-    file.refresh_root_meta_cache()
+    file.refresh_pack_root()
     properties.pack_selected = file.root_meta_cache["pack_selected"]
     properties.packs = file.read_packs()
     select_pack(context, properties.pack_selected)
@@ -596,13 +596,13 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
         if not ensure_sync(self, context):
             return {'CANCELLED'}
         
-        length = len(self.files)
+        file_num = len(self.files)
         # backslash_idx = self.filepath.rfind("\\")
         # dir_path = self.filepath[:backslash_idx]
         success_num = 0
         
         # import every selected file
-        for i in range(length):
+        for i in range(file_num):
             file_name = self.files[i].name
                     
             file_path = "\\".join((self.directory, file_name))
@@ -613,15 +613,15 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
             
             # cull autosave suffix
             if self.is_recovering:
-                split_index = file_name.find("_HN_autosave_")
-                if split_index != -1:
-                    pack_name = file_name[:split_index]
+                pack_name = utils.find_string_between_words(file_name, None, "_HN_autosave_")
+                if pack_name is False:
+                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack (it should have a \"_HN_autosave_\" namebody).")
+                    continue
             else:
                 pack_name = file_name[:-4]
-            
-            if pack_name in properties.packs and not self.is_recovering:
-                self.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
-                continue
+                if pack_name in properties.packs:
+                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
+                    continue
                 
             result = file.import_pack(file_path, pack_name)
             
@@ -638,14 +638,14 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
         if success_num > 0:
             properties.read_packs()
             select_pack(context, pack_name)
-            if success_num == length:
+            if success_num == file_num:
                 if self.is_recovering:
                     self.report({'INFO'}, f"\"{pack_name}\" recovered.")
                 else:
                     self.report({'INFO'}, "Import successed.")
             else:
-                self.report({'INFO'}, f"Imported {success_num} packs of all {length} packs. The others were failed to import, see the previous error infos.")
-        elif length > 1:
+                self.report({'INFO'}, f"Imported {success_num} packs of all {file_num} packs. The others were failed to import, see the previous error infos.")
+        elif file_num > 1:
             self.report({'ERROR'}, f"Failed to import. See the previous error infos.")
             
         return {'FINISHED'}
@@ -674,7 +674,7 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context)
+        return properties.pack_selected != ""
     
     def execute(self, context):
         if not ensure_sync(self, context):
@@ -706,7 +706,7 @@ class HOTNODE_OT_pack_export_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context)
+        return properties.pack_selected != ""
     
     def execute(self, context):
         if not ensure_sync(self, context):

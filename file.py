@@ -17,7 +17,7 @@
 #
 # END GPL LICENSE BLOCK #####
 
-import os, shutil, json, zipfile, tempfile, time
+import os, shutil, json, zipfile, tempfile
 
 from . version_control import version
 from . import utils
@@ -32,11 +32,23 @@ pack_meta_cache = {}
 root_meta_cache = {}
 
 
+# Initialize & finalize files when opening & closing blender
+def init():
+    refresh_pack_root()
+    autosave_packs()
+    
+    
+def finalize():
+    autosave_packs()
+    clear_outdate_autosave_packs()
+
 # Sync Check
-def refresh_root_meta_cache():
+def refresh_pack_root():
+    '''Read root meta to global root_meta_cache, recover autosaved files when there is no pack root dir (mostly happen when updating add-on)'''
     global root_meta_cache
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
+        auto_recover_packs()
     if not os.path.exists(root_meta_path):
         root_meta_cache["pack_selected"] = ""
         write_root_meta()
@@ -120,6 +132,17 @@ def check_read_pack_meta(pack_name):
     return metadata
 
 
+# Read Existing Files
+def read_existing_file_namebodys(dir_path, suffix=".zip"):
+    existing_file_names = os.listdir(dir_path)
+    existing_file_namebodys: list[str] = []
+    suffix_length = len(suffix)
+    for name in existing_file_names:
+        if name.endswith(suffix):
+            existing_file_namebodys.append(name[:-suffix_length])
+    return existing_file_namebodys
+
+
 # CRUD of Pack and Preset
 def create_pack(pack_name):
     global root_meta_cache
@@ -174,17 +197,17 @@ def select_pack(pack_name):
     write_root_meta()
     
     
-def import_pack(from_file_path: str, pack_name: str):
+def import_pack(from_file_path: str, new_pack_name: str):
     global pack_selected_dir_path
     size = os.path.getsize(from_file_path)
-    # if zip file is bigger than 100 Mib
-    if size > 100 * 1048576:
+    # if zip file is bigger than 150 Mib
+    if size > 150 * 1048576:
         return 'OVER_SIZE'
     file = zipfile.ZipFile(from_file_path)
-    new_pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
+    new_pack_dir_path = os.path.join(pack_root_dir_path, new_pack_name)
     file.extractall(new_pack_dir_path)
     file.close()
-    metadata = check_read_pack_meta(pack_name)
+    metadata = check_read_pack_meta(new_pack_name)
     if metadata == 'META_LACK':
         shutil.rmtree(new_pack_dir_path)
         return 'META_LACK'
@@ -193,6 +216,21 @@ def import_pack(from_file_path: str, pack_name: str):
         return 'INVALID_META'
     return 'SUCCESS'
 
+
+def auto_recover_packs():
+    '''Recover all the packs that were autosaved today'''
+    existing_zip_namebodys = read_existing_file_namebodys(temp_dir_path, suffix=".zip")
+    current_time = utils.get_autosave_time()
+    for namebody in existing_zip_namebodys:
+        split_result = namebody.split("_HN_autosave_")
+        if len(split_result) == 2:
+            [pack_name, autosave_time_str] = split_result
+            autosave_time = utils.parse_autosave_time_str(autosave_time_str)
+            # a risk actually exists: if this loop starts at 23:59 and ends at 0:00... hi my users, dont do that ok?
+            if autosave_time[0] == current_time[0]:
+                file_path = os.path.join(temp_dir_path, "".join((namebody, ".zip")))
+                import_pack(file_path, pack_name)
+                    
 
 def export_selected_pack(dst_file_path):
     global pack_selected_dir_path
@@ -205,23 +243,23 @@ def export_selected_pack(dst_file_path):
     
     
 def export_packs(packs, dst_dir_path, is_autosaving=False):
-    existing_file_names = os.listdir(dst_dir_path)
-    existing_zip_namebodys = []
-    for name in existing_file_names:
-        if name.endswith(".zip"):
-            existing_zip_namebodys.append(name[:-4])
+    existing_zip_namebodys = read_existing_file_namebodys(dst_dir_path, suffix=".zip")
             
     for pack in packs:
         pack_dir_path = os.path.join(pack_root_dir_path, pack)
+        
+        # if autosave, add timestamp and remove the early renamed autosaved file
         if is_autosaving:
-            # remove the early autosaved file
             early_zip_namebody = utils.find_name_body_before_words(pack, existing_zip_namebodys, "_HN_autosave_")
             if early_zip_namebody is not False:
                 ealry_zip_path = os.path.join(dst_dir_path, "".join((early_zip_namebody, ".zip")))
                 os.remove(ealry_zip_path)
-            ensured_pack_name = "".join((pack, "_HN_autosave_", str(time.time())))
+            autosave_time_str = utils.get_autosave_time_str()
+            ensured_pack_name = "".join((pack, "_HN_autosave_", autosave_time_str))
+        # common save 
         else:
             ensured_pack_name = utils.ensure_unique_name(pack, -1, existing_zip_namebodys)
+            
         dst_file_name = ".".join((ensured_pack_name, "zip"))
         dst_file_path = os.path.join(dst_dir_path, dst_file_name)
         zip = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
@@ -232,8 +270,25 @@ def export_packs(packs, dst_dir_path, is_autosaving=False):
         zip.close()
         
         
-def autosave_packs(packs: list):
+def autosave_packs():
+    packs = read_packs()
     export_packs(packs, temp_dir_path, is_autosaving=True)
+    
+    
+def clear_outdate_autosave_packs():
+    '''Clear packs which were autosaved 1 day before.'''
+    existing_zip_namebodys = read_existing_file_namebodys(temp_dir_path, suffix=".zip")
+    current_time = utils.get_autosave_time()
+    for namebody in existing_zip_namebodys:
+        # DD/HH/MM
+        autosave_time_str = utils.find_string_between_words(namebody, "_HN_autosave_", None)
+        if autosave_time_str is not False:
+            autosave_time = utils.parse_autosave_time_str(autosave_time_str)
+            day_delta = current_time[0] - autosave_time[0]
+            # if the user opened blender at same day next month, the pack will be remained... but who cares?
+            if day_delta > 1 or day_delta < 0:
+                file_path = os.path.join(temp_dir_path, "".join((namebody, ".zip")))
+                os.remove(file_path)
     
 
 def create_preset(preset_name: str, cpreset: dict):

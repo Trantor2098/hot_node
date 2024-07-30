@@ -21,8 +21,6 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
-import tempfile, time
-
 from . import utils, file
 
 
@@ -43,18 +41,6 @@ skip_rename_callback = False
 # for json file indent
 # indent = 1
 
-
-# Initialize & finalize functions for props, files
-def initialize():
-    global packs
-    file.refresh_root_meta_cache()
-    packs = file.read_packs()
-    file.autosave_packs(packs)
-    
-    
-def finalize():
-    file.autosave_packs(packs)
-    
 
 # Set function for global packs.
 def read_packs():
@@ -280,7 +266,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    initialize()
+    read_packs()
     
     bpy.types.Scene.hot_node_props = bpy.props.PointerProperty(
         name='Hot Node Prop Group',
@@ -292,6 +278,4 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
         
-    finalize()
-
     del bpy.types.Scene.hot_node_props

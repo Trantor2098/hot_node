@@ -5,8 +5,11 @@ ChangeLog
 --------
 
 ### Added
-- Packs won't be lost now when updating Hot Node (But before uninstalling, exporting all packs is still important).
+- ★ Won't lost packs when next time you update Hot Node (But before uninstalling, exporting all packs is still safer).
 - Packs will be auto saved to system's TEMP folder when opening & closing blender, and can be recovered via ```Recover``` button.
+
+### Changed
+- Some UI grayed-out logic.
 
 ### Removed
 - Removed CHANGELOG & README file in the add-on package. You can still find them on Hot Node's github repository.

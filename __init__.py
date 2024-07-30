@@ -32,7 +32,7 @@ bl_info = {
 }
 
 
-from . import gui,  properties, operators
+from . import gui,  properties, operators, file
 
 
 def dev_reload():
@@ -50,6 +50,8 @@ def dev_reload():
 
 def register():
     dev_reload()
+    
+    file.init()
 
     gui.register()
     properties.register()
@@ -57,6 +59,8 @@ def register():
 
 
 def unregister():
+    file.finalize()
+    
     gui.unregister()
     properties.unregister()
     operators.unregister()

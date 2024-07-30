@@ -18,7 +18,7 @@
 # END GPL LICENSE BLOCK #####
 
 
-import os, difflib
+import os, difflib, time
 
 
 def split_by_slash(string: str):
@@ -144,7 +144,7 @@ def ensure_has_suffix(name: str, suffix: str):
     
     
 def find_name_body_before_words(name_body: str, name_list: list[str], beford_words: str):
-    '''Find is there a name whose name_body before the first <before_words>, return the name or return False if there is no such a name.'''
+    '''Find is there a name whose name_body before the first <before_words>, return the existing full name or return False if there is no such a name.'''
     for existing_name in name_list:
         split_idx = existing_name.find(beford_words)
         if split_idx != -1:
@@ -154,14 +154,41 @@ def find_name_body_before_words(name_body: str, name_list: list[str], beford_wor
     return False
 
 
-def find_string_between_words(string, after_words: str, beford_words: str):
-    '''Find is there a string between the LAST <after_words> and the FIRST <before_words>, return the string or return False if there is no such a string.'''
-    first_idx = string.rfind(after_words) + len(after_words)
-    last_idx = string.find(beford_words)
-    if first_idx < last_idx:
+def find_name_body_after_words(name_body: str, name_list: list[str], after_words: str):
+    '''Find is there a name whose name_body after the first <after_words>, return the existing full name or return False if there is no such a name.'''
+    for existing_name in name_list:
+        split_idx = existing_name.find(after_words)
+        if split_idx != -1:
+            existing_name_body = existing_name[:split_idx]
+            if name_body == existing_name_body:
+                return existing_name
+    return False
+
+
+def find_string_between_words(string: str, after_words: str|None, beford_words: str|None):
+    '''Find is there a string between the LAST <after_words> and the FIRST <before_words>, 
+    return the string or return False if there is no such a string.
+    Keep <after_words> / <before_words> None to get unilateral split.
+    '''
+    if after_words is None:
+        first_idx = 0
+    else:
+        first_idx = string.rfind(after_words)
+        if first_idx == -1:
+            return False
+        first_idx = string.rfind(after_words) + len(after_words)
+        
+    if beford_words is None:
+        # [:] will exclude last_idx, [:) in fact
+        last_idx = len(string)
+    else:
+        last_idx = string.find(beford_words)
+        if last_idx == -1:
+            return False
+    if last_idx > first_idx:
         return string[first_idx:last_idx]
     return False
-    
+
     
 def list_cattr(cobj: dict, attr_name: str):
     '''Get all cobj's elements' attr as a list'''
@@ -207,6 +234,31 @@ def get_similar_str(example_str:str, str_list: list, tolerance=0.99):
             best_str = str_list[i]
             best_ratio = ratio
     return best_str
+
+
+def get_autosave_time_str():
+    '''Return: DDHHMM with blanks filled by 0'''
+    timestamp = time.time()
+    local_time = time.localtime(timestamp)
+    day = str(local_time.tm_mday).rjust(2, "0")
+    hour = str(local_time.tm_hour).rjust(2, "0")
+    minute = str(local_time.tm_min).rjust(2, "0")
+    autosave_time_str = "".join((day, hour, minute))
+    return autosave_time_str
+
+
+def get_autosave_time():
+    '''[D, H, M]'''
+    timestamp = time.time()
+    local_time = time.localtime(timestamp)
+    return [local_time.tm_mday, local_time.tm_hour, local_time.tm_min]
+
+
+def parse_autosave_time_str(autosave_time_str):
+    day = int(autosave_time_str[0:2])
+    hour = int(autosave_time_str[2:4])
+    minute = int(autosave_time_str[4:6])
+    return [day, hour, minute]
 
 
 def compare_size_same(file_path1: str, file_path2: str, tolerance: int=4):
