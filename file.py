@@ -303,6 +303,8 @@ def autosave_packs():
    
 def auto_recover_packs():
     '''Recover all the packs which were marked as "autosave".'''
+    if not os.path.exists(temp_dir_path):
+        os.mkdir(temp_dir_path)
     existing_zips = read_existing_files(temp_dir_path, suffix=".zip", cull_suffix=False)
     for file_name in existing_zips:
         pack_name = utils.get_string_between_words(file_name, None, ("_autosave_",))

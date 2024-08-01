@@ -615,7 +615,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
             if self.is_recovering:
                 pack_name = utils.get_string_between_words(file_name, None, ("_autosave_", "_deprecated_"))
                 if pack_name is False:
-                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack (it should have a \"_hot_node_autosave_\" namebody).")
+                    self.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack.")
                     continue
             else:
                 pack_name = file_name[:-4]

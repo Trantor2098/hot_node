@@ -1,6 +1,13 @@
 ChangeLog
 ========
 
+[0.3.1] - 2024-07-29
+--------
+
+### Fixed
+- Cannot find the path "...\hot_node_autosave"
+
+
 [0.3.0] - 2024-07-29
 --------
 

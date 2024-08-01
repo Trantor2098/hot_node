@@ -21,7 +21,7 @@
 from . import node_parser, file
 
 # current Hot Node's version
-version = [0, 3, 0]
+version = [0, 3, 1]
 
 
 def check_update_version(preset_name, cpreset):
