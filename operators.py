@@ -25,12 +25,33 @@ from bpy.props import StringProperty
 from . import node_setter, utils, file, properties, node_parser
 
 
-# Tool Functions
+# Functions for Calling Operators
+def execute_refresh():
+    try:
+        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+        return None
+    except AttributeError:
+        # '_RestrictContext' object has no attribute 'view_layer'
+        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
+        return 0.1
+        
+    
+   
+# Tool Functions 
 def sync_data(context: bpy.types.Context):
     file.refresh_pack_root()
     properties.pack_selected = file.root_meta_cache["pack_selected"]
     properties.packs = file.read_packs()
     select_pack(context, properties.pack_selected)
+    
+    
+def ensure_sync(ops: Operator, context: bpy.types.Context):
+    if file.check_sync():
+        return True
+    else:
+        sync_data(context)
+        ops.report({'WARNING'}, "Out of sync, nothing happend but auto refreshing. Now it's READY!")
+        return False
     
     
 def select_pack(context, pack: str):
@@ -73,15 +94,6 @@ def preset_move_to(selected_idx, dst_idx, presets):
         return
     presets[dst_idx].name = name
     presets[dst_idx].type = type
-    
-    
-def ensure_sync(ops: Operator, context: bpy.types.Context):
-    if file.check_sync():
-        return True
-    else:
-        sync_data(context)
-        ops.report({'WARNING'}, "Out of sync. Nothing happend but the add-on's auto refreshing. Now everything is ok!")
-        return False
     
     
 def poll_preset_ops(context):
@@ -757,6 +769,8 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+        
+    bpy.app.timers.register(execute_refresh, first_interval=0.1)
 
 
 def unregister():

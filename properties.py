@@ -38,9 +38,19 @@ preset_selected = ""
 allow_tex_save = False
 # to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
 skip_rename_callback = False
+# control auto refresh, mirror of the auto_refresh in hot_node_props
+auto_refresh = True
 
 # for json file indent
 # indent = 1
+
+def sync():
+    if not file.check_sync_by_mtime():
+        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+    if auto_refresh:
+        return 5.0
+    else:
+        return None
 
 
 # Set function for global packs.

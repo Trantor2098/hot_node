@@ -26,10 +26,17 @@ addon_dir_path = os.path.dirname(__file__)
 temp_dir_path = os.path.join(tempfile.gettempdir(), "hot_node_autosave")
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
 pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
+pack_meta_path = ""
 root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
 pack_meta_cache = {}
 root_meta_cache = {}
+
+pack_meta_size_cache = 0
+root_meta_size_cache = 0
+
+pack_meta_mtime_cache = 0
+root_meta_mtime_cache = 0
 
 
 # Initialize & finalize files when opening & closing blender
@@ -65,10 +72,27 @@ def refresh_pack_root():
 def check_sync():
     if root_meta_cache != read_root_meta():
         return False
+    # if there is no pack, pass the check and wait for creating operation
     if pack_meta_cache != {} and pack_meta_cache != read_pack_meta():
         return False
     return True
-        
+
+
+def check_sync_by_mtime():
+    global root_meta_mtime_cache
+    current_root_meta_mtime = os.path.getmtime(root_meta_path)
+    if root_meta_mtime_cache != current_root_meta_mtime:
+        root_meta_mtime_cache = current_root_meta_mtime
+        return False
+    global pack_meta_mtime_cache
+    # if there is no pack, pass the check and wait for creating operation
+    if pack_meta_path != "":
+        current_pack_meta_mtime = os.path.getmtime(pack_meta_path)
+        if pack_meta_mtime_cache != current_pack_meta_mtime:
+            pack_meta_mtime_cache = current_pack_meta_mtime
+            return False
+    return True
+
         
 def check_pack_existing():
     if os.path.exists(pack_selected_dir_path):
@@ -81,6 +105,15 @@ def check_preset_existing(preset_name):
     if os.path.exists(preset_path):
         return True
     return False
+
+
+# Get Path
+def get_pack_meta_path():
+    os.path.join(pack_selected_dir_path, ".metadata.json")
+    
+    
+def get_root_meta_path():
+    os.path.join(pack_root_dir_path, ".metadata.json")
         
 
 # CRUD of Json
@@ -95,35 +128,35 @@ def read_json(file_path) -> dict:
     
     
 def write_pack_meta():
-    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
+    global pack_meta_mtime_cache
+    pack_meta_mtime_cache = os.path.getmtime(pack_meta_path)
     write_json(pack_meta_path, pack_meta_cache)
     
     
 def write_root_meta():
-    pack_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
+    global root_meta_mtime_cache
+    root_meta_mtime_cache = os.path.getmtime(root_meta_path)
     write_json(pack_meta_path, root_meta_cache)
     
     
 def write_meta():
-    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
-    root_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
+    global root_meta_mtime_cache
+    root_meta_mtime_cache = os.path.getmtime(root_meta_path)
+    global pack_meta_mtime_cache
+    pack_meta_mtime_cache = os.path.getmtime(pack_meta_path)
     write_json(root_meta_path, root_meta_cache)
     write_json(pack_meta_path, pack_meta_cache)
     
     
 def read_pack_meta():
-    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
     return read_json(pack_meta_path)
-    
+
     
 def read_root_meta():
-    pack_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
-    return read_json(pack_meta_path)
+    return read_json(root_meta_path)
     
     
 def read_meta():
-    pack_meta_path = os.path.join(pack_selected_dir_path, '.metadata.json')
-    root_meta_path = os.path.join(pack_root_dir_path, '.metadata.json')
     return read_json(root_meta_path), read_json(pack_meta_path)
     
     
@@ -173,7 +206,6 @@ def create_pack(pack_name):
 def delete_pack(pack_name):
     global pack_meta_cache
     pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
-    # XXX os module cant have the authority to delete folder...
     shutil.rmtree(pack_dir_path)
 
 
@@ -201,9 +233,11 @@ def read_packs():
 def select_pack(pack_name):
     global pack_meta_cache
     global root_meta_cache
+    global pack_meta_path
     global pack_selected_dir_path
     if pack_name != "":
         pack_selected_dir_path = os.path.join(pack_root_dir_path, pack_name)
+        pack_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
         pack_meta_cache = read_pack_meta()
     else:
         pack_meta_cache = {}
@@ -319,7 +353,7 @@ def clear_outdated_autosave_packs():
     current_time = utils.get_autosave_time()
     for namebody in existing_zip_namebodys:
         # DDHHMM
-        autosave_time_str = utils.get_string_between_words(namebody, ("_autosave_", "_deprecated_"), None)
+        autosave_time_str = utils.get_string_between_words(namebody, ("_deprecated_", ), None)
         if autosave_time_str is not False:
             autosave_time = utils.parse_autosave_time_str(autosave_time_str)
             day_delta = current_time[0] - autosave_time[0]

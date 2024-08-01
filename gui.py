@@ -21,7 +21,7 @@
 import bpy
 from bpy.types import Menu, Panel, UIList
 
-from . import properties
+from . import properties, file
 
 
 type_icon = {
@@ -111,7 +111,7 @@ class HOTNODE_UL_presets(UIList):
         
         icon = type_icon[preset.type]
         layout.prop(preset, "name", text="", emboss=False, icon=icon)
-
+        
 
 class HOTNODE_PT_parent(Panel):
     bl_space_type = 'NODE_EDITOR'
@@ -153,10 +153,10 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         col.operator("node.hot_node_preset_delete", icon='REMOVE', text="")
         col.separator()
         
-        # special options menu
+        # Special options menu
         col.menu("HOTNODE_MT_specials", icon='DOWNARROW_HLT', text="")
         
-        # move up & down
+        # Move up & down
         if presets:
             col.separator()
 
@@ -169,8 +169,16 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         row.prop(props, "pack_selected_name", text="")
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
-
         
+        # Prompt Message
+        if properties.pack_selected == "":
+            row = layout.row()
+            row.label(text="Select a pack or refresh to use", icon="INFO")
+        if context.space_data.edit_tree is None:
+            row = layout.row()
+            row.label(text="Open a node tree in editor to use", icon="INFO")
+        
+   
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
     bl_label = "Textures"
     bl_idname = "HOTNODE_PT_texture"
