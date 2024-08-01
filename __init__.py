@@ -51,7 +51,7 @@ def dev_reload():
 
 
 def register():
-    # dev_reload()
+    dev_reload()
     
     file.init()
 

@@ -128,24 +128,24 @@ def read_json(file_path) -> dict:
     
     
 def write_pack_meta():
+    write_json(pack_meta_path, pack_meta_cache)
     global pack_meta_mtime_cache
     pack_meta_mtime_cache = os.path.getmtime(pack_meta_path)
-    write_json(pack_meta_path, pack_meta_cache)
     
     
 def write_root_meta():
+    write_json(root_meta_path, root_meta_cache)
     global root_meta_mtime_cache
     root_meta_mtime_cache = os.path.getmtime(root_meta_path)
-    write_json(pack_meta_path, root_meta_cache)
     
     
 def write_meta():
+    write_json(root_meta_path, root_meta_cache)
+    write_json(pack_meta_path, pack_meta_cache)
     global root_meta_mtime_cache
     root_meta_mtime_cache = os.path.getmtime(root_meta_path)
     global pack_meta_mtime_cache
     pack_meta_mtime_cache = os.path.getmtime(pack_meta_path)
-    write_json(root_meta_path, root_meta_cache)
-    write_json(pack_meta_path, pack_meta_cache)
     
     
 def read_pack_meta():
@@ -192,7 +192,9 @@ def create_pack(pack_name):
     global root_meta_cache
     global pack_meta_cache
     global pack_selected_dir_path
+    global pack_meta_path
     pack_selected_dir_path = os.path.join(pack_root_dir_path, pack_name)
+    pack_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
     # create pack metadata
     root_meta_cache["pack_selected"] = pack_name
     pack_meta_cache = {}

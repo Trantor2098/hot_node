@@ -284,6 +284,8 @@ def register():
         type=HotNodeProps
     ) # type: ignore
     
+    bpy.app.timers.register(sync, first_interval=5)
+    
 
 def unregister():
     for cls in classes:

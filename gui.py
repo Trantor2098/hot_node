@@ -21,7 +21,7 @@
 import bpy
 from bpy.types import Menu, Panel, UIList
 
-from . import properties, file
+from . import properties
 
 
 type_icon = {
