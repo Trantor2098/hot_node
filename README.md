@@ -15,7 +15,6 @@ Requirement
 --------
 
 - Blender 4.2 compatible.
-- For blender 4.0 - 4.1, 
 
 
 Installation
