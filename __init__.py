@@ -32,6 +32,8 @@ bl_info = {
 }
 
 
+import bpy
+
 from . import gui,  properties, operators, file
 
 
@@ -48,6 +50,15 @@ def dev_reload():
     importlib.reload(version_control)
     
     
+# Functions for Calling Operators
+def execute_refresh():
+    try:
+        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+        return None
+    except AttributeError:
+        # '_RestrictContext' object has no attribute 'view_layer'
+        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
+        return 0.1
 
 
 def register():
@@ -58,6 +69,8 @@ def register():
     gui.register()
     properties.register()
     operators.register()
+    
+    bpy.app.timers.register(execute_refresh, first_interval=0.1)
 
 
 def unregister():

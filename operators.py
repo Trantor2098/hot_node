@@ -25,23 +25,11 @@ from bpy.props import StringProperty
 from . import node_setter, utils, file, properties, node_parser
 
 
-# Functions for Calling Operators
-def execute_refresh():
-    try:
-        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
-        return None
-    except AttributeError:
-        # '_RestrictContext' object has no attribute 'view_layer'
-        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
-        return 0.1
-        
-    
-   
-# Tool Functions 
-def sync_data(context: bpy.types.Context):
+def sync(context: bpy.types.Context):
     file.refresh_pack_root()
-    properties.pack_selected = file.root_meta_cache["pack_selected"]
     properties.packs = file.read_packs()
+    if properties.pack_selected not in properties.packs:
+        properties.pack_selected = file.root_meta_cache["pack_selected"]
     select_pack(context, properties.pack_selected)
     
     
@@ -49,34 +37,37 @@ def ensure_sync(ops: Operator, context: bpy.types.Context):
     if file.check_sync():
         return True
     else:
-        sync_data(context)
+        sync(context)
         ops.report({'WARNING'}, "Out of sync, nothing happend but auto refreshing. Now it's READY!")
         return False
     
     
-def select_pack(context, pack: str):
+def select_pack(context, dst_pack: str):
     # to escaping overwrite 
     props = context.scene.hot_node_props
-    properties.pack_selected = pack
-    
-    props.pack_selected_name = pack
+    ori_pack = properties.pack_selected
+    properties.pack_selected = dst_pack
+    props.pack_selected_name = dst_pack
+    preset_selected_old = props.preset_selected
     props.preset_selected = 0
     # load presets in the newly selected pack
     presets = props.presets
     presets.clear()
-    file.select_pack(pack)
+    file.select_pack(dst_pack)
     # if pack == "", means there is no pack, dont read any preset and keep pack as "", the ops will be grayed out because they will detect whether pack is "".
-    if pack != "":
+    if dst_pack != "":
         preset_names, tree_types = file.read_preset_infos()
-        length = len(preset_names)
+        preset_num = len(preset_names)
         properties.skip_rename_callback = True
-        for i in range(length):
+        for i in range(preset_num):
             name = preset_names[i]
             type = tree_types[name]
             presets.add()
             presets[i].name = name
             presets[i].type = type
         properties.skip_rename_callback = False
+        if ori_pack == dst_pack and preset_selected_old < preset_num:
+            props.preset_selected = preset_selected_old
 
     
 def preset_move_to(selected_idx, dst_idx, presets):
@@ -98,6 +89,17 @@ def preset_move_to(selected_idx, dst_idx, presets):
     
 def poll_preset_ops(context):
     return properties.pack_selected != '' and context.space_data.edit_tree is not None
+
+
+# Functions for Calling Operators
+def execute_refresh():
+    try:
+        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+        return None
+    except AttributeError:
+        # '_RestrictContext' object has no attribute 'view_layer'
+        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
+        return 0.1
 
 
 # Operators
@@ -742,8 +744,8 @@ class HOTNODE_OT_refresh(Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        sync_data(context)
-        self.report({'INFO'}, "Presets & packs refreshed")
+        sync(context)
+        self.report({'INFO'}, "Hot Node refreshed.")
         return {'FINISHED'}
 
 
@@ -769,8 +771,6 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-        
-    bpy.app.timers.register(execute_refresh, first_interval=0.1)
 
 
 def unregister():

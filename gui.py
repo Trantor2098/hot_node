@@ -21,7 +21,9 @@
 import bpy
 from bpy.types import Menu, Panel, UIList
 
-from . import properties
+import time
+
+from . import properties, file
 
 
 type_icon = {
@@ -30,6 +32,22 @@ type_icon = {
     "CompositorNodeTree": 'NODE_COMPOSITING',
     "TextureNodeTree": 'NODE_TEXTURE',
 }
+
+last_darw_time = 0.0
+
+
+# Sync Functions, will be called in draw()
+def execute_refresh():
+    bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+
+
+def sync_by_gui_idle_time():
+    global last_darw_time
+    current_time = time.time()
+    if current_time - last_darw_time > 1.0:
+        if not file.check_sync_by_mtime():
+            bpy.app.timers.register(execute_refresh, first_interval=0.01)
+    last_darw_time = current_time
 
 
 class HOTNODE_MT_pack_select(Menu):
@@ -130,13 +148,14 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         presets = props.presets
         
         # Preset Usage UI
-        col = layout.column(align=True)
-        row = col.row(align=True)
+        # col = layout.column(align=True)
+        # row = col.row(align=True)
+        row = layout.row(align=True)
         row.operator("node.hot_node_preset_apply", text="Apply")
         row.operator("node.hot_node_preset_save", text="Save")
-        row.separator(factor=1.45)
-        col = row.column()
-        col.operator("node.hot_node_refresh", icon='FILE_REFRESH', text="")
+        # row.separator(factor=1.45)
+        # col = row.column()
+        # col.operator("node.hot_node_refresh", icon='FILE_REFRESH', text="")
 
         # Preset Select UI
         rows = 3
@@ -178,6 +197,7 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
             row = layout.row()
             row.label(text="Open a node tree in editor to use", icon="INFO")
         
+        sync_by_gui_idle_time()
    
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
     bl_label = "Textures"

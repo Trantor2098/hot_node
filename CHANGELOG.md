@@ -1,14 +1,25 @@
 ChangeLog
 ========
 
-[0.3.1] - 2024-07-29
+
+[0.4.0] - 2024-08-03
+--------
+
+### Added
+- Auto sync supported. Now you don't need to click ```Refresh``` for most of the time.
+
+### Removed
+- ```Refresh``` button on the panel ```Nodes```.
+
+
+[0.3.1] - 2024-08-01
 --------
 
 ### Fixed
 - Cannot find the path "...\hot_node_autosave"
 
 
-[0.3.0] - 2024-07-29
+[0.3.0] - 2024-07-30
 --------
 
 ### Added

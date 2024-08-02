@@ -58,39 +58,55 @@ def refresh_pack_root():
         auto_recover_packs()
         packs = read_packs()
         if len(packs) == 0:
-            root_meta_cache["pack_selected"] = ""
+            select_pack("")
         else:
-            root_meta_cache["pack_selected"] = packs[0]
-        write_root_meta()
+            select_pack(packs[0])
     elif not os.path.exists(root_meta_path):
-        root_meta_cache["pack_selected"] = ""
-        write_root_meta()
+        packs = read_packs()
+        if len(packs) == 0:
+            select_pack("")
+        else:
+            select_pack(packs[0])
     else:
         root_meta_cache = read_root_meta()
         
         
 def check_sync():
-    if root_meta_cache != read_root_meta():
-        return False
     # if there is no pack, pass the check and wait for creating operation
-    if pack_meta_cache != {} and pack_meta_cache != read_pack_meta():
+    if pack_meta_path == "":
+        packs = read_packs()
+        if len(packs) == 0:
+            return True
+        else:
+            return False
+    if not os.path.exists(pack_meta_path):
+        return False
+    if pack_meta_cache != read_pack_meta():
         return False
     return True
 
 
 def check_sync_by_mtime():
+    # if no pack, pass the check and dont sync
+    if pack_meta_path == "":
+        packs = read_packs()
+        if len(packs) == 0:
+            return True
+        else:
+            return False
+    
+    global pack_meta_mtime_cache
     global root_meta_mtime_cache
     current_root_meta_mtime = os.path.getmtime(root_meta_path)
     if root_meta_mtime_cache != current_root_meta_mtime:
         root_meta_mtime_cache = current_root_meta_mtime
         return False
-    global pack_meta_mtime_cache
-    # if there is no pack, pass the check and wait for creating operation
-    if pack_meta_path != "":
-        current_pack_meta_mtime = os.path.getmtime(pack_meta_path)
-        if pack_meta_mtime_cache != current_pack_meta_mtime:
-            pack_meta_mtime_cache = current_pack_meta_mtime
-            return False
+    if not os.path.exists(pack_meta_path):
+        return False
+    current_pack_meta_mtime = os.path.getmtime(pack_meta_path)
+    if pack_meta_mtime_cache != current_pack_meta_mtime:
+        pack_meta_mtime_cache = current_pack_meta_mtime
+        return False
     return True
 
         
@@ -149,15 +165,18 @@ def write_meta():
     
     
 def read_pack_meta():
-    return read_json(pack_meta_path)
+    if os.path.exists(pack_meta_path):
+        return read_json(pack_meta_path)
 
     
 def read_root_meta():
-    return read_json(root_meta_path)
+    if os.path.exists(root_meta_path):
+        return read_json(root_meta_path)
     
     
 def read_meta():
-    return read_json(root_meta_path), read_json(pack_meta_path)
+    if os.path.exists(root_meta_path) and os.path.exists(pack_meta_path):
+        return read_json(root_meta_path), read_json(pack_meta_path)
     
     
 def check_read_pack_meta(pack_name):
@@ -243,6 +262,7 @@ def select_pack(pack_name):
         pack_meta_cache = read_pack_meta()
     else:
         pack_meta_cache = {}
+        pack_meta_path = ""
     root_meta_cache["pack_selected"] = pack_name
     write_root_meta()
     
