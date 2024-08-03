@@ -40,7 +40,7 @@ allow_tex_save = False
 skip_rename_callback = False
 
 
-# Set function for global packs.
+# Set functions
 def read_packs():
     global packs
     packs = file.read_packs()
@@ -56,11 +56,11 @@ def rename_pack(old_name, new_name):
 
 
 # Callbacks of hot node props updating
-def node_preset_type_update(self, context):
+def _node_preset_type_update(self, context):
     pass
 
 
-def node_preset_name_update(self, context):
+def _node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
     global skip_rename_callback
     if skip_rename_callback:
@@ -70,19 +70,20 @@ def node_preset_name_update(self, context):
     presets = props.presets
     preset_selected_idx = props.preset_selected
     new_full_name = presets[preset_selected_idx].name
-    if preset_selected != new_full_name:
-        # this second if is for checking user renaming
-        ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
-        if ensured_new_full_name != new_full_name:
-            # XXX should we skip update again? will the callback be invoked by callback itself?
-            skip_rename_callback = True
-            presets[preset_selected_idx].name = ensured_new_full_name
-            skip_rename_callback = False
-        file.rename_preset(preset_selected, ensured_new_full_name)
-        preset_selected = ensured_new_full_name
+    if preset_selected == new_full_name:
+        return
+    if new_full_name == "":
+        presets[preset_selected_idx].name = preset_selected
+        return
+    # checkuser renaming
+    ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
+    if ensured_new_full_name != new_full_name:
+        presets[preset_selected_idx].name = ensured_new_full_name
+    file.rename_preset(preset_selected, ensured_new_full_name)
+    preset_selected = ensured_new_full_name
 
 
-def node_preset_select_update(self, context):
+def _node_preset_select_update(self, context):
     if skip_rename_callback:
         return
     global preset_selected, allow_tex_save
@@ -96,21 +97,27 @@ def node_preset_select_update(self, context):
     allow_tex_save = False
     
 
-def pack_selected_name_update(self, context):
+def _pack_selected_name_update(self, context):
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
     global pack_selected
     props = context.scene.hot_node_props
-    old_name = pack_selected
+    
     new_name = props.pack_selected_name
-    if old_name == new_name:
+    if pack_selected == new_name:
         return
+    if new_name == "":
+        props.pack_selected_name = pack_selected
+        return
+    
     if len(packs) > 0:
-        rename_pack(old_name, new_name)
+        rename_pack(pack_selected, new_name)
+        pack_selected = new_name
     else:
-        props.pack_selected_name = ''
+        pack_selected = ""
+        props.pack_selected_name = ""
         
         
-def fast_create_preset_name_update(self, context):
+def _fast_create_preset_name_update(self, context):
     global skip_rename_callback
     global preset_selected
     props = context.scene.hot_node_props
@@ -148,7 +155,7 @@ class HotNodePreset(bpy.types.PropertyGroup):
     name: StringProperty(
         name='Node Preset',
         default='Preset',
-        update=node_preset_name_update
+        update=_node_preset_name_update
     ) # type: ignore
 
     type: EnumProperty(
@@ -162,7 +169,7 @@ class HotNodePreset(bpy.types.PropertyGroup):
             ('UNIVERSAL', 'Universal Nodes', 'Presets that can be applied to all kinds of node tree')
         ],
         default='ShaderNodeTree',
-        update=node_preset_type_update
+        update=_node_preset_type_update
     ) # type: ignore
     
     
@@ -175,7 +182,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
 
     preset_selected: IntProperty(
         name="Selected Node Preset",
-        update=node_preset_select_update
+        update=_node_preset_select_update
     ) # type: ignore
     
     # for user to change pack name.
@@ -183,7 +190,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
         name="Selected Pack",
         description="Selected pack's name",
         default=pack_selected,
-        update=pack_selected_name_update
+        update=_pack_selected_name_update
     ) # type: ignore
     
     # for user to fast create preset by Shift A.
@@ -191,7 +198,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
         name="Fast Create Preset Name",
         default="",
         description="Create preset with current selected nodes by this name",
-        update=fast_create_preset_name_update
+        update=_fast_create_preset_name_update
     ) # type: ignore
     
     tex_preset_mode: EnumProperty(

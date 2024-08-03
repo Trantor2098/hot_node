@@ -421,18 +421,25 @@ def clear_preset(pack_name):
     create_pack(pack_name)
 
 
-def read_preset_infos():
-    metadata_path = os.path.join(pack_selected_dir_path, ".metadata.json")
+def read_presets(pack_name=""):
+    if pack_name == "":
+        metadata_path = os.path.join(pack_selected_dir_path, ".metadata.json")
+    else:
+        metadata_path = os.path.join(pack_root_dir_path, pack_name, ".metadata.json")
     metadata = read_json(metadata_path)
+    # TODO merge them into a list, just like preset registered in hot_node_props
     preset_names = metadata["order"]
     tree_types = metadata["tree_types"]
     
     return preset_names, tree_types
 
 
-def load_preset(preset_name):
+def load_preset(preset_name, pack_name=""):
     file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_dir_path, file_name)
+    if pack_name == "":
+        file_path = os.path.join(pack_selected_dir_path, file_name)
+    else:
+        file_path = os.path.join(pack_root_dir_path, pack_name, file_name)
     return read_json(file_path)
 
 

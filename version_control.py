@@ -24,7 +24,7 @@ from . import node_parser, file
 version = [0, 4, 0]
 
 
-def check_update_version(preset_name, cpreset):
+def check_update_preset_version(preset_name, cpreset):
     '''If trying to apply preset, CALL THIS FIRST'''
     cdata = cpreset["HN_preset_data"]
     preset_version = cdata["version"]
@@ -35,7 +35,10 @@ def check_update_version(preset_name, cpreset):
         cdata["version"] = version
         file.update_preset(preset_name, cpreset)
     return cpreset
-    
+
+
+def check_update_meta_version():
+    pass
     
 def version_update_0_1_0(preset_name, cpreset):
     cdata = cpreset["HN_preset_data"]

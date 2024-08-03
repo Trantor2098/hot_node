@@ -7,9 +7,13 @@ ChangeLog
 
 ### Added
 - Auto sync supported. Now you don't need to click ```Refresh``` for most of the time.
+- All node presets can be accessed in ```Shift + A``` menu without switching packs now.
 
 ### Removed
 - ```Refresh``` button on the panel ```Nodes```.
+
+### Fixed
+- Rename pack to "" (empty) will cause error. Now pack & preset's name cannot be empty.
 
 
 [0.3.1] - 2024-08-01

@@ -25,24 +25,24 @@ from bpy.props import StringProperty
 from . import node_setter, utils, file, properties, node_parser
 
 
-def sync(context: bpy.types.Context):
+def _sync(context: bpy.types.Context):
     file.refresh_pack_root()
     properties.packs = file.read_packs()
     if properties.pack_selected not in properties.packs:
         properties.pack_selected = file.root_meta_cache["pack_selected"]
-    select_pack(context, properties.pack_selected)
+    _select_pack(context, properties.pack_selected)
     
     
-def ensure_sync(ops: Operator, context: bpy.types.Context):
+def _ensure_sync(ops: Operator, context: bpy.types.Context):
     if file.check_sync():
         return True
     else:
-        sync(context)
+        _sync(context)
         ops.report({'WARNING'}, "Out of sync, nothing happend but auto refreshing. Now it's READY!")
         return False
     
     
-def select_pack(context, dst_pack: str):
+def _select_pack(context, dst_pack: str):
     # to escaping overwrite 
     props = context.scene.hot_node_props
     ori_pack = properties.pack_selected
@@ -56,7 +56,7 @@ def select_pack(context, dst_pack: str):
     file.select_pack(dst_pack)
     # if pack == "", means there is no pack, dont read any preset and keep pack as "", the ops will be grayed out because they will detect whether pack is "".
     if dst_pack != "":
-        preset_names, tree_types = file.read_preset_infos()
+        preset_names, tree_types = file.read_presets()
         preset_num = len(preset_names)
         properties.skip_rename_callback = True
         for i in range(preset_num):
@@ -70,7 +70,7 @@ def select_pack(context, dst_pack: str):
             props.preset_selected = preset_selected_old
 
     
-def preset_move_to(selected_idx, dst_idx, presets):
+def _preset_move_to(selected_idx, dst_idx, presets):
     preset = presets[selected_idx]
     name, type = preset.name, preset.type
     if selected_idx > dst_idx:
@@ -87,8 +87,8 @@ def preset_move_to(selected_idx, dst_idx, presets):
     presets[dst_idx].type = type
     
     
-def poll_preset_ops(context):
-    return properties.pack_selected != '' and context.space_data.edit_tree is not None
+def _poll_preset_ops(context):
+    return properties.pack_selected != "" and context.space_data.edit_tree is not None
 
 
 # Functions for Calling Operators
@@ -111,10 +111,10 @@ class HOTNODE_OT_preset_create(Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context)
+        return _poll_preset_ops(context)
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
@@ -130,7 +130,6 @@ class HOTNODE_OT_preset_create(Operator):
         props.preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
-        # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
         properties.skip_rename_callback = True
         presets[preset_selected_idx].name = new_full_name
         properties.preset_selected = new_full_name
@@ -152,10 +151,10 @@ class HOTNODE_OT_preset_delete(Operator):
 
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return properties.pack_selected != "" and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
@@ -190,10 +189,10 @@ class HOTNODE_OT_preset_clear(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         file.clear_preset(properties.pack_selected)
@@ -216,10 +215,10 @@ class HOTNODE_OT_preset_move(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context)
+        return _poll_preset_ops(context)
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
@@ -249,7 +248,7 @@ class HOTNODE_OT_preset_move(Operator):
         elif self.direction == 'BOTTOM':
             dst_idx = length - 1
             
-        preset_move_to(preset_selected_idx, dst_idx, presets)
+        _preset_move_to(preset_selected_idx, dst_idx, presets)
 
         # reoder means creating a new list to store the new order, which brings more cost
         if reorder:
@@ -275,10 +274,10 @@ class HOTNODE_OT_preset_save(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
@@ -307,85 +306,29 @@ class HOTNODE_OT_preset_save(Operator):
             result = self.execute(context)
         return result
     
-
-class HOTNODE_OT_preset_apply(Operator):
-    bl_idname = "node.hot_node_preset_apply"
-    bl_label = "Apply Node Preset"
-    bl_description = "Apply selected node preset to current edit tree"
-    bl_options = {'UNDO', 'REGISTER'}
-    
-    # cursor logic from https://projects.blender.org/blender/blender/src/branch/main/scripts/startup/bl_operators/node.py#L145
-    @staticmethod
-    def store_mouse_cursor(context, event):
-        space = context.space_data
-        tree = space.edit_tree
-
-        # convert mouse position to the View2D for later node placement
-        if context.region.type == 'WINDOW':
-            # convert mouse position to the View2D for later node placement
-            space.cursor_location_from_region(event.mouse_region_x, event.mouse_region_y)
-        else:
-            space.cursor_location = tree.view_center
-
-    @classmethod
-    def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
-    
-    def execute(self, context):
-        if not ensure_sync(self, context):
-            return {'CANCELLED'}
-        props = context.scene.hot_node_props
-        presets = props.presets
-
-        preset_selected_idx = props.preset_selected
-        preset = presets[preset_selected_idx]
-        edit_tree = context.space_data.edit_tree
-        edit_tree_type = edit_tree.bl_idname
-        if preset.type != edit_tree_type:
-            self.report({'ERROR'}, f"Cannot apply preset: It is a {preset.type} but current edit tree is a {edit_tree_type}.")
-            return {'CANCELLED'}
-        # this line adds the nodes
-        failed_tex_num = node_setter.apply_preset(context, preset.name, apply_offset=True)
-        if failed_tex_num > 0:
-            self.report({'INFO'}, f"Nodes added. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
-        # else:
-        #     self.report({'INFO'}, "Nodes added.")
-        
-        # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
-        # WHAT A SMART LOGIC!
-        selected_node_frames = []
-        for node in edit_tree.nodes:
-            if node.select and node.bl_idname == "NodeFrame":
-                selected_node_frames.append(node)
-                node.select = False
-                
-        bpy.ops.node.translate_attach_remove_on_cancel('INVOKE_DEFAULT')
-            
-        for node in selected_node_frames:
-            node.select = True
-            
-        return {'FINISHED'}
-    
-    def invoke(self, context, event):
-        self.store_mouse_cursor(context, event)
-        result = self.execute(context)
-
-        return result
-    
     
 class HOTNODE_OT_nodes_add(Operator):
-    '''For Shift + A to apply presets'''
     bl_idname = "node.hot_node_nodes_add"
     bl_label = "Add Nodes"
-    bl_description = "Add node presets"
+    bl_description = "Add nodes to the editor tree"
     bl_options = {'UNDO', 'REGISTER'}
     
+    # None means use selected one in the UI
     preset_name: StringProperty(
-        name="Preset Name",
+        name="preset_name",
         default=""
     ) # type: ignore
     
-    # cursor logic from https://projects.blender.org/blender/blender/src/branch/main/scripts/startup/bl_operators/node.py#L145
+    pack_name: StringProperty(
+        name="pack_name",
+        default=""
+    ) # type: ignore
+    
+    tree_type: StringProperty(
+        name="tree_type",
+        default=""
+    ) # type: ignore
+    
     @staticmethod
     def store_mouse_cursor(context, event):
         space = context.space_data
@@ -400,30 +343,32 @@ class HOTNODE_OT_nodes_add(Operator):
     
     @classmethod
     def poll(cls, context):
-        return poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_preset_ops(context)
     
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
-        preset = presets[self.preset_name]
+        preset_selected_idx = props.preset_selected
+        if self.preset_name == "":
+            preset = presets[preset_selected_idx]
+            self.preset_name = preset.name
+            self.tree_type = preset.type
+        
         edit_tree = context.space_data.edit_tree
         edit_tree_type = edit_tree.bl_idname
-        if preset.type != edit_tree_type:
-            self.report({'ERROR'}, f"Cannot apply preset: It is a {preset.type} but current edit tree is a {edit_tree_type}.")
+        if self.tree_type != edit_tree_type:
+            self.report({'ERROR'}, f"Cannot apply preset: It is a {self.tree_type} but current edit tree is a {edit_tree_type}.")
             return {'CANCELLED'}
         
-        # this line adds the nodes
-        failed_tex_num= node_setter.apply_preset(context, preset.name, apply_offset=True)
+        # adds the nodes
+        failed_tex_num= node_setter.apply_preset(context, self.preset_name, pack_name=self.pack_name, apply_offset=True)
         
         if failed_tex_num > 0:
             self.report({'INFO'}, f"Nodes added. But {failed_tex_num} textures can't be found. Check if your path exist, and has images that match at least one keyword.")
-        # else:
-        #     self.report({'INFO'}, "Nodes added.")
             
         # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
-        # WHAT A SMART LOGIC!
         selected_node_frames = []
         for node in edit_tree.nodes:
             if node.select and node.bl_idname == "NodeFrame":
@@ -442,6 +387,15 @@ class HOTNODE_OT_nodes_add(Operator):
         result = self.execute(context)
 
         return result
+    
+    
+class HOTNODE_OT_preset_apply(HOTNODE_OT_nodes_add):
+    bl_idname = "node.hot_node_preset_apply"
+    bl_label = "Apply Node Preset"
+    
+    @classmethod
+    def poll(cls, context):
+        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
     
     
 class HOTNODE_OT_texture_save(Operator):
@@ -455,7 +409,7 @@ class HOTNODE_OT_texture_save(Operator):
         return properties.allow_tex_save
     
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         props = context.scene.hot_node_props
         presets = props.presets
@@ -502,7 +456,7 @@ class HOTNODE_OT_pack_create(Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         packs = properties.packs
         new_full_name = utils.ensure_unique_name("Pack", -1, packs)
@@ -512,7 +466,7 @@ class HOTNODE_OT_pack_create(Operator):
         properties.pack_selected = packs[length - 1]
 
         file.create_pack(new_full_name)
-        select_pack(context, new_full_name)
+        _select_pack(context, new_full_name)
         
         return {'FINISHED'}
     
@@ -528,7 +482,7 @@ class HOTNODE_OT_pack_delete(Operator):
         return properties.pack_selected != ''
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         packs = properties.packs
         pack_name = properties.pack_selected
@@ -553,7 +507,7 @@ class HOTNODE_OT_pack_delete(Operator):
             properties.pack_selected = ""
             pack_name = ""
 
-        select_pack(context, pack_name)
+        _select_pack(context, pack_name)
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -578,9 +532,9 @@ class HOTNODE_OT_pack_select(Operator):
     ) # type: ignore
     
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
-        select_pack(context, self.pack)
+        _select_pack(context, self.pack)
         
         return {'FINISHED'}
     
@@ -607,7 +561,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
     files : bpy.props.CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'}) # type: ignore
 
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         
         file_num = len(self.files)
@@ -650,8 +604,8 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
                 
         # count import infos
         if success_num > 0:
-            properties.read_packs()
-            select_pack(context, pack_name)
+            properties.packs = file.read_packs()
+            _select_pack(context, pack_name)
             if success_num == file_num:
                 if self.is_recovering:
                     self.report({'INFO'}, f"\"{pack_name}\" recovered.")
@@ -691,7 +645,7 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
         return properties.pack_selected != ""
     
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         
         to_file_path = utils.ensure_has_suffix(self.filepath, ".zip")
@@ -723,7 +677,7 @@ class HOTNODE_OT_pack_export_all(bpy.types.Operator):
         return properties.pack_selected != ""
     
     def execute(self, context):
-        if not ensure_sync(self, context):
+        if not _ensure_sync(self, context):
             return {'CANCELLED'}
         
         file.export_packs(properties.packs, self.filepath)
@@ -744,7 +698,7 @@ class HOTNODE_OT_refresh(Operator):
     bl_options = {'REGISTER'}
 
     def execute(self, context):
-        sync(context)
+        _sync(context)
         self.report({'INFO'}, "Hot Node refreshed.")
         return {'FINISHED'}
 

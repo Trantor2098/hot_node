@@ -23,24 +23,25 @@ import mathutils
 
 from . import utils
 
+# Properties for Parsing Nodes
 
 # NOTE 
 # Attributes starts with "HN" means it's not correspond to blender's data structures, 
 # so cant be put in the has/get/setattr(). They are just for convenience.
 
 # Only class attributes whose type is in this tuple will be parsed in the progress of parsing another type.
-required_attr_types = (
+_required_attr_types = (
     bpy.types.ColorRamp,
     bpy.types.CurveMapping,
     bpy.types.Image,
 )
 
-node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
+_node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 # <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes, and special later parser func for special attrs.
 # NOTE the lowest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
-type_wb_attrs = (
+_type_wb_attrs = (
     (bpy.types.NodeTreeInterfaceItem, 
     ("item_type", "socket_type", "in_out", "index", "position", "identifier"), 
     (),
@@ -100,9 +101,10 @@ class SpecialParser():
                 ccapture_items[i]["HN_socket_type"] = data_type
                 
 
+# ★★★ Functions for Parsing Nodes ★★★
 def get_whites_blacks_delegate(obj):
     delegate = None
-    for item in type_wb_attrs:
+    for item in _type_wb_attrs:
         if isinstance(obj, item[0]):
             if item[3] is not None:
                 delegate = getattr(SpecialParser, item[3])
@@ -239,7 +241,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
         elif isinstance(value, bpy.types.Node) and attr != "node":
             cobj["HN_ref2_node_attr"] = attr
             cobj["HN_ref2_node_name"] = value.name
-        elif isinstance(value, required_attr_types):
+        elif isinstance(value, _required_attr_types):
             cobj[attr] = parse_attrs(value, ivalue)
     
     # Late Parse. at the end we merge some extra things with special logic to cobj
@@ -303,7 +305,7 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
             # inode is used to compare default value. will be destroyed after this loop ends.
             inode = nodes.new(type=bl_idname)
             # setup the node group's node tree to fill this node tree's need
-            if bl_idname in node_group_id_names:
+            if bl_idname in _node_group_id_names:
                 # assign node tree for a blank ng inode, then the node knows what sockets it have
                 inode.node_tree = node.node_tree
                 cnode = parse_attrs(node, inode)
@@ -397,7 +399,7 @@ def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, le
     for node in nodes:
         if level > 1 or node.select:
             bl_idname = node.bl_idname
-            if bl_idname in node_group_id_names:
+            if bl_idname in _node_group_id_names:
                 required_ngs[node.node_tree.name] = level
                 record_node_group_names(node.node_tree, required_ngs=required_ngs, level=level + 1)
     sorted_ngs = sorted(required_ngs.items(), key = lambda x: x[1], reverse=True)

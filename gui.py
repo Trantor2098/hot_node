@@ -20,6 +20,7 @@
 
 import bpy
 from bpy.types import Menu, Panel, UIList
+from bpy.props import StringProperty
 
 import time
 
@@ -37,18 +38,18 @@ last_darw_time = 0.0
 
 
 # Sync Functions, will be called in draw()
-def execute_refresh():
+def _execute_refresh():
     bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
 
 
-def sync_by_gui_idle_time():
+def _sync_by_gui_idle_time():
     global last_darw_time
     current_time = time.time()
     if current_time - last_darw_time > 1.0:
         if not file.check_sync_by_mtime():
-            bpy.app.timers.register(execute_refresh, first_interval=0.01)
+            bpy.app.timers.register(_execute_refresh, first_interval=0.01)
     last_darw_time = current_time
-
+    
 
 class HOTNODE_MT_pack_select(Menu):
     bl_label = "Packs"
@@ -101,24 +102,73 @@ class HOTNODE_MT_nodes_add_specials(Menu):
         layout.prop(props, "fast_create_preset_name", icon='ADD', text="", placeholder="Fast Create Preset")
         
         
+class HOTNODE_MT_nodes_add_all(Menu):
+    bl_label = "All Nodes"
+    
+    def draw(self, context):
+        layout = self.layout
+        tree_type = context.space_data.tree_type
+        packs = properties.packs
+        packs_num = len(packs)
+        use_overlay = packs_num >= 10
+        
+        overlay_num = 0
+        row = layout.row()
+        if use_overlay:
+            col = row.column()
+        for pack in packs:
+            pack_presets, tree_types = file.read_presets(pack_name=pack)
+            preset_num = len(pack_presets)
+            if preset_num != 0:
+                if use_overlay:
+                    if overlay_num >= packs_num + 2:
+                        col = row.column()
+                        overlay_num = 0
+                    overlay_num += 1
+                    col.label(text=pack, icon='DISCLOSURE_TRI_DOWN')
+                else:
+                    col = row.column()
+                    col.label(text=pack)
+                    col.separator()
+                # col.separator()
+                for i in range(preset_num):
+                    preset_name = pack_presets[i]
+                    tree_type = tree_types[preset_name]
+                    if tree_type == tree_type:
+                        if use_overlay:
+                            if overlay_num >= packs_num + 2:
+                                col = row.column()
+                                overlay_num = 0
+                            overlay_num += 1
+                        ops = col.operator("node.hot_node_nodes_add", text=preset_name)
+                        ops.preset_name = preset_name
+                        ops.pack_name = pack
+                        ops.tree_type = tree_type
+                        
+        
 class HOTNODE_MT_nodes_add(Menu):
     bl_label = "Nodes"
     
     def draw(self, context):
         layout = self.layout
-        edit_tree_type = context.space_data.edit_tree.bl_idname
+        tree_type = context.space_data.tree_type
         props = context.scene.hot_node_props
         presets = props.presets
+        pack_selected = properties.pack_selected
         
+        row = layout.row()
+        col = row.column()
+        col.menu("HOTNODE_MT_nodes_add_all")
+        col.separator()
+        # col.label(text=pack_selected, icon='DISCLOSURE_TRI_DOWN')
         for preset in presets:
-            if preset.type == edit_tree_type:
+            if preset.type == tree_type:
                 preset_name = preset.name
                 # layout.operator("node.hot_node_nodes_add", text=preset_name, icon=type_icon[preset.type]).preset_name = preset_name
-                layout.operator("node.hot_node_nodes_add", text=preset_name).preset_name = preset_name
-                
-        layout.separator()
-        # layout.menu("HOTNODE_MT_pack_select", icon='DOT')
-        layout.menu("HOTNODE_MT_nodes_add_specials")
+                ops = col.operator("node.hot_node_nodes_add", text=preset_name)
+                ops.preset_name = preset_name
+                ops.pack_name = pack_selected
+                ops.tree_type = tree_type
         
 
 class HOTNODE_UL_presets(UIList):
@@ -197,7 +247,8 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
             row = layout.row()
             row.label(text="Open a node tree in editor to use", icon="INFO")
         
-        sync_by_gui_idle_time()
+        _sync_by_gui_idle_time()
+   
    
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
     bl_label = "Textures"
@@ -271,15 +322,21 @@ class HOTNODE_PT_pack_import_export(HOTNODE_PT_parent, Panel):
         col.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
         
         
-def hot_node_shift_a_menu(self, context):
+def ex_shift_a_nodes_add(self, context):
     self.layout.separator()
     self.layout.menu(HOTNODE_MT_nodes_add.__name__, text="Nodes")
+    
+    
+def ex_right_click_create(self, context):
+    self.layout.separator()
+    self.layout.prop(context.scene.hot_node_props, "fast_create_preset_name", text="", placeholder="       Save Nodes As")
 
 
 classes = (
     HOTNODE_MT_pack_select,
     HOTNODE_MT_specials,
     HOTNODE_MT_nodes_add_specials,
+    HOTNODE_MT_nodes_add_all,
     HOTNODE_MT_nodes_add,
     HOTNODE_UL_presets,
     HOTNODE_PT_nodes,
@@ -294,11 +351,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.NODE_MT_add.append(hot_node_shift_a_menu)
+    bpy.types.NODE_MT_add.append(ex_shift_a_nodes_add)
+    bpy.types.NODE_MT_context_menu.append(ex_right_click_create)
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
         
-    bpy.types.NODE_MT_add.remove(hot_node_shift_a_menu)
+    bpy.types.NODE_MT_add.remove(ex_shift_a_nodes_add)
+    bpy.types.NODE_MT_context_menu.remove(ex_right_click_create)

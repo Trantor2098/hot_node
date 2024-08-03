@@ -442,15 +442,15 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
             
 
-def apply_preset(context: bpy.types.Context, preset_name: str, apply_offset=False):
+def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False):
     '''Set nodes for the current edit tree'''
     global failed_tex_num
     failed_tex_num = 0
     space_data = context.space_data
     node_groups = bpy.data.node_groups
     # maybe cdata, but we call it cnode_trees
-    cnode_trees = file.load_preset(preset_name)
-    cnode_trees = version_control.check_update_version(preset_name, cnode_trees)
+    cnode_trees = file.load_preset(preset_name, pack_name=pack_name)
+    cnode_trees = version_control.check_update_preset_version(preset_name, cnode_trees)
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():
