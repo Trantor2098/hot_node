@@ -123,30 +123,29 @@ def _fast_create_preset_name_update(self, context):
     props = context.scene.hot_node_props
     presets = props.presets
     fast_name = props.fast_create_preset_name
-    if fast_name == "":
-        return
-    ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
-    edit_tree = context.space_data.edit_tree
+    if fast_name != "" and pack_selected != "":
+        ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
+        edit_tree = context.space_data.edit_tree
+            
+        presets.add()
+        # select newly created set
+        length = len(presets)
+        preset_selected_idx = length - 1
+        props.preset_selected = preset_selected_idx
+        # set type
+        presets[preset_selected_idx].type = edit_tree.bl_idname
+        # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
+        skip_rename_callback = True
+        presets[preset_selected_idx].name = ensured_fast_name
+        preset_selected = ensured_fast_name
+        skip_rename_callback = False
         
-    presets.add()
-    # select newly created set
-    length = len(presets)
-    preset_selected_idx = length - 1
-    props.preset_selected = preset_selected_idx
-    # set type
-    presets[preset_selected_idx].type = edit_tree.bl_idname
-    # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
-    skip_rename_callback = True
-    presets[preset_selected_idx].name = ensured_fast_name
-    preset_selected = ensured_fast_name
-    skip_rename_callback = False
-    
-    # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
-    from . import node_parser
-    node_parser.parse_node_preset(edit_tree)
-    cpreset = node_parser.set_preset_data(ensured_fast_name, pack_selected)
-    file.create_preset(ensured_fast_name, cpreset)
-    
+        # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
+        from . import node_parser
+        node_parser.parse_node_preset(edit_tree)
+        cpreset = node_parser.set_preset_data(ensured_fast_name, pack_selected)
+        file.create_preset(ensured_fast_name, cpreset)
+        
     props.fast_create_preset_name = ""
 
 

@@ -9,11 +9,15 @@ ChangeLog
 - Auto sync supported. Now you don't need to click ```Refresh``` for most of the time.
 - All node presets can be accessed in ```Shift + A``` menu without switching packs now.
 
+### Changed
+- Moved fast nodes saving to the right clicking menu of node editor.
+
 ### Removed
 - ```Refresh``` button on the panel ```Nodes```.
 
 ### Fixed
 - Rename pack to "" (empty) will cause error. Now pack & preset's name cannot be empty.
+- Fast nodes saving can be executed when there is no pack selected. Now it can't.
 
 
 [0.3.1] - 2024-08-01

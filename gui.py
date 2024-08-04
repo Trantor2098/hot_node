@@ -235,17 +235,14 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         # Pack Select UI
         row = layout.row(align=True)
         row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
-        row.prop(props, "pack_selected_name", text="")
+        row.prop(props, "pack_selected_name", text="", placeholder="Select a pack to start")
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
         
         # Prompt Message
-        if properties.pack_selected == "":
-            row = layout.row()
-            row.label(text="Select a pack or refresh to use", icon="INFO")
         if context.space_data.edit_tree is None:
             row = layout.row()
-            row.label(text="Open a node tree in editor to use", icon="INFO")
+            row.label(text="Open a node tree to start", icon="INFO")
         
         _sync_by_gui_idle_time()
    

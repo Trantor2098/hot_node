@@ -27,13 +27,6 @@ Installation
 After Hot Node was installed, you are able to see the Hot Node panel in node editor's sidebar.
 
 
-Before Using It
---------
-
-**EXPORT ALL NODE PRESET PACKS BEFORE UPDATING / UNINSTALL HOT NODE**
-
-Because nodes data is stored in add-on's path and will be deleted by blender's extension system without warning.
-
 Usage
 --------
 
@@ -82,6 +75,7 @@ Packs are folders storing presets.
 ##### Share Packs
 Packs can be imported / exported as zip files. In ```Pack Sharing``` panel:
 - **Import** - Click ```Import``` button to import pack(s). The waiting-for-import pack should be in .zip format.
+- **Recover** - Click ```Recover``` button to recover auto-saved packs from system's temp folder.
 - **Export** - Click ```Export``` button to export the current selected pack as a zip file.
 - **Export All** - Click ```Export All``` button to export the all packs as zip files, useful for backup.
 
@@ -92,23 +86,24 @@ Here are some features in detail which may help you better using the Hot Node.
 ##### Undo & Redo
 - ```Undo``` of ```Create```, ```Save```, ```Delete``` operations **haven't been supported yet**. For now you can turn on the ```Extra Comformation``` option in ```Node Preset Specials``` menu to prevent misoperation.
 
-##### Keep Sync
+##### Auto Sync
 When switched between .blend files and doing some operations, a warning may pop-up:
 ```
-"Out of sync. Nothing happend but the add-on's auto refreshing. Now everything is ok!"
+"Out of sync, nothing happend but auto refreshing. Now it's READY!"
 ```
 Just as the message said, Hot Node refreshed itself, and now you can do the things you want.
 You can also refresh menually by clicking ```Refresh``` button.
 
 ##### Node Tree Interface Setup
-If your preset contains nodes like ```NodeGroupInput```, or your preset type is geometry, a node tree interface containing IO sockets will be needed. Hot Node will check whether the tree interface is as same as the current edit tree's, and if not, check ```Overwrite Tree IO``` option in the ```Node Preset Specials``` menu to allow overwriting tree interface, or the links heading to IO nodes won't be created.
+If your preset contains nodes like ```NodeGroupInput```, or your preset type is geometry, a node tree interface containing IO sockets will be needed. 
 
-##### Texture Reuse
-If exists a image having the same name with the auto matched image when applying preset, Hot Node will compare the file size and reuse the existing one if the size is the same, rather than loading the image with unique names like image.001.
+Hot Node will check whether the tree interface is as same as the current edit tree's, and if not, check ```Overwrite Tree IO``` option in the ```Node Preset Specials``` menu to allow overwriting tree interface, or the links heading to IO nodes won't be created.
 
-##### Node Group Reuse
-If exists a node group having the same name with the group that the preset is trying to setup, Hot Node will compare every inner node of them and reuse the existing one if the two groups are totally same, rather than create a new group with unique name like NodeGroup.001.
 
+##### Node Group & Texture Reuse
+When apply node presset:
+- If the current .blend file exists a re-named node group with the same inner nodes, it will be re-used rather than create a Group.001.
+- The same goes for textures, the re-named textures' file size will be compared.
 
 Future Plan
 --------
