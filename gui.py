@@ -150,6 +150,7 @@ class HOTNODE_MT_nodes_add(Menu):
     bl_label = "Nodes"
     
     def draw(self, context):
+        _sync_by_gui_idle_time()
         layout = self.layout
         tree_type = context.space_data.tree_type
         props = context.scene.hot_node_props
@@ -192,7 +193,7 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
     bl_idname = "HOTNODE_PT_nodes"
 
     def draw(self, context):
-        
+        _sync_by_gui_idle_time()
         layout = self.layout
         props = context.scene.hot_node_props
         presets = props.presets
@@ -243,8 +244,6 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         if context.space_data.edit_tree is None:
             row = layout.row()
             row.label(text="Open a node tree to start", icon="INFO")
-        
-        _sync_by_gui_idle_time()
    
    
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
