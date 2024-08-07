@@ -2,6 +2,21 @@ ChangeLog
 ========
 
 
+[0.4.2] - 2024-08-01
+--------
+
+### Fixed
+- Improved ```Shift + A``` menu.
+
+
+[0.4.1] - 2024-08-01
+--------
+
+### Fixed
+- Renaming presets will cause error. Now it's fixed.
+- Nodes containing ```Curve``` can't be added correctly. Now it's fixed'.
+
+
 [0.4.0] - 2024-08-03
 --------
 

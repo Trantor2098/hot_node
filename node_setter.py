@@ -36,25 +36,49 @@ from . import file, utils, node_parser, version_control
 # <type>, <black attrs> | Black list for parsing attributes, escaping assigning some attrs that is read-only, 
 # or have side effect, or customized like HN prefixed attrs, etc.
 # The lowest type should be in the front, if there are parent relation between two types.
-type_black_attrs = (
+type_b_attrs_setter = (
     ((bpy.types.NodeTreeInterfaceItem, ),
-    ("location", "item_type", "socket_type", "in_out", "identifier", "index", "position")),
+    ("location", "item_type", "socket_type", "in_out", "identifier", "index", "position"),
+    None),
     (bpy.types.NodeSocket,
-    ("location", "label", )),
+    ("location", "label", ),
+    None),
     (bpy.types.Image,
-    ("location", "filepath", "name")),
+    ("location", "filepath", "name"),
+    None),
 )
 
 node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 failed_tex_num = 0
+
+class SpecialSetter():
     
-def get_black_attrs(obj):
-    for item in type_black_attrs:
+    @staticmethod
+    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj):
+        # XXX data_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
+        # why blender dont have a socket_type attribute in CaptureAttributeItem??
+        # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
+        capture_items = obj.capture_items
+        ccapture_items = cobj["capture_items"]
+        length = len(capture_items)
+        for i in range(length):
+            data_type = capture_items[i].data_type
+            if data_type.find('VECTOR') != -1:
+                ccapture_items[i]["HN_socket_type"] = 'VECTOR'
+            else:
+                ccapture_items[i]["HN_socket_type"] = data_type
+                
+    
+def get_blacks_delegate(obj):
+    delegate = None
+    for item in type_b_attrs_setter:
         if isinstance(obj, item[0]):
+            if item[2] is not None:
+                delegate = getattr(SpecialSetter, item[2])
             return item[1]
     # fallback black list
-    return ("location",)
+    return (), delegate
 
 
 # Tool Method
@@ -224,6 +248,21 @@ def open_tex(cobj):
     return tex
 
 
+def new_element(obj, cobj, attr_name):
+    '''New an element of bpy_prop_collection by new() function in blender
+    
+    - obj: bpy prop collection
+    - cattr: An element of the collection, will be used as new()'s input parameter
+    - attr_name: Attributs' name, will be used to find what new() to use'''
+    def new(*parameter):
+        getattr(obj, "new")(*parameter)
+    # XXX it's weak. we should use some other way to specify it. maybe need to add an attr_owner...
+    if attr_name == "elements":
+        new(cobj["position"])
+    elif attr_name == "points":
+        new(cobj["location"][0], cobj["location"][1])
+
+
 def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
     '''Set obj's attributes.
     
@@ -235,7 +274,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
     # get black attributes that needent be assigned
     if obj is None:
         return
-    black_attrs = get_black_attrs(obj)
+    black_attrs, set_special = get_blacks_delegate(obj)
     if isinstance(cobj, list):
         length = len(obj)
         clength = len(cobj)
@@ -254,7 +293,6 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name)
     elif isinstance(cobj, dict):
         for attr, cvalue in cobj.items():
-            # XXX i'm not sure whether using startswith("HN_") or using black list is more efficient...
             if attr in black_attrs or attr.startswith("HN_"):
                 continue
             elif isinstance(cvalue, list) and not check_common(cvalue):
@@ -266,28 +304,13 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             else:
                 # BUG sometimes (often after Ctrl + G and the node group interface is autoly created) tree interface socket's subtype is "", 
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
-                if attr == "subtype" and cvalue == '':
+                if attr == "subtype" and cvalue == "":
                     cvalue = 'NONE'
                 setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
-    elif cobj and attr_name not in black_attrs:
+    elif attr_name not in black_attrs:
         obj = cobj
-        
 
-def new_element(obj, cobj, attr_name):
-    '''New an element of bpy_prop_collection by new() function in blender
-    
-    - obj: bpy prop collection
-    - cattr: An element of the collection, will be used as new()'s input parameter
-    - attr_name: Attributs' name, will be used to find what new() to use'''
-    def new(*parameter):
-        getattr(obj, "new")(*parameter)
-    # XXX it's weak. we should use some other way to specify it. maybe need to add an attr_owner...
-    if attr_name == "elements":
-        new(cobj["position"])
-    elif attr_name == "points":
-        new(cobj["location"][0], cobj["location"][1])
-        
         
 def set_interface(interface, cinterface):
     interface.clear()

@@ -47,8 +47,7 @@ def read_packs():
 
 
 def rename_pack(old_name, new_name):
-    global packs
-    global pack_selected
+    global packs, pack_selected
     idx = packs.index(old_name)
     packs[idx] = new_name
     pack_selected = new_name
@@ -62,23 +61,26 @@ def _node_preset_type_update(self, context):
 
 def _node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
-    global skip_rename_callback
+    global skip_rename_callback, preset_selected
     if skip_rename_callback:
         return
-    global preset_selected
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
     new_full_name = presets[preset_selected_idx].name
+    # we should skip callback or we will fall into loops
     if preset_selected == new_full_name:
         return
     if new_full_name == "":
+        skip_rename_callback = True
         presets[preset_selected_idx].name = preset_selected
+        skip_rename_callback = False
         return
     # checkuser renaming
     ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
-    if ensured_new_full_name != new_full_name:
-        presets[preset_selected_idx].name = ensured_new_full_name
+    skip_rename_callback = True
+    presets[preset_selected_idx].name = ensured_new_full_name
+    skip_rename_callback = False
     file.rename_preset(preset_selected, ensured_new_full_name)
     preset_selected = ensured_new_full_name
 
@@ -99,14 +101,16 @@ def _node_preset_select_update(self, context):
 
 def _pack_selected_name_update(self, context):
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
-    global pack_selected
+    global pack_selected, skip_rename_callback
     props = context.scene.hot_node_props
     
     new_name = props.pack_selected_name
     if pack_selected == new_name:
         return
     if new_name == "":
+        skip_rename_callback = True
         props.pack_selected_name = pack_selected
+        skip_rename_callback = False
         return
     
     if len(packs) > 0:
@@ -114,16 +118,20 @@ def _pack_selected_name_update(self, context):
         pack_selected = new_name
     else:
         pack_selected = ""
+        skip_rename_callback = True
         props.pack_selected_name = ""
+        skip_rename_callback = False
         
         
 def _fast_create_preset_name_update(self, context):
-    global skip_rename_callback
-    global preset_selected
+    global skip_rename_callback, preset_selected
+    if skip_rename_callback:
+        return
     props = context.scene.hot_node_props
     presets = props.presets
     fast_name = props.fast_create_preset_name
     if fast_name != "" and pack_selected != "":
+        # This is the same with what we do in operators.py
         ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
         edit_tree = context.space_data.edit_tree
             
@@ -134,7 +142,6 @@ def _fast_create_preset_name_update(self, context):
         props.preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
-        # XXX this is ugly but works... for escaping renaming the exist preset and overwriting it
         skip_rename_callback = True
         presets[preset_selected_idx].name = ensured_fast_name
         preset_selected = ensured_fast_name
@@ -145,8 +152,9 @@ def _fast_create_preset_name_update(self, context):
         node_parser.parse_node_preset(edit_tree)
         cpreset = node_parser.set_preset_data(ensured_fast_name, pack_selected)
         file.create_preset(ensured_fast_name, cpreset)
-        
+    skip_rename_callback = True
     props.fast_create_preset_name = ""
+    skip_rename_callback = False
 
 
 class HotNodePreset(bpy.types.PropertyGroup):

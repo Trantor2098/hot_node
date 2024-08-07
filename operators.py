@@ -313,7 +313,7 @@ class HOTNODE_OT_nodes_add(Operator):
     bl_description = "Add nodes to the editor tree"
     bl_options = {'UNDO', 'REGISTER'}
     
-    # None means use selected one in the UI
+    # "" means use selected one in the UI
     preset_name: StringProperty(
         name="preset_name",
         default=""

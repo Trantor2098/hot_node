@@ -41,7 +41,7 @@ _node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeG
 # <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes, and special later parser func for special attrs.
 # NOTE the lowest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
-_type_wb_attrs = (
+_type_wb_attrs_parser = (
     (bpy.types.NodeTreeInterfaceItem, 
     ("item_type", "socket_type", "in_out", "index", "position", "identifier"), 
     (),
@@ -104,7 +104,7 @@ class SpecialParser():
 # ★★★ Functions for Parsing Nodes ★★★
 def get_whites_blacks_delegate(obj):
     delegate = None
-    for item in _type_wb_attrs:
+    for item in _type_wb_attrs_parser:
         if isinstance(obj, item[0]):
             if item[3] is not None:
                 delegate = getattr(SpecialParser, item[3])

@@ -201,7 +201,7 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         # col = layout.column(align=True)
         # row = col.row(align=True)
         row = layout.row(align=True)
-        row.operator("node.hot_node_preset_apply", text="Apply")
+        row.operator("node.hot_node_preset_apply", text="Apply").preset_name = ""
         row.operator("node.hot_node_preset_save", text="Save")
         # row.separator(factor=1.45)
         # col = row.column()
