@@ -420,7 +420,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
         return 'NO_NODE_SELECTED'
     if not hasattr(node, "image"):
         return 'NOT_TEX_NODE'
-    from . properties import allow_tex_save
+    from .props_bl import allow_tex_save
     if not allow_tex_save:
         return 'NOT_PRESET_SELECTED'
     

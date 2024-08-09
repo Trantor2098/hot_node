@@ -19,9 +19,12 @@
 
 
 from . import node_parser, file
+from . __init__ import bl_info
 
-# current Hot Node's version
-version = [0, 4, 1]
+
+# current version
+version = bl_info["version"]
+blender = bl_info["blender"]
 
 
 def check_update_preset_version(preset_name, cpreset):

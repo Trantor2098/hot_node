@@ -22,31 +22,32 @@ import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty
 
-from . import node_setter, utils, file, properties, node_parser
+from . import node_setter, props_bl, props_py, utils, file, node_parser, gui
 
 
 def _sync(context: bpy.types.Context):
     file.refresh_pack_root()
-    properties.packs = file.read_packs()
-    if properties.pack_selected not in properties.packs:
-        properties.pack_selected = file.root_meta_cache["pack_selected"]
-    _select_pack(context, properties.pack_selected)
+    pack_names = file.load_packs()
+    if props_py.gl_pack_selected.name not in pack_names:
+        pack_selected_name = file.root_meta_cache["pack_selected"]
+        props_py.gl_pack_selected = props_py.gl_packs[pack_selected_name]
+    _select_pack(context, props_py.gl_pack_selected)
+    gui.ensure_existing_pack_menu()
     
     
 def _ensure_sync(ops: Operator, context: bpy.types.Context):
-    if file.check_sync():
-        return True
-    else:
+    if not file.check_sync():
         _sync(context)
         ops.report({'WARNING'}, "Out of sync, nothing happend but auto refreshing. Now it's READY!")
         return False
+    return True
     
     
-def _select_pack(context, dst_pack: str):
+def _select_pack(context, dst_pack: props_py.Pack):
     # to escaping overwrite 
     props = context.scene.hot_node_props
-    ori_pack = properties.pack_selected
-    properties.pack_selected = dst_pack
+    ori_pack = props_py.gl_pack_selected
+    props_py.gl_pack_selected = dst_pack
     props.pack_selected_name = dst_pack
     preset_selected_old = props.preset_selected
     props.preset_selected = 0
@@ -54,22 +55,22 @@ def _select_pack(context, dst_pack: str):
     presets = props.presets
     presets.clear()
     file.select_pack(dst_pack)
-    # if pack == "", means there is no pack, dont read any preset and keep pack as "", the ops will be grayed out because they will detect whether pack is "".
-    if dst_pack != "":
+    # if pack is None, means there is no pack, dont read any preset and keep pack as None, the ops will be grayed out because they will detect whether pack is None.
+    if dst_pack is not None:
         preset_names, tree_types = file.read_presets()
         preset_num = len(preset_names)
-        properties.skip_rename_callback = True
+        props_bl.skip_rename_callback = True
         for i in range(preset_num):
             name = preset_names[i]
             type = tree_types[name]
             presets.add()
             presets[i].name = name
             presets[i].type = type
-        properties.skip_rename_callback = False
+        props_bl.skip_rename_callback = False
         if ori_pack == dst_pack and preset_selected_old < preset_num:
             props.preset_selected = preset_selected_old
-
-    
+            
+      
 def _preset_move_to(selected_idx, dst_idx, presets):
     preset = presets[selected_idx]
     name, type = preset.name, preset.type
@@ -88,7 +89,7 @@ def _preset_move_to(selected_idx, dst_idx, presets):
     
     
 def _poll_preset_ops(context):
-    return properties.pack_selected != "" and context.space_data.edit_tree is not None
+    return props_py.gl_pack_selected is not None and context.space_data.edit_tree is not None
 
 
 # Functions for Calling Operators
@@ -119,7 +120,6 @@ class HOTNODE_OT_preset_create(Operator):
         props = context.scene.hot_node_props
         presets = props.presets
         edit_tree = context.space_data.edit_tree
-        pack_name = properties.pack_selected
         # escape rename. The default name is "Preset"... Do this first to check sync
         new_full_name = utils.ensure_unique_name_dot("Preset", -1, presets)
         
@@ -130,14 +130,14 @@ class HOTNODE_OT_preset_create(Operator):
         props.preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
-        properties.skip_rename_callback = True
+        props_bl.skip_rename_callback = True
         presets[preset_selected_idx].name = new_full_name
-        properties.preset_selected = new_full_name
-        properties.skip_rename_callback = False
+        props_py.gl_preset_selected = new_full_name
+        props_bl.skip_rename_callback = False
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         node_parser.parse_node_preset(edit_tree)
-        cpreset = node_parser.set_preset_data(new_full_name, pack_name)
+        cpreset = node_parser.set_preset_data(new_full_name, props_py.gl_preset_selected.name)
         file.create_preset(new_full_name, cpreset)
 
         return {'FINISHED'}
@@ -151,7 +151,7 @@ class HOTNODE_OT_preset_delete(Operator):
 
     @classmethod
     def poll(cls, context):
-        return properties.pack_selected != "" and len(context.scene.hot_node_props.presets) > 0
+        return props_py.gl_pack_selected != "" and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         if not _ensure_sync(self, context):
@@ -194,10 +194,11 @@ class HOTNODE_OT_preset_clear(Operator):
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
+        pack = props_py.gl_preset_selected
         props = context.scene.hot_node_props
-        file.clear_preset(properties.pack_selected)
+        file.clear_preset(pack.name)
         props.presets.clear()
-        self.report({'INFO'}, f"All presets in pack \"{properties.pack_selected}\" were deleted.")
+        self.report({'INFO'}, f"All presets in pack \"{pack.name}\" were deleted.")
 
         return {'FINISHED'}
     
@@ -228,7 +229,7 @@ class HOTNODE_OT_preset_move(Operator):
         if length < 2:
             return {'FINISHED'}
         
-        properties.skip_rename_callback = True
+        props_bl.skip_rename_callback = True
 
         reorder = True
         if self.direction == 'UP':
@@ -261,7 +262,7 @@ class HOTNODE_OT_preset_move(Operator):
             file.exchange_order_preset_meta(dst_idx, preset_selected_idx)
         props.preset_selected = dst_idx
         
-        properties.skip_rename_callback = False
+        props_bl.skip_rename_callback = False
 
         return {'FINISHED'}
     
@@ -279,21 +280,21 @@ class HOTNODE_OT_preset_save(Operator):
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
+        pack = props_py.gl_pack_selected
         props = context.scene.hot_node_props
         presets = props.presets
         preset_selected_idx = props.preset_selected
         preset_selected = presets[preset_selected_idx]
         preset_name = preset_selected.name
-        pack_name = properties.pack_selected
         edit_tree = context.space_data.edit_tree
         
         presets[preset_selected_idx].type = edit_tree.bl_idname
         # in node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         node_parser.parse_node_preset(edit_tree)
-        cpreset = node_parser.set_preset_data(preset_name, pack_name)
+        cpreset = node_parser.set_preset_data(preset_name, pack.name)
         file.update_preset(preset_name, cpreset)
         
-        properties.allow_tex_save = True
+        props_bl.allow_tex_save = True
         self.report(type={'INFO'}, message="Preset saved.")
 
         return {'FINISHED'}
@@ -319,6 +320,7 @@ class HOTNODE_OT_nodes_add(Operator):
         default=""
     ) # type: ignore
     
+    # "" means use selected one in the UI
     pack_name: StringProperty(
         name="pack_name",
         default=""
@@ -406,22 +408,22 @@ class HOTNODE_OT_texture_save(Operator):
     
     @classmethod
     def poll(cls, context):
-        return properties.allow_tex_save
+        return props_bl.allow_tex_save
     
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
+        pack = props_py.gl_pack_selected
         props = context.scene.hot_node_props
         presets = props.presets
         preset_selected_idx = props.preset_selected
         preset_selected = presets[preset_selected_idx]
         preset_name = preset_selected.name
-        pack_name = properties.pack_selected
         
         open_mode = props.tex_preset_mode
         tex_key = props.tex_key
 
-        cpreset = node_parser.set_texture_rule(context.space_data.edit_tree, preset_name, pack_name, open_mode, tex_key)
+        cpreset = node_parser.set_texture_rule(context.space_data.edit_tree, preset_name, pack.name, open_mode, tex_key)
         if not isinstance(cpreset, dict):
             if cpreset == 'EXCEED':
                 self.report(type={'ERROR'}, message="Too more nodes were selected! You can only save one texture rule at a time!")
@@ -458,15 +460,11 @@ class HOTNODE_OT_pack_create(Operator):
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
-        packs = properties.packs
-        new_full_name = utils.ensure_unique_name("Pack", -1, packs)
-        packs.append(new_full_name)
-        # select newly created pack
-        length = len(packs)
-        properties.pack_selected = packs[length - 1]
+        new_full_name = utils.ensure_unique_name("Pack", -1, props_py.gl_packs.keys())
 
         file.create_pack(new_full_name)
-        _select_pack(context, new_full_name)
+        _select_pack(context, props_py.gl_packs[new_full_name])
+        gui.ensure_existing_pack_menu(new_full_name)
         
         return {'FINISHED'}
     
@@ -479,13 +477,13 @@ class HOTNODE_OT_pack_delete(Operator):
 
     @classmethod
     def poll(cls, context):
-        return properties.pack_selected != ''
+        return props_py.gl_pack_selected != ''
 
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
-        packs = properties.packs
-        pack_name = properties.pack_selected
+        packs = props_py.gl_packs
+        pack_name = props_py.gl_pack_selected
         pack_selected_idx = packs.index(pack_name)
         
         
@@ -504,10 +502,11 @@ class HOTNODE_OT_pack_delete(Operator):
                 pack_name = packs[pack_selected_idx]
         # no pack last
         else:
-            properties.pack_selected = ""
+            props_py.gl_pack_selected = ""
             pack_name = ""
 
-        _select_pack(context, pack_name)
+        _select_pack(context, props_py.gl_packs[pack_name])
+        gui.ensure_existing_pack_menu(pack_name)
         return {'FINISHED'}
     
     def invoke(self, context, event):
@@ -525,16 +524,16 @@ class HOTNODE_OT_pack_select(Operator):
     bl_description = "Select pack"
     bl_options = {'REGISTER'}
 
-    pack: StringProperty(
-        name='',
-        default='',
+    pack_name: StringProperty(
+        name="",
+        default="",
         options={'HIDDEN'}
     ) # type: ignore
     
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
-        _select_pack(context, self.pack)
+        _select_pack(context, props_py.gl_packs[self.pack_name])
         
         return {'FINISHED'}
     
@@ -587,7 +586,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
                     continue
             else:
                 pack_name = file_name[:-4]
-                if pack_name in properties.packs:
+                if pack_name in props_py.gl_packs.keys():
                     self.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
                     continue
                 
@@ -604,8 +603,9 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
                 
         # count import infos
         if success_num > 0:
-            properties.packs = file.read_packs()
-            _select_pack(context, pack_name)
+            file.load_packs()
+            _select_pack(context, props_py.gl_packs[pack_name])
+            gui.ensure_existing_pack_menu(pack_name)
             if success_num == file_num:
                 if self.is_recovering:
                     self.report({'INFO'}, f"\"{pack_name}\" recovered.")
@@ -642,7 +642,7 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return properties.pack_selected != ""
+        return props_py.gl_pack_selected != ""
     
     def execute(self, context):
         if not _ensure_sync(self, context):
@@ -654,11 +654,11 @@ class HOTNODE_OT_pack_export(bpy.types.Operator):
             return {'CANCELLED'}
             
         file.export_selected_pack(to_file_path)
-        self.report({'INFO'}, f"Exported pack \"{properties.pack_selected}\" to {to_file_path}.")
+        self.report({'INFO'}, f"Exported pack \"{props_py.gl_pack_selected}\" to {to_file_path}.")
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.filename = ".".join((properties.pack_selected, "zip"))
+        self.filename = ".".join((props_py.gl_pack_selected, "zip"))
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     
@@ -674,19 +674,19 @@ class HOTNODE_OT_pack_export_all(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return properties.pack_selected != ""
+        return props_py.gl_pack_selected != ""
     
     def execute(self, context):
         if not _ensure_sync(self, context):
             return {'CANCELLED'}
         
-        file.export_packs(properties.packs, self.filepath)
+        file.export_packs(props_py.gl_packs.keys(), self.filepath)
             
         self.report({'INFO'}, f"Exported all packs to {self.filepath}.")
         return {'FINISHED'}
 
     def invoke(self, context, event):
-        self.filename = ".".join((properties.pack_selected, "zip"))
+        self.filename = ".".join((props_py.gl_pack_selected, "zip"))
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     
@@ -700,6 +700,22 @@ class HOTNODE_OT_refresh(Operator):
     def execute(self, context):
         _sync(context)
         self.report({'INFO'}, "Hot Node refreshed.")
+        return {'FINISHED'}
+    
+    
+# help to invoke some functions without import it as a module. call this ops only in codes.
+class HOTNODE_OT_helper(Operator):
+    bl_idname = "node.hot_node_helper"
+    bl_label = "Hot Node Helper Operator"
+    bl_description = "Help to invoke some functions without import it as a module. Call this only in codes"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        mode = props_py.helper_mode
+        param = props_py.helper_param
+        if mode == 'PACK_RENAME':
+            gui.ensure_existing_pack_menu(param)
+        
         return {'FINISHED'}
 
 
@@ -719,6 +735,7 @@ classes = (
     HOTNODE_OT_pack_export,
     HOTNODE_OT_pack_export_all,
     HOTNODE_OT_refresh,
+    HOTNODE_OT_helper,
 )
 
 

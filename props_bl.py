@@ -21,37 +21,13 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
-from . import utils, file
+from . import utils, file, props_py, ops_invoker
 
-
-# NOTE selected preset is saved by blender property, and the python string is a mirror. But pack is saved by python string.
-
-# TODO put packs into file.py
-# packs will be loaded once the blender open
-packs = []
-# for script to get current pack.
-pack_selected = ""
-# only for checking rename as a name cache, wont be used to get preset
-preset_selected = ""
 
 # poll parameters
 allow_tex_save = False
 # to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
 skip_rename_callback = False
-
-
-# Set functions
-def read_packs():
-    global packs
-    packs = file.read_packs()
-
-
-def rename_pack(old_name, new_name):
-    global packs, pack_selected
-    idx = packs.index(old_name)
-    packs[idx] = new_name
-    pack_selected = new_name
-    file.rename_pack(old_name, new_name)
 
 
 # Callbacks of hot node props updating
@@ -61,7 +37,7 @@ def _node_preset_type_update(self, context):
 
 def _node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
-    global skip_rename_callback, preset_selected
+    global skip_rename_callback
     if skip_rename_callback:
         return
     props = context.scene.hot_node_props
@@ -69,11 +45,11 @@ def _node_preset_name_update(self, context):
     preset_selected_idx = props.preset_selected
     new_full_name = presets[preset_selected_idx].name
     # we should skip callback or we will fall into loops
-    if preset_selected == new_full_name:
+    if props_py.gl_preset_selected == new_full_name:
         return
     if new_full_name == "":
         skip_rename_callback = True
-        presets[preset_selected_idx].name = preset_selected
+        presets[preset_selected_idx].name = props_py.gl_preset_selected
         skip_rename_callback = False
         return
     # checkuser renaming
@@ -81,56 +57,60 @@ def _node_preset_name_update(self, context):
     skip_rename_callback = True
     presets[preset_selected_idx].name = ensured_new_full_name
     skip_rename_callback = False
-    file.rename_preset(preset_selected, ensured_new_full_name)
-    preset_selected = ensured_new_full_name
+    file.rename_preset(props_py.gl_preset_selected, ensured_new_full_name)
+    props_py.gl_preset_selected = ensured_new_full_name
 
 
 def _node_preset_select_update(self, context):
     if skip_rename_callback:
         return
-    global preset_selected, allow_tex_save
+    global allow_tex_save
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
     if len(presets) > 0:
-        preset_selected = presets[preset_selected_idx].name
+        props_py.gl_preset_selected = presets[preset_selected_idx].name
     else:
-        preset_selected = ""
+        props_py.gl_preset_selected = ""
     allow_tex_save = False
     
 
 def _pack_selected_name_update(self, context):
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
-    global pack_selected, skip_rename_callback
+    global skip_rename_callback
     props = context.scene.hot_node_props
     
     new_name = props.pack_selected_name
-    if pack_selected == new_name:
+    if props_py.gl_pack_selected.name == new_name:
         return
     if new_name == "":
         skip_rename_callback = True
-        props.pack_selected_name = pack_selected
+        props.pack_selected_name = props_py.gl_pack_selected.name
         skip_rename_callback = False
         return
     
-    if len(packs) > 0:
-        rename_pack(pack_selected, new_name)
-        pack_selected = new_name
+    if len(props_py.gl_packs) > 0:
+        old_name = props_py.gl_pack_selected.name
+        props_py.gl_packs[old_name] = new_name
+        file.rename_pack(old_name, new_name)
+        props_py.gl_pack_selected.name = props_py.gl_packs[new_name]
+        ops_invoker.update_pack_menu_for_pack_renaming(new_name)
     else:
-        pack_selected = ""
+        props_py.gl_pack_selected = None
         skip_rename_callback = True
         props.pack_selected_name = ""
         skip_rename_callback = False
+    
         
         
 def _fast_create_preset_name_update(self, context):
-    global skip_rename_callback, preset_selected
+    global skip_rename_callback
     if skip_rename_callback:
         return
     props = context.scene.hot_node_props
     presets = props.presets
     fast_name = props.fast_create_preset_name
-    if fast_name != "" and pack_selected != "":
+    if fast_name != "" and props_py.gl_pack_selected is not None:
         # This is the same with what we do in operators.py
         ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
         edit_tree = context.space_data.edit_tree
@@ -144,13 +124,13 @@ def _fast_create_preset_name_update(self, context):
         presets[preset_selected_idx].type = edit_tree.bl_idname
         skip_rename_callback = True
         presets[preset_selected_idx].name = ensured_fast_name
-        preset_selected = ensured_fast_name
+        props_py.gl_preset_selected = ensured_fast_name
         skip_rename_callback = False
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         from . import node_parser
         node_parser.parse_node_preset(edit_tree)
-        cpreset = node_parser.set_preset_data(ensured_fast_name, pack_selected)
+        cpreset = node_parser.set_preset_data(ensured_fast_name, props_py.gl_pack_selected.name)
         file.create_preset(ensured_fast_name, cpreset)
     skip_rename_callback = True
     props.fast_create_preset_name = ""
@@ -181,7 +161,7 @@ class HotNodePreset(bpy.types.PropertyGroup):
     
     
 class HotNodeProps(bpy.types.PropertyGroup):
-    '''Singleton class! Hot Node's properties that will be registed to blender, used for UI, OPS.'''
+    '''Singleton class! These are Hot Node's properties that will be registed to blender, used for UI, OPS.'''
     presets: CollectionProperty(
         name="Node Presets",
         type=HotNodePreset
@@ -196,7 +176,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
     pack_selected_name: StringProperty(
         name="Selected Pack",
         description="Selected pack's name",
-        default=pack_selected,
+        default=props_py.gl_pack_selected.name,
         update=_pack_selected_name_update
     ) # type: ignore
     
@@ -260,6 +240,12 @@ class HotNodeProps(bpy.types.PropertyGroup):
         description="Overwrite node tree interface (IO sockets, panels) if the existing one is not capatibale with the one in preset. Note: If open, your original node tree interface will be changed and the links to them will be disappeared",
         default=False,
     ) # type: ignore
+    
+    in_one_menu: BoolProperty(
+        name='In One Menu',
+        description="Put packs into one menu rather than listing all of them on the node add menu",
+        default=False,
+    ) # type: ignore
 
     extra_confirm: BoolProperty(
         name='Extra Confirmation',
@@ -277,8 +263,6 @@ classes = (
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-
-    read_packs()
     
     bpy.types.Scene.hot_node_props = bpy.props.PointerProperty(
         name='Hot Node Prop Group',

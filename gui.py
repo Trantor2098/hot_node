@@ -20,11 +20,10 @@
 
 import bpy
 from bpy.types import Menu, Panel, UIList
-from bpy.props import StringProperty
 
 import time
 
-from . import properties, file
+from . import file, props_py, ops_invoker
 
 
 type_icon = {
@@ -36,19 +35,48 @@ type_icon = {
 
 last_darw_time = 0.0
 
+# menu pool
+packs_Menus = {}
 
+
+def _draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
+    _ensure_sync()
+    if props_py.gl_packs != []:
+        self.layout.separator()
+        for pack in props_py.gl_packs:
+            self.layout.menu(packs_Menus[pack].__name__)
+
+
+def ensure_existing_pack_menu(pack_name: str|None=None):
+    '''Create menu classes for the pack(s) which are not appeared before.
+    
+    - pack_name: The pack that may needs creating menu. Keep None for checking all packs.
+    '''
+    global packs_Menus
+    # Here we create class for every appeared pack name, then the name is in the pool and we can reuse them when next time the name appears.
+    # We will ungister them when blender is closed. Just like an obj pool.
+    if pack_name is None:
+        for pack in props_py.gl_packs:
+            ensure_existing_pack_menu(pack)
+    elif pack_name not in packs_Menus.keys():
+        Menu_name = f"HOTNODE_MT_pack_menu_{pack_name}"
+        Menu = type(Menu_name, (HOTNODE_MT_nodes_add, ), {"bl_label": pack_name})
+        packs_Menus[pack_name] = Menu
+        bpy.utils.register_class(Menu)
+            
+        
 # Sync Functions, will be called in draw()
-def _execute_refresh():
-    bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
-
-
-def _sync_by_gui_idle_time():
+def _sync_root_by_gui_idle_time():
     global last_darw_time
     current_time = time.time()
     if current_time - last_darw_time > 1.0:
-        if not file.check_sync_by_mtime():
-            bpy.app.timers.register(_execute_refresh, first_interval=0.01)
+        _ensure_sync()
     last_darw_time = current_time
+    
+    
+def _ensure_sync():
+    if not file.check_sync():
+        ops_invoker.late_refresh()
     
 
 class HOTNODE_MT_pack_select(Menu):
@@ -56,9 +84,9 @@ class HOTNODE_MT_pack_select(Menu):
     
     def draw(self, context):
         layout = self.layout
-        packs = properties.packs
-        for pack in packs:
-            layout.operator("node.hot_node_pack_select", text=pack).pack = pack
+        for pack in props_py.gl_packs:
+            # TODO use pack rather than pack name
+            layout.operator("node.hot_node_pack_select", text=pack).pack_name = pack
 
 
 class HOTNODE_MT_specials(Menu):
@@ -80,97 +108,48 @@ class HOTNODE_MT_specials(Menu):
         layout.separator()
         layout.operator("node.hot_node_preset_clear", icon='PANEL_CLOSE', text="Delete All Presets")
         
-        # Some Bool Options
+        # Nodes Settings
         layout.separator()
         layout.prop(props, "overwrite_tree_io")
-        layout.prop(props, "extra_confirm")
-
-        # Texture Default Mode
-        layout.separator()
         layout.prop(props, "tex_default_mode", icon='PREFERENCES', text="")
         
-        
-class HOTNODE_MT_nodes_add_specials(Menu):
-    bl_label = "Quick Menu"
-    
-    def draw(self, context):
-        props = context.scene.hot_node_props
-        layout = self.layout
-        layout.operator("node.hot_node_refresh", icon='FILE_REFRESH')
-        layout.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION')
+        # Add-on Settings
         layout.separator()
-        layout.prop(props, "fast_create_preset_name", icon='ADD', text="", placeholder="Fast Create Preset")
-        
-        
-class HOTNODE_MT_nodes_add_all(Menu):
-    bl_label = "All Nodes"
-    
-    def draw(self, context):
-        layout = self.layout
-        tree_type = context.space_data.tree_type
-        packs = properties.packs
-        packs_num = len(packs)
-        use_overlay = packs_num >= 10
-        
-        overlay_num = 0
-        row = layout.row()
-        if use_overlay:
-            col = row.column()
-        for pack in packs:
-            pack_presets, tree_types = file.read_presets(pack_name=pack)
-            preset_num = len(pack_presets)
-            if preset_num != 0:
-                if use_overlay:
-                    if overlay_num >= packs_num + 2:
-                        col = row.column()
-                        overlay_num = 0
-                    overlay_num += 1
-                    col.label(text=pack, icon='DISCLOSURE_TRI_DOWN')
-                else:
-                    col = row.column()
-                    col.label(text=pack)
-                    col.separator()
-                # col.separator()
-                for i in range(preset_num):
-                    preset_name = pack_presets[i]
-                    tree_type = tree_types[preset_name]
-                    if tree_type == tree_type:
-                        if use_overlay:
-                            if overlay_num >= packs_num + 2:
-                                col = row.column()
-                                overlay_num = 0
-                            overlay_num += 1
-                        ops = col.operator("node.hot_node_nodes_add", text=preset_name)
-                        ops.preset_name = preset_name
-                        ops.pack_name = pack
-                        ops.tree_type = tree_type
-                        
+        layout.prop(props, "in_one_menu")
+        layout.prop(props, "extra_confirm")
+                     
         
 class HOTNODE_MT_nodes_add(Menu):
-    bl_label = "Nodes"
+    # Take bl_label as pack name
+    bl_label = ""
+    
+    @classmethod
+    def set_pack(cls, pack_name):
+        cls.bl_label = pack_name
     
     def draw(self, context):
-        _sync_by_gui_idle_time()
         layout = self.layout
         tree_type = context.space_data.tree_type
-        props = context.scene.hot_node_props
-        presets = props.presets
-        pack_selected = properties.pack_selected
+        # TODO transfer to presets_cache rather than read presets.
+        preset_names, tree_types = file.read_presets(self.bl_label)
         
         row = layout.row()
         col = row.column()
-        col.menu("HOTNODE_MT_nodes_add_all")
         col.separator()
-        # col.label(text=pack_selected, icon='DISCLOSURE_TRI_DOWN')
-        for preset in presets:
-            if preset.type == tree_type:
-                preset_name = preset.name
+        for preset_name in preset_names:
+            if tree_types[preset_name] == tree_type:
                 # layout.operator("node.hot_node_nodes_add", text=preset_name, icon=type_icon[preset.type]).preset_name = preset_name
                 ops = col.operator("node.hot_node_nodes_add", text=preset_name)
                 ops.preset_name = preset_name
-                ops.pack_name = pack_selected
+                ops.pack_name = self.bl_label
                 ops.tree_type = tree_type
-        
+                
+                
+class HOTNODE_MT_nodes_add_in_one(Menu):
+    bl_label = "Nodes"
+    def draw(self, context):
+        _draw_nodes_add_menus(self, context)
+
 
 class HOTNODE_UL_presets(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -193,7 +172,8 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
     bl_idname = "HOTNODE_PT_nodes"
 
     def draw(self, context):
-        _sync_by_gui_idle_time()
+        _sync_root_by_gui_idle_time()
+        # once packs changed, pack menu will be updated
         layout = self.layout
         props = context.scene.hot_node_props
         presets = props.presets
@@ -236,7 +216,7 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         # Pack Select UI
         row = layout.row(align=True)
         row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
-        row.prop(props, "pack_selected_name", text="", placeholder="Select a pack to start")
+        row.prop(props, "pack_selected_name", text="", placeholder="Select a pack")
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
         
@@ -318,12 +298,15 @@ class HOTNODE_PT_pack_import_export(HOTNODE_PT_parent, Panel):
         col.operator("export.hot_node_pack_export_all", icon="EXPORT", text="Export All")
         
         
-def ex_shift_a_nodes_add(self, context):
-    self.layout.separator()
-    self.layout.menu(HOTNODE_MT_nodes_add.__name__, text="Nodes")
+def draw_ex_nodes_add_menu(self, context):
+    if context.scene.hot_node_props.in_one_menu:
+        self.layout.separator()
+        self.layout.menu("HOTNODE_MT_nodes_add_in_one", text="Nodes")
+    else:
+        _draw_nodes_add_menus(self, context)
     
     
-def ex_right_click_create(self, context):
+def draw_ex_fast_create_preset(self, context):
     self.layout.separator()
     self.layout.prop(context.scene.hot_node_props, "fast_create_preset_name", text="", placeholder="       Save Nodes As")
 
@@ -331,9 +314,7 @@ def ex_right_click_create(self, context):
 classes = (
     HOTNODE_MT_pack_select,
     HOTNODE_MT_specials,
-    HOTNODE_MT_nodes_add_specials,
-    HOTNODE_MT_nodes_add_all,
-    HOTNODE_MT_nodes_add,
+    HOTNODE_MT_nodes_add_in_one,
     HOTNODE_UL_presets,
     HOTNODE_PT_nodes,
     HOTNODE_PT_texture,
@@ -347,13 +328,15 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
         
-    bpy.types.NODE_MT_add.append(ex_shift_a_nodes_add)
-    bpy.types.NODE_MT_context_menu.append(ex_right_click_create)
+    bpy.types.NODE_MT_add.append(draw_ex_nodes_add_menu)
+    bpy.types.NODE_MT_context_menu.append(draw_ex_fast_create_preset)
 
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+    for Menu in packs_Menus.values():
+        bpy.utils.unregister_class(Menu)
         
-    bpy.types.NODE_MT_add.remove(ex_shift_a_nodes_add)
-    bpy.types.NODE_MT_context_menu.remove(ex_right_click_create)
+    bpy.types.NODE_MT_add.remove(draw_ex_nodes_add_menu)
+    bpy.types.NODE_MT_context_menu.remove(draw_ex_fast_create_preset)

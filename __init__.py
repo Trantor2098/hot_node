@@ -21,7 +21,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 4, 1),
+    "version": (0, 5, 0),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
@@ -34,14 +34,15 @@ bl_info = {
 
 import bpy
 
-from . import gui,  properties, operators, file
+from . import gui, operators, file, props_bl
 
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser, node_setter, version_control
+    from . import utils, file, node_parser, node_setter, version_control, props_py
     importlib.reload(gui)
-    importlib.reload(properties)
+    importlib.reload(props_bl)
+    importlib.reload(props_py)
     importlib.reload(operators)
     importlib.reload(node_parser)
     importlib.reload(node_setter)
@@ -67,7 +68,7 @@ def register():
     file.init()
 
     gui.register()
-    properties.register()
+    props_bl.register()
     operators.register()
     
     bpy.app.timers.register(execute_refresh, first_interval=0.1)
@@ -77,5 +78,5 @@ def unregister():
     file.finalize()
     
     gui.unregister()
-    properties.unregister()
+    props_bl.unregister()
     operators.unregister()
