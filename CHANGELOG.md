@@ -2,14 +2,14 @@ ChangeLog
 ========
 
 
-[0.4.2] - 2024-08-01
+[0.4.2] - 2024-08-09
 --------
 
 ### Fixed
-- Improved UI.
+- Applying textures will cause error. Now it won't.
 
 
-[0.4.1] - 2024-08-01
+[0.4.1] - 2024-08-05
 --------
 
 ### Fixed

@@ -76,7 +76,7 @@ def get_blacks_delegate(obj):
         if isinstance(obj, item[0]):
             if item[2] is not None:
                 delegate = getattr(SpecialSetter, item[2])
-            return item[1]
+            return item[1], delegate
     # fallback black list
     return (), delegate
 
