@@ -23,7 +23,7 @@ from bpy.types import Menu, Panel, UIList
 
 import time
 
-from . import file, props_py, ops_invoker
+from . import file, props_py, ops_invoker, sync
 
 
 type_icon = {
@@ -35,8 +35,10 @@ type_icon = {
 
 last_darw_time = 0.0
 
-# menu pool
+# menu pool, <pack name>: <Menu name>
 packs_Menus = {}
+new_Menus = []
+_pack_menu_num = 0
 
 
 def _draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
@@ -45,24 +47,39 @@ def _draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
         self.layout.separator()
         for pack in props_py.gl_packs:
             self.layout.menu(packs_Menus[pack].__name__)
+            
+            
+def create_pack_menu_class(pack_name: str):
+    global _pack_menu_num
+    _pack_menu_num += 1
+    Menu_name = f"HOTNODE_MT_pack_menu_{_pack_menu_num}"
+    Menu = type(Menu_name, (HOTNODE_MT_nodes_add, ), {"bl_label": pack_name})
+    packs_Menus[pack_name] = Menu
+    return Menu
 
+
+def _register_menus():
+    for Menu in new_Menus:
+        bpy.utils.register_class(Menu)
+    
 
 def ensure_existing_pack_menu(pack_name: str|None=None):
     '''Create menu classes for the pack(s) which are not appeared before.
     
     - pack_name: The pack that may needs creating menu. Keep None for checking all packs.
     '''
-    global packs_Menus
+    global packs_Menus, new_Menus
+    new_Menus.clear()
     # Here we create class for every appeared pack name, then the name is in the pool and we can reuse them when next time the name appears.
     # We will ungister them when blender is closed. Just like an obj pool.
+    pack_names = packs_Menus.keys()
     if pack_name is None:
-        for pack in props_py.gl_packs:
-            ensure_existing_pack_menu(pack)
-    elif pack_name not in packs_Menus.keys():
-        Menu_name = f"HOTNODE_MT_pack_menu_{pack_name}"
-        Menu = type(Menu_name, (HOTNODE_MT_nodes_add, ), {"bl_label": pack_name})
-        packs_Menus[pack_name] = Menu
-        bpy.utils.register_class(Menu)
+        for pack_name in props_py.gl_packs.keys():
+            if pack_name not in pack_names:
+                new_Menus.append(create_pack_menu_class(pack_name))
+    elif pack_name not in pack_names:
+        new_Menus.append(create_pack_menu_class(pack_name))
+    bpy.app.timers.register(_register_menus)
             
         
 # Sync Functions, will be called in draw()
@@ -76,6 +93,7 @@ def _sync_root_by_gui_idle_time():
     
 def _ensure_sync():
     if not file.check_sync():
+        sync.sync()
         ops_invoker.late_refresh()
     
 
@@ -209,7 +227,6 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         # Move up & down
         if presets:
             col.separator()
-
             col.operator("node.hot_node_preset_move", icon='TRIA_UP', text="").direction = 'UP'
             col.operator("node.hot_node_preset_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
 
@@ -333,6 +350,7 @@ def register():
 
 
 def unregister():
+    global packs_Menus
     for cls in classes:
         bpy.utils.unregister_class(cls)
     for Menu in packs_Menus.values():
@@ -340,3 +358,5 @@ def unregister():
         
     bpy.types.NODE_MT_add.remove(draw_ex_nodes_add_menu)
     bpy.types.NODE_MT_context_menu.remove(draw_ex_fast_create_preset)
+    
+    packs_Menus.clear()

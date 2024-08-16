@@ -23,3 +23,4 @@ awaiting_pack_menu_rename = False
 
 # operators.py
 helper_operation = 'NONE'
+skip_sync = False

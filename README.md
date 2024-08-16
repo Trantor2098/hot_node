@@ -105,15 +105,11 @@ When apply node presset:
 - If the current .blend file exists a re-named node group with the same inner nodes, it will be re-used rather than create a Group.001.
 - The same goes for textures, the re-named textures' file size will be compared.
 
-Future Plan
+Aknowledgement
 --------
 
-- Maybe will support apply / save preset as a material or geometry node modifier directly on an viewport object.
-- Maybe will support one-click inserting Hot Node as a module for other add-ons to easily generate nodes.
-- Maybe will support undo, redo.
-- Maybe will support adding linked object of the node socket if the object is simple enough.
-- Maybe will support drivers of the node socket.
-- Some other features...
+##### BUG Reporting & Suggestions
+Victoryluode, DK
 
 
 License

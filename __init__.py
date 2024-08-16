@@ -32,14 +32,12 @@ bl_info = {
 }
 
 
-import bpy
-
-from . import gui, operators, file, props_bl
+from . import gui, operators, file, props_bl, ops_invoker, versioning
 
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser, node_setter, version_control, props_py
+    from . import utils, file, node_parser, node_setter, props_py, sync
     importlib.reload(gui)
     importlib.reload(props_bl)
     importlib.reload(props_py)
@@ -48,35 +46,26 @@ def dev_reload():
     importlib.reload(node_setter)
     importlib.reload(utils)
     importlib.reload(file)
-    importlib.reload(version_control)
+    importlib.reload(versioning)
+    importlib.reload(sync)
+    importlib.reload(ops_invoker)
     
     
-# Functions for Calling Operators
-def execute_refresh():
-    try:
-        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
-        return None
-    except AttributeError:
-        # '_RestrictContext' object has no attribute 'view_layer'
-        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
-        return 0.1
-
-
 def register():
     dev_reload()
     
     file.init()
 
-    gui.register()
     props_bl.register()
+    gui.register()
     operators.register()
     
-    bpy.app.timers.register(execute_refresh, first_interval=0.1)
+    ops_invoker.late_refresh()
 
 
 def unregister():
     file.finalize()
     
     gui.unregister()
-    props_bl.unregister()
     operators.unregister()
+    props_bl.unregister()

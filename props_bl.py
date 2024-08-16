@@ -30,6 +30,33 @@ allow_tex_save = False
 skip_rename_callback = False
 
 
+def select_pack(context, dst_pack: props_py.Pack):
+    global skip_rename_callback
+    # to escaping overwrite 
+    props = context.scene.hot_node_props
+    props_py.gl_pack_selected = dst_pack
+    props.pack_selected_name = dst_pack.name if dst_pack is not None else ""
+    # load presets in the newly selected pack
+    presets = props.presets
+    if len(presets) > 0:
+        preset_selected = presets[props.preset_selected]
+    props.preset_selected = 0
+    presets.clear()
+    file.select_pack(dst_pack)
+    # if pack is None, means there is no pack, dont read any preset and keep pack as None, the ops will be grayed out because they will detect whether pack is None.
+    if dst_pack is not None:
+        preset_names, tree_types = file.read_presets()
+        preset_num = len(preset_names)
+        skip_rename_callback = True
+        for i in range(preset_num):
+            name = preset_names[i]
+            type = tree_types[name]
+            presets.add()
+            presets[i].name = name
+            presets[i].type = type
+        skip_rename_callback = False
+
+
 # Callbacks of hot node props updating
 def _node_preset_type_update(self, context):
     pass
@@ -81,7 +108,7 @@ def _pack_selected_name_update(self, context):
     props = context.scene.hot_node_props
     
     new_name = props.pack_selected_name
-    if props_py.gl_pack_selected.name == new_name:
+    if props_py.gl_pack_selected is None or props_py.gl_pack_selected.name == new_name:
         return
     if new_name == "":
         skip_rename_callback = True
@@ -91,10 +118,9 @@ def _pack_selected_name_update(self, context):
     
     if len(props_py.gl_packs) > 0:
         old_name = props_py.gl_pack_selected.name
-        props_py.gl_packs[old_name] = new_name
         file.rename_pack(old_name, new_name)
-        props_py.gl_pack_selected.name = props_py.gl_packs[new_name]
-        ops_invoker.update_pack_menu_for_pack_renaming(new_name)
+        props_py.gl_pack_selected = props_py.gl_packs[new_name]
+        ops_invoker.call_helper_ops('PACK_RENAME', new_name)
     else:
         props_py.gl_pack_selected = None
         skip_rename_callback = True
@@ -176,7 +202,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
     pack_selected_name: StringProperty(
         name="Selected Pack",
         description="Selected pack's name",
-        default=props_py.gl_pack_selected.name,
+        default=props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else "",
         update=_pack_selected_name_update
     ) # type: ignore
     

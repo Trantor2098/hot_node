@@ -442,7 +442,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
 
 
 def set_preset_data(preset_name, pack_name, cpreset=None):
-    from . version_control import version
+    from .versioning import version
     # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
         global cpreset_cache

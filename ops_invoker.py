@@ -23,12 +23,36 @@ import bpy
 from . import props_py
 
 
+def call_helper_ops(mode, param):
+    props_py.helper_mode = mode
+    props_py.helper_param = param
+    bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
+    
+    
+def call_helper_ops_directly():
+    bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
+
+
 def refresh():
     bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
     
     
+def select_pack():
+    bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
+    
+    
 def late_refresh():
     bpy.app.timers.register(refresh)
+    
+    
+def late_select_pack():
+    bpy.app.timers.register(select_pack)
+    
+    
+def late_call_helper_ops(mode, param):
+    props_py.helper_mode = mode
+    props_py.helper_param = param
+    bpy.app.timers.register(call_helper_ops_directly)
 
 
 def update_pack_menu_for_pack_renaming(new_pack_name):

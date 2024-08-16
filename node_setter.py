@@ -23,7 +23,7 @@ import bpy
 import os
 from mathutils import Vector
 
-from . import file, utils, node_parser, version_control
+from . import file, utils, node_parser, versioning
 
 # NOTE 
 # In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
@@ -76,7 +76,7 @@ def get_blacks_delegate(obj):
         if isinstance(obj, item[0]):
             if item[2] is not None:
                 delegate = getattr(SpecialSetter, item[2])
-            return item[1]
+            return item[1], delegate
     # fallback black list
     return (), delegate
 
@@ -473,7 +473,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     node_groups = bpy.data.node_groups
     # maybe cdata, but we call it cnode_trees
     cnode_trees = file.load_preset(preset_name, pack_name=pack_name)
-    cnode_trees = version_control.check_update_preset_version(preset_name, cnode_trees)
+    cnode_trees = versioning.ensure_preset_version(preset_name, cnode_trees)
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():

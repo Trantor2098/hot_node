@@ -62,6 +62,21 @@ def combine_name_suffix(name: str, suffix: int):
     return full_name
 
 
+def get_dot_suffix(name: str, *dst_suffix: str):
+    '''Get name's .suffix if the .suffix is in the dst suffix. 
+    Return None if there is no suffix or the .suffix is not in the dst suffix.
+    '''
+    idx = name.rfind(".")
+    if idx == -1:
+        return None
+    else:
+        suffix = name[idx:]
+        if suffix in dst_suffix:
+            return suffix
+        else:
+            return None
+
+
 def find_min_vacant_number(number_list: list):
     '''Help to find the minimum number in a series of numbers, with time & space complexity O(2n).'''
     # XXX actually, blender allows Foo.000, but here we consider Foo as Foo.000.

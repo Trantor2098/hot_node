@@ -17,7 +17,7 @@
 #
 # END GPL LICENSE BLOCK #####
 
-import os, shutil, json, zipfile, tempfile
+import os, shutil, json, zipfile, tempfile, time
 
 from . import utils, props_py
 from . __init__ import bl_info
@@ -26,84 +26,70 @@ from . __init__ import bl_info
 version = bl_info["version"]
 blender = bl_info["blender"]
 
+# Paths
 addon_dir_path = os.path.dirname(__file__)
-temp_dir_path = os.path.join(tempfile.gettempdir(), "hot_node_autosave")
+temp_dir_path = tempfile.gettempdir()
+autosave_dir_path = os.path.join(temp_dir_path, "hot_node_autosave")
+history_dir_path = os.path.join(addon_dir_path, "hot_node_history")
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
 pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
 pack_meta_path = ""
 root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
-pack_meta_cache = {}
-root_meta_cache = {}
-
+# Metas
 last_mtime = 0.0
+pack_meta_cache = {}
+root_meta_cache = {"pack_selected": "", 
+                   "last_mtime": 0.0}
 
 
 # Initialize & finalize files when opening & closing blender
 def init():
-    refresh_pack_root()
+    global last_mtime
+    load_packs_and_get_names()
+    ensure_pack_root()
+    ensure_dir_existing(history_dir_path)
     autosave_packs()
+    last_mtime = refresh_root_meta_cache_and_get_mtime_data()
+    pack_selected_name = root_meta_cache["pack_selected"]
+    props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
     
     
 def finalize():
     autosave_packs()
     clear_outdated_autosave_packs()
 
-# Sync Check
-def refresh_pack_root():
+
+# Sync & Check
+def ensure_pack_root():
     '''Read root meta to global root_meta_cache, recover autosaved files when there is no pack root dir (mostly happen when updating add-on)'''
     global root_meta_cache
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
         auto_recover_packs()
-        pack_names = load_packs()
+        pack_names = load_packs_and_get_names()
         if len(pack_names) == 0:
             select_pack(None)
         else:
-            select_pack(props_py.gl_packs[0])
+            select_pack(props_py.gl_packs[pack_names[0]])
     elif not os.path.exists(root_meta_path):
-        pack_names = load_packs()
+        pack_names = load_packs_and_get_names()
         if len(pack_names) == 0:
             select_pack(None)
         else:
-            select_pack(pack_names[0])
-    else:
-        root_meta_cache = read_root_meta()
-        pack = props_py.glpacks[root_meta_cache["pack_selected"]]
-        select_pack(pack)
+            select_pack(props_py.gl_packs[pack_names[0]])
+            
+            
+def ensure_dir_existing(dir_path):
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
         
         
 def check_sync():
     global last_mtime
-    real_mtime = os.path.getmtime(root_meta_path)
-    if real_mtime != last_mtime:
-        last_mtime = real_mtime
-        return False
-
-
-def check_pack_sync(pack: props_py.Pack|None):
-    # if no pack, pass the check and dont sync
-    if pack == None:
-        pack_names = load_packs()
-        if len(pack_names) == 0:
-            return True
-        else:
-            return False
-    pack_meta_path = get_pack_meta_path(pack.name)
-    real_pack_meta_mtime = os.path.getmtime(pack_meta_path)
-    if not os.path.exists(pack_meta_path):
-        return False
-    if pack.mtime != real_pack_meta_mtime:
-        return False
-    return True
-
-
-def check_root_sync():
-    # if no pack, pass the check and dont sync
-    global root_meta_mtime_cache
-    real_root_meta_mtime = os.path.getmtime(root_meta_path)
-    if root_meta_mtime_cache != real_root_meta_mtime:
-        root_meta_mtime_cache = real_root_meta_mtime
+    mtime_data = refresh_root_meta_cache_and_get_mtime_data()
+    if mtime_data != last_mtime:
+        last_mtime = mtime_data
         return False
     return True
 
@@ -121,7 +107,7 @@ def check_preset_existing(preset_name):
     return False
 
 
-# Get File Info
+# Get File Info & Path
 def get_pack_meta_path():
     os.path.join(pack_selected_dir_path, ".metadata.json")
     
@@ -129,6 +115,10 @@ def get_pack_meta_path():
 def get_pack_meta_path(pack_name):
     pack_meta_path = os.path.join(pack_root_dir_path, pack_name, ".metadata.json")
     return pack_meta_path
+
+
+def get_pack_path(pack_name):
+    return os.path.join(pack_root_dir_path, pack_name)
     
     
 def get_root_meta_path():
@@ -138,8 +128,22 @@ def get_root_meta_path():
 def get_pack_mtime(pack_name):
     pack_meta_path = os.path.join(pack_root_dir_path, pack_name, ".metadata.json")
     return os.path.getmtime(pack_meta_path)
-    
 
+
+# Get & Set Meta
+def refresh_root_meta_cache_and_get_mtime_data():
+    global root_meta_cache
+    root_meta_cache = read_root_meta()
+    mtime_data = root_meta_cache.get("last_mtime", 0.0)
+    return mtime_data
+
+
+def update_root_meta_cache_mtime():
+    global root_meta_cache, last_mtime
+    last_mtime = time.time()
+    root_meta_cache["last_mtime"] = last_mtime
+
+    
 # CRUD of Json
 def write_json(file_path: str, data: dict):
     with open(file_path, 'w', encoding='utf-8') as file:
@@ -151,23 +155,14 @@ def read_json(file_path) -> dict:
         return json.load(file)
     
     
-def write_pack_meta():
-    global last_mtime
+def write_meta():
+    update_root_meta_cache_mtime()
     write_json(pack_meta_path, pack_meta_cache)
-    # update root meta mtime to help sync checking
-    os.utime(root_meta_path)
-    last_mtime = os.path.getmtime(root_meta_path)
+    write_json(root_meta_path, root_meta_cache)
     
     
 def write_root_meta():
-    global last_mtime
     write_json(root_meta_path, root_meta_cache)
-    last_mtime = os.path.getmtime(root_meta_path)
-    
-    
-def write_meta():
-    write_json(root_meta_path, root_meta_cache)
-    write_json(pack_meta_path, pack_meta_cache)
     
     
 def read_pack_meta(pack_name: str|None=None):
@@ -185,9 +180,14 @@ def read_root_meta():
         return read_json(root_meta_path)
     
     
-def read_meta():
+def read_metas():
     if os.path.exists(root_meta_path) and os.path.exists(pack_meta_path):
         return read_json(root_meta_path), read_json(pack_meta_path)
+    
+    
+def refresh_root_meta_cache():
+    global root_meta_cache
+    root_meta_cache = read_root_meta()
     
     
 def check_read_pack_meta(pack_name):
@@ -217,6 +217,22 @@ def read_existing_files(dir_path, suffix=".zip", cull_suffix=True):
     return filtered_file_names
 
 
+# History Record
+def save_history(src_path):
+    '''Copy the file to the history folder and return the copied file path.'''
+    name = os.path.basename(src_path)
+    record_time = str(time.time())
+    dot_suffix = utils.get_dot_suffix(src_path, ".zip", ".json")
+    if dot_suffix is None:
+        his_path = os.path.join(history_dir_path, record_time)
+        shutil.copytree(src_path, his_path)
+    else:
+        dst_name = "".join((record_time, dot_suffix))
+        his_path = os.path.join(history_dir_path, dst_name)
+        shutil.copyfile(src_path, his_path)
+    return his_path
+    
+
 # CRUD of Pack and Preset
 def create_pack(pack_name):
     global root_meta_cache
@@ -232,8 +248,9 @@ def create_pack(pack_name):
     pack_meta_cache["tree_types"] = {}
     pack_meta_cache["version"] = version
     os.mkdir(pack_selected_dir_path)
-    load_packs()
     write_meta()
+    # reload packs to get right order of packs
+    load_packs_and_get_names()
 
 
 def delete_pack(pack_name):
@@ -251,18 +268,22 @@ def rename_pack(old_pack_name, new_pack_name):
     old_path = os.path.join(pack_root_dir_path, old_pack_name)
     new_path = os.path.join(pack_root_dir_path, new_pack_name)
     os.rename(old_path, new_path)
-    select_pack(new_pack_name)
+    # reload packs to get the right order of packs
+    load_packs_and_get_names()
+    update_root_meta_cache_mtime()
+    select_pack(props_py.gl_packs[new_pack_name])
 
 
-def load_packs():
+def load_packs_and_get_names():
     '''Load packs from folder into gl_packs and return pack names'''
     if not os.path.exists(pack_root_dir_path):
-        refresh_pack_root()
+        ensure_pack_root()
     pack_names = os.listdir(pack_root_dir_path)
     if ".metadata.json" in pack_names:
         pack_names.remove(".metadata.json")
     props_py.gl_packs.clear()
-    for i in range(len(pack_names)):
+    new_pack_num = len(pack_names)
+    for i in range(new_pack_num):
         pack_name = pack_names[i]
         pack_mtime = get_pack_mtime(pack_name)
         pack = props_py.Pack(pack_name, pack_mtime)
@@ -277,12 +298,16 @@ def select_pack(pack: props_py.Pack|None):
     global pack_selected_dir_path
     if pack is None:
         pack_meta_cache = {}
+        pack_meta_cache["order"] = []
+        pack_meta_cache["tree_types"] = {}
+        pack_meta_cache["version"] = version
         pack_meta_path = ""
         root_meta_cache["pack_selected"] = ""
     else:
         pack_selected_dir_path = os.path.join(pack_root_dir_path, pack.name)
         pack_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
         pack_meta_cache = read_pack_meta()
+        root_meta_cache["pack_selected"] = pack.name
     props_py.gl_pack_selected = pack
     write_root_meta()
     
@@ -336,11 +361,10 @@ def export_packs(pack_names, dst_dir_path):
         
         
 def autosave_packs():
-    if not os.path.exists(temp_dir_path):
-        os.mkdir(temp_dir_path)
-    pack_names = load_packs()
+    ensure_dir_existing(autosave_dir_path)
+    pack_names = load_packs_and_get_names()
     
-    existing_zips = read_existing_files(temp_dir_path, suffix=".zip", cull_suffix=False)
+    existing_zips = read_existing_files(autosave_dir_path, suffix=".zip", cull_suffix=False)
     existing_packs = []
     for i in range(len(existing_zips)):
         file_name = existing_zips[i]
@@ -352,14 +376,14 @@ def autosave_packs():
         # remove the previous autosaved file with the same name
         if pack_name in existing_packs:
             zip_idx = existing_packs.index(pack_name)
-            ealry_zip_path = os.path.join(temp_dir_path, existing_zips[zip_idx])
+            ealry_zip_path = os.path.join(autosave_dir_path, existing_zips[zip_idx])
             os.remove(ealry_zip_path)
             
         autosave_time_str = utils.get_autosave_time_str()
         ensured_pack_name = "".join((pack_name, "_autosave_", autosave_time_str))
             
         dst_file_name = ".".join((ensured_pack_name, "zip"))
-        dst_file_path = os.path.join(temp_dir_path, dst_file_name)
+        dst_file_path = os.path.join(autosave_dir_path, dst_file_name)
         file_name = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
         for root, dirs, files in os.walk(pack_dir_path):
             relative_root = '' if root == pack_dir_path else root.replace(pack_dir_path, '') + os.sep
@@ -372,26 +396,26 @@ def autosave_packs():
         existing_pack = existing_packs[i]
         if existing_pack not in pack_names:
             new_zip_name = existing_zips[i].replace("_autosave_", "_deprecated_")
-            old_zip_path = os.path.join(temp_dir_path, existing_zips[i])
-            new_zip_path = os.path.join(temp_dir_path, new_zip_name)
+            old_zip_path = os.path.join(autosave_dir_path, existing_zips[i])
+            new_zip_path = os.path.join(autosave_dir_path, new_zip_name)
             os.rename(old_zip_path, new_zip_path)
             
    
 def auto_recover_packs():
     '''Recover all the packs which were marked as "autosave".'''
-    if not os.path.exists(temp_dir_path):
-        os.mkdir(temp_dir_path)
-    existing_zips = read_existing_files(temp_dir_path, suffix=".zip", cull_suffix=False)
+    if not os.path.exists(autosave_dir_path):
+        os.mkdir(autosave_dir_path)
+    existing_zips = read_existing_files(autosave_dir_path, suffix=".zip", cull_suffix=False)
     for file_name in existing_zips:
         pack_name = utils.get_string_between_words(file_name, None, ("_autosave_",))
         if pack_name is not False:
-            file_path = os.path.join(temp_dir_path, file_name)
+            file_path = os.path.join(autosave_dir_path, file_name)
             import_pack(file_path, pack_name)
     
     
 def clear_outdated_autosave_packs():
     '''Clear packs which were autosaved 1 day before or autosaved in the last month.'''
-    existing_zip_namebodys = read_existing_files(temp_dir_path, suffix=".zip")
+    existing_zip_namebodys = read_existing_files(autosave_dir_path, suffix=".zip")
     current_time = utils.get_autosave_time()
     for namebody in existing_zip_namebodys:
         # DDHHMM
@@ -401,7 +425,7 @@ def clear_outdated_autosave_packs():
             day_delta = current_time[0] - autosave_time[0]
             # if the user opened blender after a month, the pack will be remained... but who cares?
             if day_delta > 1 or day_delta < 0:
-                file_path = os.path.join(temp_dir_path, "".join((namebody, ".zip")))
+                file_path = os.path.join(autosave_dir_path, "".join((namebody, ".zip")))
                 os.remove(file_path)
     
 
@@ -413,7 +437,7 @@ def create_preset(preset_name: str, cpreset: dict):
     pack_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
     pack_meta_cache["version"] = version
     write_json(file_path, cpreset)
-    write_pack_meta()
+    write_meta()
     
     
 def update_preset(preset_name: str, cpreset: dict):
@@ -423,7 +447,7 @@ def update_preset(preset_name: str, cpreset: dict):
     pack_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
     pack_meta_cache["version"] = version
     write_json(file_path, cpreset)
-    write_pack_meta()
+    write_meta()
 
 
 def delete_preset(preset_name):
@@ -433,7 +457,7 @@ def delete_preset(preset_name):
     pack_meta_cache["order"].remove(preset_name)
     del pack_meta_cache["tree_types"][preset_name]
     os.remove(file_path)
-    write_pack_meta()
+    write_meta()
     
     
 def clear_preset(pack_name):
@@ -478,13 +502,13 @@ def rename_preset(old_name, new_name):
     idx = pack_meta_cache["order"].index(old_name)
     pack_meta_cache["order"][idx] = new_name
     pack_meta_cache["tree_types"][new_name] = pack_meta_cache["tree_types"].pop(old_name)
-    write_pack_meta()
+    write_meta()
     
     
 def reorder_preset_meta(preset_names):
     global pack_meta_cache
     pack_meta_cache["order"] = preset_names
-    write_pack_meta()
+    write_meta()
     
     
 def exchange_order_preset_meta(idx1, idx2):
@@ -492,7 +516,7 @@ def exchange_order_preset_meta(idx1, idx2):
     temp = pack_meta_cache["order"][idx2]
     pack_meta_cache["order"][idx2] = pack_meta_cache["order"][idx1]
     pack_meta_cache["order"][idx1] = temp
-    write_pack_meta()
+    write_meta()
     
 
 # CRUD of images

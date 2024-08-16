@@ -24,9 +24,10 @@ class Pack():
         self.name = name
         self.mtime = mtime
         
+        
 # packs will be loaded once the blender open
 gl_packs = {}
-# for script to get current pack.
+# for script to get current selected pack, for CRUDing it.
 gl_pack_selected: Pack = None
 # only for checking rename as a name cache, wont be used to get preset
 gl_preset_selected = ""
