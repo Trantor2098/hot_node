@@ -266,6 +266,16 @@ class HotNodeProps(bpy.types.PropertyGroup):
         description="Popup a confirmation window when save & delete preset or packs, since it can't be undo",
         default=False,
     ) # type: ignore
+    
+    
+def skip_callback_true():
+    global skip_rename_callback
+    skip_rename_callback = True
+    
+    
+def skip_callback_false():
+    global skip_rename_callback
+    skip_rename_callback = False
 
 
 classes = (
@@ -285,9 +295,19 @@ def register():
         type=HotNodeProps
     ) # type: ignore
     
+    bpy.app.handlers.undo_pre.append(skip_callback_true)
+    bpy.app.handlers.undo_post.append(skip_callback_false)
+    bpy.app.handlers.redo_pre.append(skip_callback_true)
+    bpy.app.handlers.redo_post.append(skip_callback_false)
+    
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
         
     del bpy.types.Scene.hot_node_props
+    
+    bpy.app.handlers.undo_pre.remove(skip_callback_true)
+    bpy.app.handlers.undo_post.remove(skip_callback_false)
+    bpy.app.handlers.redo_pre.remove(skip_callback_true)
+    bpy.app.handlers.redo_post.remove(skip_callback_false)
