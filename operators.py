@@ -71,7 +71,8 @@ def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
     # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     node_parser.parse_node_preset(edit_tree)
     cpreset = node_parser.set_preset_data(new_full_name, props_py.gl_preset_selected)
-    file.create_preset(new_full_name, cpreset)
+    preset_path = file.create_preset(new_full_name, cpreset)
+    history.Step(context, [], [file.pack_selected_meta_path], [preset_path])
 
     return {'FINISHED'}
 
@@ -79,6 +80,7 @@ def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
 def preset_delete(ops: Operator, context, use_report=True):
     if not _ensure_sync(ops, context):
             return {'CANCELLED'}
+    
     props = context.scene.hot_node_props
     presets = props.presets
 
@@ -90,8 +92,11 @@ def preset_delete(ops: Operator, context, use_report=True):
         presets.remove(preset_selected_idx)
         if preset_selected_idx == length - 1:
             props.preset_selected -= 1
-            
-    file.delete_preset(preset_name)
+        preset_path = file.get_preset_path(preset_name)
+        history.Step(context, [preset_path], [file.pack_selected_meta_path], [])
+        file.delete_preset(preset_name)
+    else:
+        return {'CANCELLED'}
 
     return {'FINISHED'}
 
@@ -101,6 +106,7 @@ def preset_clear(ops: Operator, context: bpy.types.Context, use_report=True):
             return {'CANCELLED'}
     pack = props_py.gl_preset_selected
     props = context.scene.hot_node_props
+    history.Step(context, [file.pack_selected_dir_path], [], [])
     file.clear_preset(pack.name)
     props.presets.clear()
     ops.report({'INFO'}, f"All presets in pack \"{pack.name}\" were deleted.")
@@ -128,6 +134,7 @@ def _preset_move_to(selected_idx, dst_idx, presets):
 def preset_move(ops: Operator, context: bpy.types.Context, direction, user_report=True):
     if not _ensure_sync(ops, context):
         return {'CANCELLED'}
+    history.Step(context, [], [file.pack_selected_meta_path], [])
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
@@ -186,6 +193,11 @@ def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
     edit_tree = context.space_data.edit_tree
     
     presets[preset_selected_idx].type = edit_tree.bl_idname
+    
+    pack_meta_path = file.get_pack_selected_meta_path()
+    preset_path = file.get_preset_path(preset_name)
+    history.Step(context, [], [pack_meta_path], [preset_path])
+    
     # in node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     node_parser.parse_node_preset(edit_tree)
     cpreset = node_parser.set_preset_data(preset_name, pack.name)
@@ -245,6 +257,10 @@ def texture_save(ops: Operator, context: bpy.types.Context, user_report=True):
     preset_selected = presets[preset_selected_idx]
     preset_name = preset_selected.name
     
+    pack_meta_path = file.get_pack_selected_meta_path()
+    preset_path = file.get_preset_path(preset_name)
+    history.Step(context, [], [pack_meta_path], [preset_path])
+    
     open_mode = props.tex_preset_mode
     tex_key = props.tex_key
 
@@ -273,9 +289,10 @@ def pack_create(ops: Operator, context: bpy.types.Context, user_report=True):
         return {'CANCELLED'}
     new_full_name = utils.ensure_unique_name("Pack", -1, list(props_py.gl_packs.keys()))
 
-    file.create_pack(new_full_name)
+    pack_path = file.create_pack(new_full_name)
     props_bl.select_pack(context, props_py.gl_packs[new_full_name])
     gui.ensure_existing_pack_menu(new_full_name)
+    history.Step(context, [], [], [pack_path])
     return {'FINISHED'}
 
 
@@ -286,7 +303,7 @@ def pack_delete(ops: Operator, context: bpy.types.Context, is_his=False):
     pack_name = props_py.gl_pack_selected.name
     pack_names = list(packs.keys())
     pack_selected_idx = pack_names.index(pack_name)
-    history.PackDelete(pack_name)
+    history.Step(context, [file.pack_selected_dir_path], [], [])
     
     
     del packs[pack_name]
@@ -409,7 +426,7 @@ class HOTNODE_OT_preset_create(Operator):
     bl_idname = "node.hot_node_preset_create"
     bl_label = "Add Node Preset"
     bl_description = "Create a new node preset with selected nodes"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
 
     @classmethod
     def poll(cls, context):
@@ -423,7 +440,7 @@ class HOTNODE_OT_preset_delete(Operator):
     bl_idname = "node.hot_node_preset_delete"
     bl_label = "Delete Node Preset"
     bl_description = "Delete selected node preset"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
 
     @classmethod
     def poll(cls, context):
@@ -440,7 +457,7 @@ class HOTNODE_OT_preset_clear(Operator):
     bl_idname = "node.hot_node_preset_clear"
     bl_label = "Clear All"
     bl_description = "Delete all node presets in this pack"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
     
     @classmethod
     def poll(cls, context):
@@ -454,7 +471,7 @@ class HOTNODE_OT_preset_move(Operator):
     bl_idname = "node.hot_node_preset_move"
     bl_label = "Move Preset"
     bl_description = "Move the active preset up/down in the list"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
     
     direction: StringProperty(
         name='direction',
@@ -473,7 +490,7 @@ class HOTNODE_OT_preset_save(Operator):
     bl_idname = "node.hot_node_preset_save"
     bl_label = "Save Node Preset"
     bl_description = "Save selected nodes to the current preset"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
     
     @classmethod
     def poll(cls, context):
@@ -546,7 +563,7 @@ class HOTNODE_OT_texture_save(Operator):
     bl_idname = "node.hot_node_texture_save"
     bl_label = "Save Texture Rule"
     bl_description = "Save rules of auto searching texture when apply preset. Note that you should do a save preset action and keep the last saved preset selected to save texture rules"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
     
     @classmethod
     def poll(cls, context):
@@ -563,7 +580,7 @@ class HOTNODE_OT_pack_create(Operator):
     bl_idname = "node.hot_node_pack_create"
     bl_label = "Create Pack"
     bl_description = "Create a new preset pack to store presets"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
 
     def execute(self, context):
         return pack_create(self, context)
@@ -573,7 +590,7 @@ class HOTNODE_OT_pack_delete(Operator):
     bl_idname = "node.hot_node_pack_delete"
     bl_label = "Delete Pack"
     bl_description = "Delete selected pack and all the node presets in it"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
 
     @classmethod
     def poll(cls, context):

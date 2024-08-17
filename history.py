@@ -21,72 +21,80 @@
 import bpy
 
 from collections import deque
-from abc import abstractmethod, ABCMeta
 
-from . import file
-
-
-history = deque(maxlen=16)
+from . import file, ops_invoker
 
 
-class IStep(metaclass=ABCMeta):
+class Step():
     
-    ori_path = ""
-    his_path = ""
+    def __init__(self, context: bpy.types.Context, deleted_paths: list=[], changed_paths: list=[], created_paths: list=[]):
+        global steps, undid_steps, step_num_cache
+            
+        self.deleted_paths = deleted_paths
+        self.his_deleted_paths = file.push_history(deleted_paths, "delete")
+        self.changed_paths = changed_paths
+        self.his_changed_paths = file.push_history(changed_paths, "change")
+        self.created_paths = created_paths
+        self.his_created_paths = []
+        
+        steps.appendleft(self)
+        step_num_cache += 1
+        context.scene.hot_node_props.step_num += 1
+        undid_steps.clear()
     
-    def record(self, ori_path):
-        self.ori_path = ori_path
-        self.his_path = file.save_history(ori_path)
-    
-    @abstractmethod
-    def undo(self, context: bpy.types.Context):
-        pass
-    @abstractmethod
-    def redo(self, context: bpy.types.Context):
-        pass
+    def undo(self):
+        self.his_created_paths = file.push_history(self.created_paths, "create")
+        file.del_paths(self.created_paths)
+        file.pull_history(self.deleted_paths, self.his_deleted_paths)
+        file.pull_history(self.changed_paths, self.his_changed_paths)
+        
+    def redo(self):
+        file.pull_history(self.created_paths, self.his_created_paths)
+        file.pull_history(self.changed_paths, self.his_changed_paths)
+        self.his_deleted_paths = file.push_history(self.deleted_paths, "delete")
 
 
-class PackCreate(IStep):
-    
-    def record(self, context):
-        pass
-    def undo(self, context):
-        pass
-    def redo(self, context):
-        pass
-    
-    
-class PackDelete(IStep):
-    
-    def __init__(self, pack_name):
-        super().record((file.get_pack_path(pack_name)))
-    
-    def undo(self, context):
-        pass
-    def redo(self, context):
-        pass
+steps: deque[Step] = deque(maxlen=16)
+undid_steps: list[Step] = []
+step_num_cache = 0
 
 
-def record(mode: str):
-    if mode == 'PACK_CREATE':
-        pass
-    elif mode == 'PACK_DELETE':
-        pass
-    elif mode == 'PACK_RENAME':
-        pass
-    elif mode == 'PRESET_CREATE':
-        pass
-    elif mode == 'PRESET_DELETE':
-        pass
-    elif mode == 'PRESET_SAVE':
-        pass
-    elif mode == 'PRESET_RENAME':
-        pass
-    elif mode == 'PRESET_CLEAR':
-        pass
-    elif mode == 'PRESET_MOVE':
-        pass
+def undo(scene, _):
+    global steps, step_num_cache
+    step_num = scene.hot_node_props.step_num
+    # if we are undoing hot node's operators, the step_num will decrease by one and be detected (blender did this), 
+    # which will bring us into our undo logic
+    if step_num_cache > step_num:
+        # if step_num is bigger than 2147483647... but who cares?
+        step_num_cache = step_num
+        step = steps.popleft()
+        undid_steps.append(step)
+        step.undo()
+        ops_invoker.refresh()
+        
+        
+def redo(scene, _):
+    global steps, step_num_cache
+    props = scene.hot_node_props
+    step_num = props.step_num
+    # if we are undoing hot node's operators, the step_num will increase by one and be detected (blender did this), 
+    # which will bring us into our undo logic
+    print('============')
+    print('I am redoing')
+    if step_num > step_num_cache:
+        scene.hot_node_props.step_num = step_num_cache
+        step = undid_steps.pop()
+        steps.appendleft(step)
+        step.redo()
+        ops_invoker.refresh()
+        # props.step_num will be added back by blender's undo logic
 
 
-def undo():
-    pass
+def register():
+    bpy.app.handlers.undo_post.append(undo)
+    bpy.app.handlers.redo_post.append(redo)
+
+
+def unregister():
+    bpy.app.handlers.undo_post.remove(undo)
+    bpy.app.handlers.redo_post.remove(redo)

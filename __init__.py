@@ -32,23 +32,24 @@ bl_info = {
 }
 
 
-from . import gui, operators, file, props_bl, ops_invoker, versioning
+from . import gui, operators, file, props_bl, ops_invoker, versioning, history
 
 
 def dev_reload():
     import importlib
     from . import utils, file, node_parser, node_setter, props_py, sync
-    importlib.reload(gui)
     importlib.reload(props_bl)
     importlib.reload(props_py)
+    importlib.reload(gui)
     importlib.reload(operators)
+    importlib.reload(ops_invoker)
     importlib.reload(node_parser)
     importlib.reload(node_setter)
     importlib.reload(utils)
     importlib.reload(file)
-    importlib.reload(versioning)
     importlib.reload(sync)
-    importlib.reload(ops_invoker)
+    importlib.reload(history)
+    importlib.reload(versioning)
     
     
 def register():
@@ -59,6 +60,7 @@ def register():
     props_bl.register()
     gui.register()
     operators.register()
+    history.register()
     
     ops_invoker.late_refresh()
 
@@ -69,3 +71,5 @@ def unregister():
     gui.unregister()
     operators.unregister()
     props_bl.unregister()
+    history.unregister()
+    

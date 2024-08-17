@@ -41,7 +41,7 @@ new_Menus = []
 _pack_menu_num = 0
 
 
-def _draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
+def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
     _ensure_sync()
     if props_py.gl_packs != []:
         self.layout.separator()
@@ -166,7 +166,7 @@ class HOTNODE_MT_nodes_add(Menu):
 class HOTNODE_MT_nodes_add_in_one(Menu):
     bl_label = "Nodes"
     def draw(self, context):
-        _draw_nodes_add_menus(self, context)
+        draw_nodes_add_menus(self, context)
 
 
 class HOTNODE_UL_presets(UIList):
@@ -320,7 +320,7 @@ def draw_ex_nodes_add_menu(self, context):
         self.layout.separator()
         self.layout.menu("HOTNODE_MT_nodes_add_in_one", text="Nodes")
     else:
-        _draw_nodes_add_menus(self, context)
+        draw_nodes_add_menus(self, context)
     
     
 def draw_ex_fast_create_preset(self, context):

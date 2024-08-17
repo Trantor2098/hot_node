@@ -20,9 +20,8 @@
 
 # Cache of Packs & Presets
 class Pack():
-    def __init__(self, name, mtime):
+    def __init__(self, name):
         self.name = name
-        self.mtime = mtime
         
         
 # packs will be loaded once the blender open

@@ -21,7 +21,7 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
-from . import utils, file, props_py, ops_invoker
+from . import utils, file, props_py, ops_invoker, history
 
 
 # poll parameters
@@ -88,7 +88,7 @@ def _node_preset_name_update(self, context):
     props_py.gl_preset_selected = ensured_new_full_name
 
 
-def _node_preset_select_update(self, context):
+def _preset_select_update(self, context):
     if skip_rename_callback:
         return
     global allow_tex_save
@@ -161,6 +161,13 @@ def _fast_create_preset_name_update(self, context):
     skip_rename_callback = True
     props.fast_create_preset_name = ""
     skip_rename_callback = False
+    
+    
+def _step_num_update(self, context):
+    step = context.scene.hot_node_props.step_num
+    if step > history.step_num_cache:
+        history.step_num_cache = step
+        
 
 
 class HotNodePreset(bpy.types.PropertyGroup):
@@ -195,7 +202,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
 
     preset_selected: IntProperty(
         name="Selected Node Preset",
-        update=_node_preset_select_update
+        update=_preset_select_update
     ) # type: ignore
     
     # for user to change pack name.
@@ -259,6 +266,12 @@ class HotNodeProps(bpy.types.PropertyGroup):
         description="Searching textures in this directory when apply preset",
         default="",
         subtype='DIR_PATH'
+    ) # type: ignore
+    
+    step_num: IntProperty(
+        name="Recorded Step for Undo Redo",
+        default=0,
+        update=_step_num_update
     ) # type: ignore
     
     overwrite_tree_io: BoolProperty(

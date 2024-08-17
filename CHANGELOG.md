@@ -5,6 +5,7 @@ ChangeLog
 [0.5.0] - 2024-08-15
 ### Fixed
 - Export all packs.
+- Undo may bring some mess to the preset list.
 
 
 [0.4.2] - 2024-08-01
