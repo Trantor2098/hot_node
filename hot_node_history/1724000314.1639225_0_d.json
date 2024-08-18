@@ -1,0 +1,13 @@
+{
+ "order": [
+  "Preset"
+ ],
+ "tree_types": {
+  "Preset": "ShaderNodeTree"
+ },
+ "version": [
+  0,
+  5,
+  0
+ ]
+}

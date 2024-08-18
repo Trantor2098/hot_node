@@ -18,11 +18,10 @@
 # END GPL LICENSE BLOCK #####
 
 
-# Cache of Packs & Presets
+# ======== About Packs & Presets
 class Pack():
     def __init__(self, name):
         self.name = name
-        
         
 # packs will be loaded once the blender open
 gl_packs = {}
@@ -32,6 +31,21 @@ gl_pack_selected: Pack = None
 gl_preset_selected = ""
 
 
+# ======== About Operators
 # When invoking helper ops, these will be passed into the helper to decide helper's actions.
 helper_mode = 'NONE'
 helper_param = None
+report_type = ''
+report_message = ""
+gui_info = ""
+
+
+# ======== About History
+# for undo_post and redo_post not to sync the checker and the checker cache
+skip_step_checker_update = False
+
+
+# ======== About Hot Node Props
+skip_pack_rename_callback = False
+skip_preset_rename_callback = False
+skip_preset_selected_callback = False

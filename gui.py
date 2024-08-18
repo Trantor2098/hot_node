@@ -33,12 +33,17 @@ type_icon = {
     "TextureNodeTree": 'NODE_TEXTURE',
 }
 
-last_darw_time = 0.0
-
 # menu pool, <pack name>: <Menu name>
 packs_Menus = {}
 new_Menus = []
 _pack_menu_num = 0
+
+last_darw_time = 0.0
+
+
+def add_gui_info(message, duration):
+    ops_invoker.show_gui_info(message)
+    ops_invoker.late_show_gui_info("", duration)
 
 
 def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
@@ -86,7 +91,7 @@ def ensure_existing_pack_menu(pack_name: str|None=None):
 def _sync_root_by_gui_idle_time():
     global last_darw_time
     current_time = time.time()
-    if current_time - last_darw_time > 1.0:
+    if current_time - last_darw_time > 0.7:
         _ensure_sync()
     last_darw_time = current_time
     
@@ -116,13 +121,14 @@ class HOTNODE_MT_specials(Menu):
         
         # Refresh
         layout.operator("node.hot_node_refresh", icon='FILE_REFRESH')
+        layout.operator("node.hot_node_repair_corruption", icon='FILE_REFRESH')
 
         # Move top / bottom
         layout.separator()
         layout.operator("node.hot_node_preset_move", icon='TRIA_UP_BAR', text="Move to Top").direction = 'TOP'
         layout.operator("node.hot_node_preset_move", icon='TRIA_DOWN_BAR', text="Move to Bottom").direction = 'BOTTOM'
         
-        # Clear Presets
+        # User Utils
         layout.separator()
         layout.operator("node.hot_node_preset_clear", icon='PANEL_CLOSE', text="Delete All Presets")
         

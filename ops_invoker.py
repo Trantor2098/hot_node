@@ -23,30 +23,17 @@ import bpy
 from . import props_py
 
 
-def call_helper_ops(mode, param):
-    props_py.helper_mode = mode
-    props_py.helper_param = param
-    bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
-    
-    
 def call_helper_ops_directly():
     bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
 
 
-def refresh():
-    bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+def call_helper_ops(mode: str, param):
+    '''Call helpder ops, pass <mode> <param> into the ops.
     
-    
-def select_pack():
+    - mode: Enum in 'PACK_RENAME', 'PACK_SELECT'.'''
+    props_py.helper_mode = mode
+    props_py.helper_param = param
     bpy.ops.node.hot_node_helper('EXEC_DEFAULT')
-    
-    
-def late_refresh():
-    bpy.app.timers.register(refresh)
-    
-    
-def late_select_pack():
-    bpy.app.timers.register(select_pack)
     
     
 def late_call_helper_ops(mode, param):
@@ -55,6 +42,33 @@ def late_call_helper_ops(mode, param):
     bpy.app.timers.register(call_helper_ops_directly)
 
 
+def refresh():
+    bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
+    
+    
+def report(type='INFO', message=''):
+    props_py.report_type = type
+    props_py.report_message = message
+    
+    
+def show_gui_info_directly():
+    bpy.ops.node.hot_node_show_gui_info('EXEC_DEFAULT')
+    
+    
+def show_gui_info(message):
+    props_py.gui_info = message
+    bpy.ops.node.hot_node_show_gui_info('EXEC_DEFAULT')
+    
+    
+def late_show_gui_info(message, interval=3.0):
+    props_py.gui_info = message
+    bpy.app.timers.register(show_gui_info_directly, first_interval=interval)
+
+    
+def late_refresh():
+    bpy.app.timers.register(refresh)
+    
+    
 def update_pack_menu_for_pack_renaming(new_pack_name):
     props_py.helper_mode = 'PACK_RENAME'
     props_py.helper_param = new_pack_name

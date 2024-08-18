@@ -26,20 +26,17 @@ from . import utils, file, props_py, ops_invoker, history
 
 # poll parameters
 allow_tex_save = False
-# to escape invoke rename update when create preset. ugly but works. for cases like select pack, add preset
-skip_rename_callback = False
 
 
 def select_pack(context, dst_pack: props_py.Pack):
-    global skip_rename_callback
     # to escaping overwrite 
     props = context.scene.hot_node_props
     props_py.gl_pack_selected = dst_pack
+    props_py.skip_pack_rename_callback = True
     props.pack_selected_name = dst_pack.name if dst_pack is not None else ""
+    props_py.skip_pack_rename_callback = False
     # load presets in the newly selected pack
     presets = props.presets
-    if len(presets) > 0:
-        preset_selected = presets[props.preset_selected]
     props.preset_selected = 0
     presets.clear()
     file.select_pack(dst_pack)
@@ -47,14 +44,14 @@ def select_pack(context, dst_pack: props_py.Pack):
     if dst_pack is not None:
         preset_names, tree_types = file.read_presets()
         preset_num = len(preset_names)
-        skip_rename_callback = True
+        props_py.skip_preset_rename_callback = True
         for i in range(preset_num):
             name = preset_names[i]
             type = tree_types[name]
             presets.add()
             presets[i].name = name
             presets[i].type = type
-        skip_rename_callback = False
+        props_py.skip_preset_rename_callback = False
 
 
 # Callbacks of hot node props updating
@@ -64,32 +61,35 @@ def _node_preset_type_update(self, context):
 
 def _node_preset_name_update(self, context):
     # callback when user changed the preset name, but skip if we are moving position / creating new preset
-    global skip_rename_callback
-    if skip_rename_callback:
+    if props_py.skip_preset_rename_callback:
         return
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
     new_full_name = presets[preset_selected_idx].name
+    old_name = props_py.gl_preset_selected
     # we should skip callback or we will fall into loops
-    if props_py.gl_preset_selected == new_full_name:
+    if old_name == new_full_name:
         return
     if new_full_name == "":
-        skip_rename_callback = True
-        presets[preset_selected_idx].name = props_py.gl_preset_selected
-        skip_rename_callback = False
+        props_py.skip_preset_rename_callback = True
+        presets[preset_selected_idx].name = old_name
+        props_py.skip_preset_rename_callback = False
         return
-    # checkuser renaming
+    # checkuser renaming and do rename
     ensured_new_full_name = utils.ensure_unique_name_dot(new_full_name, preset_selected_idx, presets)
-    skip_rename_callback = True
+    props_py.skip_preset_rename_callback = True
     presets[preset_selected_idx].name = ensured_new_full_name
-    skip_rename_callback = False
-    file.rename_preset(props_py.gl_preset_selected, ensured_new_full_name)
+    props_py.skip_preset_rename_callback = False
+    file.rename_preset(old_name, ensured_new_full_name)
+    history.Step(context, "Rename Preset", refresh=False,
+                 undo_callback=history.rename_preset_callback, redo_callback=history.rename_preset_callback,
+                 undo_callback_param=(new_full_name, old_name), redo_callback_param=(old_name, new_full_name))
     props_py.gl_preset_selected = ensured_new_full_name
 
 
 def _preset_select_update(self, context):
-    if skip_rename_callback:
+    if props_py.skip_preset_selected_callback:
         return
     global allow_tex_save
     props = context.scene.hot_node_props
@@ -103,35 +103,43 @@ def _preset_select_update(self, context):
     
 
 def _pack_selected_name_update(self, context):
+    if props_py.skip_pack_rename_callback:
+        return
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
-    global skip_rename_callback
     props = context.scene.hot_node_props
-    
     new_name = props.pack_selected_name
-    if props_py.gl_pack_selected is None or props_py.gl_pack_selected.name == new_name:
+    if props_py.gl_pack_selected is None:
+        props_py.skip_pack_rename_callback = True
+        props.pack_selected_name = ""
+        props_py.skip_pack_rename_callback = False
+        return
+    if props_py.gl_pack_selected.name == new_name:
         return
     if new_name == "":
-        skip_rename_callback = True
+        props_py.skip_pack_rename_callback = True
         props.pack_selected_name = props_py.gl_pack_selected.name
-        skip_rename_callback = False
+        props_py.skip_pack_rename_callback = False
         return
     
     if len(props_py.gl_packs) > 0:
         old_name = props_py.gl_pack_selected.name
         file.rename_pack(old_name, new_name)
         props_py.gl_pack_selected = props_py.gl_packs[new_name]
-        ops_invoker.call_helper_ops('PACK_RENAME', new_name)
+        history.Step(context, "Rename Pack",
+                     undo_callback=(history.rename_pack_callback, history.select_preset_callback), 
+                     redo_callback=(history.rename_pack_callback, history.select_preset_callback),
+                     undo_callback_param=((new_name, old_name), props.preset_selected), 
+                     redo_callback_param=((old_name, new_name), props.preset_selected))
     else:
         props_py.gl_pack_selected = None
-        skip_rename_callback = True
+        props_py.skip_pack_rename_callback = True
         props.pack_selected_name = ""
-        skip_rename_callback = False
+        props_py.skip_pack_rename_callback = False
     
         
         
 def _fast_create_preset_name_update(self, context):
-    global skip_rename_callback
-    if skip_rename_callback:
+    if props_py.skip_preset_rename_callback:
         return
     props = context.scene.hot_node_props
     presets = props.presets
@@ -148,25 +156,25 @@ def _fast_create_preset_name_update(self, context):
         props.preset_selected = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
-        skip_rename_callback = True
+        props_py.skip_preset_rename_callback = True
         presets[preset_selected_idx].name = ensured_fast_name
         props_py.gl_preset_selected = ensured_fast_name
-        skip_rename_callback = False
+        props_py.skip_preset_rename_callback = False
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         from . import node_parser
         node_parser.parse_node_preset(edit_tree)
         cpreset = node_parser.set_preset_data(ensured_fast_name, props_py.gl_pack_selected.name)
         file.create_preset(ensured_fast_name, cpreset)
-    skip_rename_callback = True
+    props_py.skip_preset_rename_callback = True
     props.fast_create_preset_name = ""
-    skip_rename_callback = False
+    props_py.skip_preset_rename_callback = False
     
     
-def _step_num_update(self, context):
-    step = context.scene.hot_node_props.step_num
-    if step > history.step_num_cache:
-        history.step_num_cache = step
+def _step_checker_update(self, context):
+    if props_py.skip_step_checker_update:
+        return
+    history.step_checker_cache = context.scene.hot_node_props.step_checker
         
 
 
@@ -268,10 +276,15 @@ class HotNodeProps(bpy.types.PropertyGroup):
         subtype='DIR_PATH'
     ) # type: ignore
     
-    step_num: IntProperty(
-        name="Recorded Step for Undo Redo",
-        default=0,
-        update=_step_num_update
+    ui_refresher: StringProperty(
+        name="",
+        default="HHH"
+    ) # type: ignore
+    
+    step_checker: BoolProperty(
+        name="Undo Redo Checker",
+        default=True,
+        update=_step_checker_update
     ) # type: ignore
     
     overwrite_tree_io: BoolProperty(

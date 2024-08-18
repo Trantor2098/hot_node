@@ -26,7 +26,7 @@ from . import file, props_py, props_bl, gui, ops_invoker, states
 def sync(context: bpy.types.Context|None=None):
     # file.refresh_root_meta_cache()
     file.ensure_pack_root()
-    pack_names = file.load_packs_and_get_names()
+    pack_names = file.load_packs()
     file.refresh_root_meta_cache()
     pack_selected = props_py.gl_pack_selected
     if pack_selected is None or not pack_selected.name in pack_names:

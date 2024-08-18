@@ -32,32 +32,15 @@ temp_dir_path = tempfile.gettempdir()
 autosave_dir_path = os.path.join(temp_dir_path, "hot_node_autosave")
 history_dir_path = os.path.join(addon_dir_path, "hot_node_history")
 pack_root_dir_path = os.path.join(addon_dir_path, "preset_packs")
-pack_selected_dir_path = os.path.join(pack_root_dir_path, "")
+pack_selected_path = os.path.join(pack_root_dir_path, "")
 pack_selected_meta_path = ""
 root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
 # Metas
 last_mtime = 0.0
-pack_meta_cache = {}
+pack_selected_meta_cache = {}
 root_meta_cache = {"pack_selected": "", 
                    "last_mtime": 0.0}
-
-
-# Initialize & finalize files when opening & closing blender
-def init():
-    global last_mtime
-    load_packs_and_get_names()
-    ensure_pack_root()
-    ensure_dir_existing(history_dir_path)
-    autosave_packs()
-    last_mtime = refresh_root_meta_cache_and_get_mtime_data()
-    pack_selected_name = root_meta_cache["pack_selected"]
-    props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
-    
-    
-def finalize():
-    autosave_packs()
-    clear_outdated_autosave_packs()
 
 
 # Sync & Check
@@ -67,13 +50,13 @@ def ensure_pack_root():
     if not os.path.exists(pack_root_dir_path):
         os.mkdir(pack_root_dir_path)
         auto_recover_packs()
-        pack_names = load_packs_and_get_names()
+        pack_names = load_packs()
         if len(pack_names) == 0:
             select_pack(None)
         else:
             select_pack(props_py.gl_packs[pack_names[0]])
     elif not os.path.exists(root_meta_path):
-        pack_names = load_packs_and_get_names()
+        pack_names = load_packs()
         if len(pack_names) == 0:
             select_pack(None)
         else:
@@ -95,13 +78,13 @@ def check_sync():
 
 
 def check_pack_existing():
-    if os.path.exists(pack_selected_dir_path):
+    if os.path.exists(pack_selected_path):
         return True
     return False
 
 
 def check_preset_existing(preset_name):
-    preset_path = os.path.join(pack_selected_dir_path, preset_name)
+    preset_path = os.path.join(pack_selected_path, preset_name)
     if os.path.exists(preset_path):
         return True
     return False
@@ -109,7 +92,7 @@ def check_preset_existing(preset_name):
 
 # Get File Info & Path
 def get_pack_selected_meta_path():
-    os.path.join(pack_selected_dir_path, ".metadata.json")
+    return os.path.join(pack_selected_path, ".metadata.json")
     
     
 def get_pack_meta_path(pack_name):
@@ -122,7 +105,8 @@ def get_pack_path(pack_name):
 
 
 def get_preset_path(preset_name):
-    return os.path.join(pack_selected_dir_path, preset_name)
+    file_name = "".join((preset_name, ".json"))
+    return os.path.join(pack_selected_path, file_name)
     
     
 def get_root_meta_path():
@@ -159,10 +143,15 @@ def read_json(file_path) -> dict:
         return json.load(file)
     
     
-def write_meta():
+def write_metas():
     update_root_meta_cache_mtime()
-    write_json(pack_selected_meta_path, pack_meta_cache)
+    write_json(pack_selected_meta_path, pack_selected_meta_cache)
     write_json(root_meta_path, root_meta_cache)
+    
+    
+def write_pack_meta(pack_path: str, meta_data: dict):
+    meta_path = os.path.join(pack_path, ".metadata.json")
+    write_json(meta_path, meta_data)
     
     
 def write_root_meta():
@@ -270,26 +259,26 @@ def del_paths(paths):
 # CRUD of Pack and Preset
 def create_pack(pack_name):
     global root_meta_cache
-    global pack_meta_cache
-    global pack_selected_dir_path
+    global pack_selected_meta_cache
+    global pack_selected_path
     global pack_selected_meta_path
-    pack_selected_dir_path = os.path.join(pack_root_dir_path, pack_name)
-    pack_selected_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
+    pack_selected_path = os.path.join(pack_root_dir_path, pack_name)
+    pack_selected_meta_path = os.path.join(pack_selected_path, ".metadata.json")
     # create pack metadata
     root_meta_cache["pack_selected"] = pack_name
-    pack_meta_cache = {}
-    pack_meta_cache["order"] = []
-    pack_meta_cache["tree_types"] = {}
-    pack_meta_cache["version"] = version
-    os.mkdir(pack_selected_dir_path)
-    write_meta()
+    pack_selected_meta_cache = {}
+    pack_selected_meta_cache["order"] = []
+    pack_selected_meta_cache["tree_types"] = {}
+    pack_selected_meta_cache["version"] = version
+    os.mkdir(pack_selected_path)
+    write_metas()
     # reload packs to get right order of packs
-    load_packs_and_get_names()
-    return pack_selected_dir_path
+    load_packs()
+    return pack_selected_path
 
 
 def delete_pack(pack_name):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
     shutil.rmtree(pack_dir_path)
     return pack_dir_path
@@ -305,12 +294,12 @@ def rename_pack(old_pack_name, new_pack_name):
     new_path = os.path.join(pack_root_dir_path, new_pack_name)
     os.rename(old_path, new_path)
     # reload packs to get the right order of packs
-    load_packs_and_get_names()
+    load_packs()
     update_root_meta_cache_mtime()
     select_pack(props_py.gl_packs[new_pack_name])
 
 
-def load_packs_and_get_names():
+def load_packs():
     '''Load packs from folder into gl_packs and return pack names'''
     if not os.path.exists(pack_root_dir_path):
         ensure_pack_root()
@@ -327,28 +316,28 @@ def load_packs_and_get_names():
 
 
 def select_pack(pack: props_py.Pack|None):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     global root_meta_cache
     global pack_selected_meta_path
-    global pack_selected_dir_path
+    global pack_selected_path
     if pack is None:
-        pack_meta_cache = {}
-        pack_meta_cache["order"] = []
-        pack_meta_cache["tree_types"] = {}
-        pack_meta_cache["version"] = version
+        pack_selected_meta_cache = {}
+        pack_selected_meta_cache["order"] = []
+        pack_selected_meta_cache["tree_types"] = {}
+        pack_selected_meta_cache["version"] = version
         pack_selected_meta_path = ""
         root_meta_cache["pack_selected"] = ""
     else:
-        pack_selected_dir_path = os.path.join(pack_root_dir_path, pack.name)
-        pack_selected_meta_path = os.path.join(pack_selected_dir_path, ".metadata.json")
-        pack_meta_cache = read_pack_meta()
+        pack_selected_path = os.path.join(pack_root_dir_path, pack.name)
+        pack_selected_meta_path = os.path.join(pack_selected_path, ".metadata.json")
+        pack_selected_meta_cache = read_pack_meta()
         root_meta_cache["pack_selected"] = pack.name
     props_py.gl_pack_selected = pack
     write_root_meta()
     
     
 def import_pack(from_file_path: str, new_pack_name: str):
-    global pack_selected_dir_path
+    global pack_selected_path
     size = os.path.getsize(from_file_path)
     # if zip file is bigger than 150 Mib
     if size > 150 * 1048576:
@@ -368,10 +357,10 @@ def import_pack(from_file_path: str, new_pack_name: str):
              
 
 def export_selected_pack(dst_file_path):
-    global pack_selected_dir_path
+    global pack_selected_path
     zip = zipfile.ZipFile(dst_file_path, 'w', zipfile.ZIP_DEFLATED)
-    for root, dirs, files in os.walk(pack_selected_dir_path):
-        relative_root = '' if root == pack_selected_dir_path else root.replace(pack_selected_dir_path, '') + os.sep
+    for root, dirs, files in os.walk(pack_selected_path):
+        relative_root = '' if root == pack_selected_path else root.replace(pack_selected_path, '') + os.sep
         for filename in files:
             zip.write(os.path.join(root, filename), relative_root + filename)
     zip.close()
@@ -397,7 +386,7 @@ def export_packs(pack_names, dst_dir_path):
         
 def autosave_packs():
     ensure_dir_existing(autosave_dir_path)
-    pack_names = load_packs_and_get_names()
+    pack_names = load_packs()
     
     existing_zips = read_existing_files(autosave_dir_path, suffix=".zip", cull_suffix=False)
     existing_packs = []
@@ -465,36 +454,36 @@ def clear_outdated_autosave_packs():
     
 
 def create_preset(preset_name: str, cpreset: dict):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_dir_path, file_name)
-    pack_meta_cache["order"].append(preset_name)
-    pack_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
-    pack_meta_cache["version"] = version
+    file_path = os.path.join(pack_selected_path, file_name)
+    pack_selected_meta_cache["order"].append(preset_name)
+    pack_selected_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_selected_meta_cache["version"] = version
     write_json(file_path, cpreset)
-    write_meta()
+    write_metas()
     return file_path
     
     
 def update_preset(preset_name: str, cpreset: dict):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_dir_path, file_name)
-    pack_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
-    pack_meta_cache["version"] = version
+    file_path = os.path.join(pack_selected_path, file_name)
+    pack_selected_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_selected_meta_cache["version"] = version
     write_json(file_path, cpreset)
-    write_meta()
+    write_metas()
     return file_path
 
 
 def delete_preset(preset_name):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_dir_path, file_name)
-    pack_meta_cache["order"].remove(preset_name)
-    del pack_meta_cache["tree_types"][preset_name]
+    file_path = os.path.join(pack_selected_path, file_name)
+    pack_selected_meta_cache["order"].remove(preset_name)
+    del pack_selected_meta_cache["tree_types"][preset_name]
     os.remove(file_path)
-    write_meta()
+    write_metas()
     return file_path
     
     
@@ -504,8 +493,9 @@ def clear_preset(pack_name):
 
 
 def read_presets(pack_name=""):
+    '''Read presets via pack meta'''
     if pack_name == "":
-        metadata_path = os.path.join(pack_selected_dir_path, ".metadata.json")
+        metadata_path = os.path.join(pack_selected_path, ".metadata.json")
     else:
         metadata_path = os.path.join(pack_root_dir_path, pack_name, ".metadata.json")
     metadata = read_json(metadata_path)
@@ -516,45 +506,78 @@ def read_presets(pack_name=""):
     return preset_names, tree_types
 
 
+def refresh_pack_meta(pack_name):
+    '''Read presets by listing directory and update the pack meta'''
+    old_pack_meta = read_pack_meta()
+    old_order = old_pack_meta["order"]
+    pack_path = get_pack_path(pack_name)
+    preset_names = read_existing_files(pack_path, suffix=".json", cull_suffix=True)
+    filtered_preset_names = []
+    if ".metadata" in preset_names:
+        preset_names.remove(".metadata")
+    # order the new preset names by the order before
+    for i in range(len(old_order)):
+        pack_name = old_order[i]
+        if pack_name in preset_names:
+            preset_names.remove(pack_name)
+            filtered_preset_names.append(pack_name)
+    filtered_preset_names.extend(preset_names)
+    
+    tree_types = {}
+    for preset_name in filtered_preset_names:
+        preset = load_preset(preset_name)
+        tree_types[preset_name] = preset["HN_preset_data"]["tree_type"]
+        
+    pack_meta = {}
+    pack_meta["order"] = filtered_preset_names
+    pack_meta["tree_types"] = tree_types
+    pack_meta["version"] = version
+    for preset_name in filtered_preset_names:
+        preset = load_preset(preset_name)
+        pack_meta["tree_types"][preset_name] = preset["HN_preset_data"]["tree_type"]
+        
+    write_pack_meta(pack_path, pack_meta)
+
+
 def load_preset(preset_name, pack_name=""):
     file_name = '.'.join((preset_name, 'json'))
     if pack_name == "":
-        file_path = os.path.join(pack_selected_dir_path, file_name)
+        file_path = os.path.join(pack_selected_path, file_name)
     else:
         file_path = os.path.join(pack_root_dir_path, pack_name, file_name)
     return read_json(file_path)
 
 
 def rename_preset(old_name, new_name):
-    global pack_meta_cache
+    global pack_selected_meta_cache
     old_file_name = '.'.join((old_name, 'json'))
-    old_file_path = os.path.join(pack_selected_dir_path, old_file_name)
+    old_file_path = os.path.join(pack_selected_path, old_file_name)
     new_file_name = '.'.join((new_name, 'json'))
-    new_file_path = os.path.join(pack_selected_dir_path, new_file_name)
+    new_file_path = os.path.join(pack_selected_path, new_file_name)
     os.rename(old_file_path, new_file_path)
     
     cpreset = load_preset(new_name)
     cpreset["HN_preset_data"]["preset_name"] = new_name
     write_json(new_file_path, cpreset)
     
-    idx = pack_meta_cache["order"].index(old_name)
-    pack_meta_cache["order"][idx] = new_name
-    pack_meta_cache["tree_types"][new_name] = pack_meta_cache["tree_types"].pop(old_name)
-    write_meta()
+    idx = pack_selected_meta_cache["order"].index(old_name)
+    pack_selected_meta_cache["order"][idx] = new_name
+    pack_selected_meta_cache["tree_types"][new_name] = pack_selected_meta_cache["tree_types"].pop(old_name)
+    write_metas()
     
     
 def reorder_preset_meta(preset_names):
-    global pack_meta_cache
-    pack_meta_cache["order"] = preset_names
-    write_meta()
+    global pack_selected_meta_cache
+    pack_selected_meta_cache["order"] = preset_names
+    write_metas()
     
     
 def exchange_order_preset_meta(idx1, idx2):
-    global pack_meta_cache
-    temp = pack_meta_cache["order"][idx2]
-    pack_meta_cache["order"][idx2] = pack_meta_cache["order"][idx1]
-    pack_meta_cache["order"][idx1] = temp
-    write_meta()
+    global pack_selected_meta_cache
+    temp = pack_selected_meta_cache["order"][idx2]
+    pack_selected_meta_cache["order"][idx2] = pack_selected_meta_cache["order"][idx1]
+    pack_selected_meta_cache["order"][idx1] = temp
+    write_metas()
     
 
 # CRUD of images
@@ -570,3 +593,21 @@ def get_tex_names_in_dir(tex_dir_path):
                                                                   ".exr", ".hdr", ".tif", ".tiff",
                                                                   ".webp"))]
     return tex_names
+
+
+# Initialize & finalize files when opening & closing blender
+def init():
+    global last_mtime
+    load_packs()
+    ensure_pack_root()
+    ensure_dir_existing(history_dir_path)
+    autosave_packs()
+    last_mtime = refresh_root_meta_cache_and_get_mtime_data()
+    pack_selected_name = root_meta_cache["pack_selected"]
+    props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
+    
+    
+def finalize():
+    autosave_packs()
+    clear_outdated_autosave_packs()
+    shutil.rmtree(history_dir_path)

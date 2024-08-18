@@ -22,79 +22,177 @@ import bpy
 
 from collections import deque
 
-from . import file, ops_invoker
+from . import file, ops_invoker, props_py, gui
+
+
+step_checker_cache = True
 
 
 class Step():
     
-    def __init__(self, context: bpy.types.Context, deleted_paths: list=[], changed_paths: list=[], created_paths: list=[]):
-        global steps, undid_steps, step_num_cache
-            
+    def __init__(self, context: bpy.types.Context, name: str, refresh: bool=True,
+                 deleted_paths: list=[], changed_paths: list=[], created_paths: list=[],
+                 undo_callback=None, redo_callback=None, 
+                 undo_callback_param=None, redo_callback_param=None):
+        '''Push a step into history.
+        
+        - context: Context to get registered properties.
+        - name: Step's name.
+        - deleted_paths: Paths of files that will be deleted in this step.
+        - changed_paths: Paths of files that will be changed in this step.
+        - created_paths: Paths of files that will be created in this step.
+        
+        - undo_callback: Callback function(s) that will be invoked when this step undos. 
+          Receive two params: scene, undo_callback_param. You can pass multiple callbacks with tuple like (callback1, callback2), 
+          then pass multiple undo_callback_param (param1, param2), the callback1 will use the param1, callback2 will use the param2.
+        
+        - redo_callback: Just like the undo_callback, will be invoked when redo.
+        - undo_callback_param: Param(s) invoked by undo_callback.
+        - undo_callback_param: Param(s) invoked by redo_callback.'''
+        
+        global steps, undid_steps
+        self.name = name
+        self.refresh = refresh
         self.deleted_paths = deleted_paths
         self.his_deleted_paths = file.push_history(deleted_paths, "delete")
         self.changed_paths = changed_paths
         self.his_changed_paths = file.push_history(changed_paths, "change")
         self.created_paths = created_paths
         self.his_created_paths = []
+        self.undo_callback = undo_callback
+        self.redo_callback = redo_callback
+        self.undo_callback_param = undo_callback_param
+        self.redo_callback_param = redo_callback_param
         
         steps.appendleft(self)
-        step_num_cache += 1
-        context.scene.hot_node_props.step_num += 1
         undid_steps.clear()
+        
+        context.scene.hot_node_props.step_checker = not context.scene.hot_node_props.step_checker
     
-    def undo(self):
+    def undo(self, scene: bpy.types.Scene):
+        # Create Undo
         self.his_created_paths = file.push_history(self.created_paths, "create")
         file.del_paths(self.created_paths)
+        # Delete Undo
         file.pull_history(self.deleted_paths, self.his_deleted_paths)
+        # Change Undo
+        new_his_changed_paths = file.push_history(self.changed_paths)
         file.pull_history(self.changed_paths, self.his_changed_paths)
+        self.his_changed_paths = new_his_changed_paths
         
-    def redo(self):
+        if self.refresh:
+            ops_invoker.refresh()
+        if self.undo_callback is not None:
+            if isinstance(self.undo_callback, tuple):
+                for i, callback in enumerate(self.undo_callback):
+                    callback(scene, self.undo_callback_param[i])
+            else:
+                self.undo_callback(scene, self.undo_callback_param)
+            
+        print("Undo: " + self.name)
+        
+    def redo(self, scene: bpy.types.Scene):
+        # Create Redo
         file.pull_history(self.created_paths, self.his_created_paths)
-        file.pull_history(self.changed_paths, self.his_changed_paths)
+        # Delete Redo
         self.his_deleted_paths = file.push_history(self.deleted_paths, "delete")
+        file.del_paths(self.deleted_paths)
+        # Change Redo
+        new_his_changed_paths = file.push_history(self.changed_paths)
+        file.pull_history(self.changed_paths, self.his_changed_paths)
+        self.his_changed_paths = new_his_changed_paths
+        
+        if self.refresh:
+            ops_invoker.refresh()
+        if self.redo_callback is not None:
+            if isinstance(self.undo_callback, tuple):
+                for i, callback in enumerate(self.redo_callback):
+                    callback(scene, self.redo_callback_param[i])
+            else:
+                self.redo_callback(scene, self.redo_callback_param)
+            
+        print("Redo: " + self.name)
 
 
-steps: deque[Step] = deque(maxlen=16)
+steps: deque[Step] = deque(maxlen=128)
 undid_steps: list[Step] = []
-step_num_cache = 0
 
 
-def undo(scene, _):
-    global steps, step_num_cache
-    step_num = scene.hot_node_props.step_num
+# Callbacks for step to call
+def select_pack_callback(scene: bpy.types.Scene, pack_name):
+    props = scene.hot_node_props
+    ops_invoker.call_helper_ops('PACK_SELECT', pack_name)
+    
+    
+def select_preset_callback(scene: bpy.types.Scene, preset_selected_idx: int):
+    scene.hot_node_props.preset_selected = preset_selected_idx
+    
+    
+def rename_pack_callback(scene: bpy.types.Scene, src_dst_names: tuple):
+    props = scene.hot_node_props
+    src_name, dst_name = src_dst_names
+    props_py.skip_pack_rename_callback = True
+    props.pack_selected_name = dst_name
+    props_py.skip_pack_rename_callback = False
+    file.rename_pack(props_py.gl_pack_selected.name, dst_name)
+    
+    
+def rename_preset_callback(scene: bpy.types.Scene, src_dst_names: tuple):
+    props = scene.hot_node_props
+    src_name, dst_name = src_dst_names
+    preset_selected_idx = props.preset_selected
+    props_py.skip_preset_rename_callback = True
+    props.presets[preset_selected_idx].name = dst_name
+    props_py.skip_preset_rename_callback = False
+    print(src_name, "renamed to", dst_name)
+    print("selected idx is ", preset_selected_idx)
+    file.rename_preset(src_name, dst_name)
+
+
+# Function to be registed
+def undo_redo_pre(scene, _):
+    props_py.skip_preset_rename_callback = True
+    props_py.skip_step_checker_update = True
+
+
+def undo_post(scene, _):
+    global steps, step_checker_cache
+    step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will decrease by one and be detected (blender did this), 
     # which will bring us into our undo logic
-    if step_num_cache > step_num:
+    if step_checker_cache != step_checker:
         # if step_num is bigger than 2147483647... but who cares?
-        step_num_cache = step_num
+        step_checker_cache = step_checker
         step = steps.popleft()
         undid_steps.append(step)
-        step.undo()
-        ops_invoker.refresh()
+        step.undo(scene)
+    props_py.skip_preset_rename_callback = False
+    props_py.skip_step_checker_update = False
         
         
-def redo(scene, _):
-    global steps, step_num_cache
-    props = scene.hot_node_props
-    step_num = props.step_num
+def redo_post(scene, _):
+    global steps, step_checker_cache
+    step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will increase by one and be detected (blender did this), 
     # which will bring us into our undo logic
-    print('============')
-    print('I am redoing')
-    if step_num > step_num_cache:
-        scene.hot_node_props.step_num = step_num_cache
+    if step_checker != step_checker_cache:
+        step_checker_cache = scene.hot_node_props.step_checker
         step = undid_steps.pop()
         steps.appendleft(step)
-        step.redo()
-        ops_invoker.refresh()
-        # props.step_num will be added back by blender's undo logic
+        step.redo(scene)
+    props_py.skip_preset_rename_callback = False
+    props_py.skip_step_checker_update = False
 
 
 def register():
-    bpy.app.handlers.undo_post.append(undo)
-    bpy.app.handlers.redo_post.append(redo)
+    bpy.app.handlers.undo_pre.append(undo_redo_pre)
+    bpy.app.handlers.undo_post.append(undo_post)
+    bpy.app.handlers.redo_pre.append(undo_redo_pre)
+    bpy.app.handlers.redo_post.append(redo_post)
 
 
 def unregister():
-    bpy.app.handlers.undo_post.remove(undo)
-    bpy.app.handlers.redo_post.remove(redo)
+    bpy.app.handlers.undo_pre.remove(undo_redo_pre)
+    bpy.app.handlers.undo_post.remove(undo_post)
+    bpy.app.handlers.redo_pre.remove(undo_redo_pre)
+    bpy.app.handlers.redo_post.remove(redo_post)
