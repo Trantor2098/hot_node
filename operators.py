@@ -125,7 +125,7 @@ def preset_clear(ops: Operator, context: bpy.types.Context, use_report=True):
     return {'FINISHED'}
 
 
-def _preset_move_to(selected_idx, dst_idx, presets):
+def preset_move_to(selected_idx, dst_idx, presets):
     preset = presets[selected_idx]
     name, type = preset.name, preset.type
     if selected_idx > dst_idx:
@@ -145,8 +145,10 @@ def _preset_move_to(selected_idx, dst_idx, presets):
 def preset_move(ops: Operator, context: bpy.types.Context, direction, user_report=True):
     if not _ensure_sync(ops, context):
         return {'CANCELLED'}
-    history.Step(context, "Move Preset", 
-                 changed_paths=[file.pack_selected_meta_path])
+    # step = history.Step(context, "Move Preset", refresh=False,
+    #                     undo_callback=history.preset_move_to, redo_callback=history.preset_move_to)
+    step = history.Step(context, "Move Preset", refresh=False,
+                        changed_paths=[file.pack_selected_meta_path])
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
@@ -156,6 +158,7 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
         return {'FINISHED'}
     
     props_py.skip_preset_rename_callback = True
+    props_py.skip_preset_selected_callback = True
 
     reorder = True
     if direction == 'UP':
@@ -175,7 +178,9 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
     elif direction == 'BOTTOM':
         dst_idx = length - 1
         
-    _preset_move_to(preset_selected_idx, dst_idx, presets)
+    preset_move_to(preset_selected_idx, dst_idx, presets)
+    # step.undo_callback_param = (dst_idx, preset_selected_idx)
+    # step.redo_callback_param = (preset_selected_idx, dst_idx)
 
     # reoder means creating a new list to store the new order, which brings more cost
     if reorder:
@@ -188,6 +193,7 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
         file.exchange_order_preset_meta(dst_idx, preset_selected_idx)
     props.preset_selected = dst_idx
     
+    props_py.skip_preset_selected_callback = False
     props_py.skip_preset_rename_callback = False
 
     return {'FINISHED'}
@@ -223,6 +229,7 @@ def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
     
     
 def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name, tree_type, user_report=True):
+    '''Add nodes to the node tree. This function uses preset_name to find preset json and apply it.'''
     if not _ensure_sync(ops, context):
             return {'CANCELLED'}
     props = context.scene.hot_node_props
@@ -375,6 +382,8 @@ def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path,
     # backslash_idx = self.filepath.rfind("\\")
     # dir_path = self.filepath[:backslash_idx]
     success_num = 0
+    last_success_pack_name = ""
+    imported_pack_paths = []
     
     # import every selected file
     for i in range(file_num):
@@ -390,39 +399,53 @@ def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path,
         if is_recovering:
             pack_name = utils.get_string_between_words(file_name, None, ("_autosave_", "_deprecated_"))
             if pack_name is False:
-                ops.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack.")
+                ops.report({'WARNING'}, f"\"{file_name}\" failed to import: The file seems not a autosaved hot node pack.")
                 continue
         else:
             pack_name = file_name[:-4]
             if pack_name in props_py.gl_packs.keys():
-                ops.report({'ERROR'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
+                ops.report({'WARNING'}, f"\"{file_name}\" failed to import: Pack \"{pack_name}\" already existed.")
                 continue
             
         result = file.import_pack(file_path, pack_name)
         
         if result == 'META_LACK':
-            ops.report({'ERROR'}, f"\"{file_name}\" failed to import: The file seems not a hot node pack.")
+            ops.report({'WARNING'}, f"\"{file_name}\" failed to import: The file seems not a hot node pack.")
         elif result == 'INVALID_META':
-            ops.report({'ERROR'}, f"\"{file_name}\" failed to import: The pack's meta data is corrupted.")
+            ops.report({'WARNING'}, f"\"{file_name}\" failed to import: The pack's meta data is corrupted.")
         elif result == 'OVER_SIZE':
-            ops.report({'ERROR'}, f"\"{file_name}\" failed to import: Cannot import pack that is bigger than 100 MiB.")
+            ops.report({'WARNING'}, f"\"{file_name}\" failed to import: Cannot import pack that is bigger than 100 MiB.")
         else:
+            imported_pack_paths.append(result)
+            last_success_pack_name = pack_name
             success_num += 1
             
     # count import infos
     if success_num > 0:
-        file.load_packs()
-        props_bl.select_pack(context, props_py.gl_packs[pack_name])
-        gui.ensure_existing_pack_menu(pack_name)
+        current_pack_selected_name = props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else ""
+        history.Step(context, "Import Pack",
+                     created_paths=imported_pack_paths,
+                     undo_callback=history.select_pack_callback, redo_callback=history.select_pack_callback,
+                     undo_callback_param=current_pack_selected_name, redo_callback_param=last_success_pack_name)
+        sync.sync(context)
+        props_bl.select_pack(context, props_py.gl_packs[last_success_pack_name])
+        # sync() will ensure it
+        # gui.ensure_existing_pack_menu(pack_name)
         if success_num == file_num:
             if is_recovering:
-                ops.report({'INFO'}, f"\"{pack_name}\" recovered.")
+                if success_num > 1:
+                    ops.report({'INFO'}, f"Recovered {success_num} packs.")
+                else:
+                    ops.report({'INFO'}, f"\"{pack_name}\" recovered.")
             else:
-                ops.report({'INFO'}, f"\"{pack_name}\" imported.")
+                if success_num > 1:
+                    ops.report({'INFO'}, f"Imported {success_num} packs.")
+                else:
+                    ops.report({'INFO'}, f"\"{pack_name}\" imported.")
         else:
             ops.report({'INFO'}, f"Imported {success_num} packs of all {file_num} packs. The others were failed to import, see the previous error infos.")
     elif file_num > 1:
-        ops.report({'ERROR'}, f"Failed to import. See the previous error infos.")
+        ops.report({'WARNING'}, f"Failed to import. See the previous error infos.")
         
     return {'FINISHED'}
     
@@ -444,7 +467,6 @@ def pack_export(ops: Operator, context: bpy.types.Context, file_path, file_name,
 def pack_export_all(ops: Operator, context: bpy.types.Context, dir_path, user_report=True):
     if not _ensure_sync(ops, context):
         return {'CANCELLED'}
-    
     file.export_packs(props_py.gl_packs.keys(), dir_path)
         
     ops.report({'INFO'}, f"Exported all packs to {dir_path}.")
@@ -452,13 +474,9 @@ def pack_export_all(ops: Operator, context: bpy.types.Context, dir_path, user_re
 
 
 def repair_curruption(ops: Operator, context: bpy.types.Context, user_report=True):
-    if not _ensure_sync(ops, context):
-        return {'CANCELLED'}
-    
     pack_names = file.load_packs()
     for pack_name in pack_names:
         file.refresh_pack_meta(pack_name)
-        
     ops.report({'INFO'}, f"Hot Node repaired.")
     return {'FINISHED'}
     
@@ -549,7 +567,7 @@ class HOTNODE_OT_nodes_add(Operator):
     bl_idname = "node.hot_node_nodes_add"
     bl_label = "Add Nodes"
     bl_description = "Add nodes to the editor tree"
-    bl_options = {'UNDO', 'REGISTER'}
+    bl_options = {'REGISTER'}
     
     # "" means use selected one in the UI
     preset_name: StringProperty(
@@ -605,7 +623,7 @@ class HOTNODE_OT_texture_save(Operator):
     bl_idname = "node.hot_node_texture_save"
     bl_label = "Save Texture Rule"
     bl_description = "Save rules of auto searching texture when apply preset. Note that you should do a save preset action and keep the last saved preset selected to save texture rules"
-    bl_options = {'UNDO', 'REGISTER'}
+    bl_options = {'REGISTER'}
     
     @classmethod
     def poll(cls, context):
@@ -664,7 +682,7 @@ class HOTNODE_OT_pack_import(bpy.types.Operator):
     bl_idname = "import.hot_node_pack_import"
     bl_label = "Import Pack(s)"
     bl_description = "Import hot node preset pack(s) with .zip suffix"
-    bl_options = {'REGISTER'}
+    bl_options = {'UNDO', 'REGISTER'}
     
     # if recovering, open the system's temp folder
     is_recovering: bpy.props.BoolProperty(default=False, options = {'HIDDEN'}) # type: ignore
@@ -733,10 +751,10 @@ class HOTNODE_OT_pack_export_all(bpy.types.Operator):
         return props_py.gl_pack_selected is not None
     
     def execute(self, context):
+        # we may get a file path as a dir path (the subtype="DIR_PATH" seems not to work). we will handle this in file.export_packs()
         return pack_export_all(self, context, self.filepath)
 
     def invoke(self, context, event):
-        self.filename = ".".join((props_py.gl_pack_selected.name, "zip"))
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
     

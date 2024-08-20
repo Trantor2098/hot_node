@@ -51,11 +51,11 @@ _type_wb_attrs_parser = (
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output"),
     None),
     ((bpy.types.ShaderNodeGroup, bpy.types.GeometryNodeGroup, bpy.types.CompositorNodeGroup),
-     ("bl_idname",),
+     ("bl_idname", "location"),
      ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "interface"),
     None),
     (bpy.types.GeometryNodeCaptureAttribute,
-    ("bl_idname",),
+    ("bl_idname", "capture_items", "location"),
     ("rna_type", "dimensions", 'select', 'is_active_output', "internal_links", "rna_type"),
     "parse_capture_items"),
     (bpy.types.NodeFrame,
@@ -75,7 +75,7 @@ _type_wb_attrs_parser = (
     (),
     None),
     ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem),
-    ("socket_type", "name",),
+    ("socket_type", "name"),
     ("color", "rna_type"),
     None),
 )
@@ -86,12 +86,15 @@ _type_wb_attrs_parser = (
 class SpecialParser():
     
     @staticmethod
-    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj):
+    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj: dict):
+        # Here we already parsed the ccapture_items, but we should add some own params into the cobj.
         # XXX data_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
         # why blender dont have a socket_type attribute in CaptureAttributeItem??
         # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
         capture_items = obj.capture_items
-        ccapture_items = cobj["capture_items"]
+        ccapture_items = cobj.get("capture_items", None)
+        if ccapture_items is None:
+            return
         length = len(capture_items)
         for i in range(length):
             data_type = capture_items[i].data_type
@@ -147,11 +150,6 @@ def decode_compare_value(value, ivalue=None):
         vector = list(value)
         if ivalue is not None and type(value) == type(ivalue) and list(ivalue) == vector and vector != None:
             is_default = True
-        # XXX precision control, i'm not sure if i should add this user optional function...
-        # length = len(vector)
-        # result = [0.0] * length
-        # for i in length:
-        #     result[i] = round(4)
         result = vector
     elif isinstance(value, (bool, int, str, float, bpy.types.EnumProperty)):
         if ivalue is not None and value == ivalue:
@@ -167,14 +165,15 @@ def parse_attrs_simply(obj, attrs: tuple):
         if hasattr(obj, attr):
             value = getattr(obj, attr)
             if isinstance(value, (mathutils.Vector, 
-                            mathutils.Euler, 
-                            mathutils.Color, 
-                            bpy.types.bpy_prop_array)):
+                                  mathutils.Euler, 
+                                  mathutils.Color, 
+                                  bpy.types.bpy_prop_array)):
                 value = list(value)
             cobj[attr] = value
     return cobj
 
 
+# XXX have a better structure
 def parse_attrs(obj, iobj=None, white_only=False):
     '''Parse and record node's attrs to cnode, it's a universal, helpful and powerful function.
 
@@ -198,6 +197,8 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 cobj[attr] = result
         # parse bpy_prop_collection attr, it's a list of props
         elif isinstance(value, bpy.types.bpy_prop_collection):
+            print("this is the value:")
+            print(value)
             length = len(value)
             ilength = len(ivalue)
             celements = []
@@ -218,7 +219,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 result, is_default = decode_compare_value(element, ielement)
                 
                 # some common value
-                if result:
+                if result is not None:
                     if not is_default or attr in white_attrs:
                         celement = result
                 # some class...
@@ -231,8 +232,9 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 if celement:
                     celements.append(celement)
                     celement["HN_idx"] = i
-            if celements:
-                    cobj[attr] = celements
+            # XXX should I add this "if"?
+            if celements != []:
+                cobj[attr] = celements
                 
         # parse special classes
         elif isinstance(value, bpy.types.Image):

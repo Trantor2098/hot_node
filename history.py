@@ -114,7 +114,7 @@ class Step():
         print("Redo: " + self.name)
 
 
-steps: deque[Step] = deque(maxlen=128)
+steps: deque[Step] = deque(maxlen=256)
 undid_steps: list[Step] = []
 
 
@@ -144,9 +144,30 @@ def rename_preset_callback(scene: bpy.types.Scene, src_dst_names: tuple):
     props_py.skip_preset_rename_callback = True
     props.presets[preset_selected_idx].name = dst_name
     props_py.skip_preset_rename_callback = False
-    print(src_name, "renamed to", dst_name)
-    print("selected idx is ", preset_selected_idx)
     file.rename_preset(src_name, dst_name)
+    
+    
+def preset_move_to(scene, src_dst_idx: tuple):
+    '''(selected_idx, dst_idx)'''
+    presets = scene.hot_node_props.presets
+    selected_idx, dst_idx = src_dst_idx
+    preset = presets[selected_idx]
+    name, type = preset.name, preset.type
+    if selected_idx > dst_idx:
+        props_py.skip_preset_rename_callback = True
+        for i in range(selected_idx - dst_idx):
+            presets[selected_idx - i].name = presets[selected_idx - i - 1].name
+            presets[selected_idx - i].type = presets[selected_idx - i - 1].type
+    elif selected_idx < dst_idx:
+        props_py.skip_preset_rename_callback = True
+        for i in range(selected_idx, dst_idx):
+            presets[i].name = presets[i + 1].name
+            presets[i].type = presets[i + 1].type
+    else:
+        return
+    presets[dst_idx].name = name
+    presets[dst_idx].type = type
+    props_py.skip_preset_rename_callback = False
 
 
 # Function to be registed

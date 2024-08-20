@@ -109,7 +109,8 @@ Aknowledgement
 --------
 
 ##### BUG Reporting & Suggestions
-Victoryluode, DK
+Victoryluode, DKPress, 异次元学者, SatohamaUmika
+(In no particular order.)
 
 
 License

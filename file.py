@@ -38,7 +38,7 @@ root_meta_path = os.path.join(pack_root_dir_path, ".metadata.json")
 
 # Metas
 last_mtime = 0.0
-pack_selected_meta_cache = {}
+pack_selected_meta = {}
 root_meta_cache = {"pack_selected": "", 
                    "last_mtime": 0.0}
 
@@ -143,9 +143,9 @@ def read_json(file_path) -> dict:
         return json.load(file)
     
     
-def write_metas():
+def write_metas(pack_selected_meta):
     update_root_meta_cache_mtime()
-    write_json(pack_selected_meta_path, pack_selected_meta_cache)
+    write_json(pack_selected_meta_path, pack_selected_meta)
     write_json(root_meta_path, root_meta_cache)
     
     
@@ -259,26 +259,24 @@ def del_paths(paths):
 # CRUD of Pack and Preset
 def create_pack(pack_name):
     global root_meta_cache
-    global pack_selected_meta_cache
     global pack_selected_path
     global pack_selected_meta_path
     pack_selected_path = os.path.join(pack_root_dir_path, pack_name)
     pack_selected_meta_path = os.path.join(pack_selected_path, ".metadata.json")
     # create pack metadata
     root_meta_cache["pack_selected"] = pack_name
-    pack_selected_meta_cache = {}
-    pack_selected_meta_cache["order"] = []
-    pack_selected_meta_cache["tree_types"] = {}
-    pack_selected_meta_cache["version"] = version
+    pack_selected_meta = {}
+    pack_selected_meta["order"] = []
+    pack_selected_meta["tree_types"] = {}
+    pack_selected_meta["version"] = version
     os.mkdir(pack_selected_path)
-    write_metas()
+    write_metas(pack_selected_meta)
     # reload packs to get right order of packs
     load_packs()
     return pack_selected_path
 
 
 def delete_pack(pack_name):
-    global pack_selected_meta_cache
     pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
     shutil.rmtree(pack_dir_path)
     return pack_dir_path
@@ -316,27 +314,26 @@ def load_packs():
 
 
 def select_pack(pack: props_py.Pack|None):
-    global pack_selected_meta_cache
     global root_meta_cache
     global pack_selected_meta_path
     global pack_selected_path
     if pack is None:
-        pack_selected_meta_cache = {}
-        pack_selected_meta_cache["order"] = []
-        pack_selected_meta_cache["tree_types"] = {}
-        pack_selected_meta_cache["version"] = version
-        pack_selected_meta_path = ""
+        # pack_selected_meta = {}
+        # pack_selected_meta["order"] = []
+        # pack_selected_meta["tree_types"] = {}
+        # pack_selected_meta["version"] = version
+        # pack_selected_meta_path = ""
         root_meta_cache["pack_selected"] = ""
     else:
         pack_selected_path = os.path.join(pack_root_dir_path, pack.name)
         pack_selected_meta_path = os.path.join(pack_selected_path, ".metadata.json")
-        pack_selected_meta_cache = read_pack_meta()
         root_meta_cache["pack_selected"] = pack.name
     props_py.gl_pack_selected = pack
     write_root_meta()
     
     
 def import_pack(from_file_path: str, new_pack_name: str):
+    '''Import pack.zip into add-on, return the imported pack path.'''
     global pack_selected_path
     size = os.path.getsize(from_file_path)
     # if zip file is bigger than 150 Mib
@@ -353,7 +350,7 @@ def import_pack(from_file_path: str, new_pack_name: str):
     if metadata == 'INVALID_META':
         shutil.rmtree(new_pack_dir_path)
         return 'INVALID_META'
-    return 'SUCCESS'
+    return new_pack_dir_path
              
 
 def export_selected_pack(dst_file_path):
@@ -367,6 +364,8 @@ def export_selected_pack(dst_file_path):
     
     
 def export_packs(pack_names, dst_dir_path):
+    # ensure we are getting a dir path, not a file path
+    dst_dir_path = os.path.dirname(dst_dir_path)
     existing_zip_namebodys = read_existing_files(dst_dir_path, suffix=".zip")
             
     for pack in pack_names:
@@ -454,36 +453,37 @@ def clear_outdated_autosave_packs():
     
 
 def create_preset(preset_name: str, cpreset: dict):
-    global pack_selected_meta_cache
+    pack_selected_meta = read_pack_meta()
     file_name = '.'.join((preset_name, 'json'))
     file_path = os.path.join(pack_selected_path, file_name)
-    pack_selected_meta_cache["order"].append(preset_name)
-    pack_selected_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
-    pack_selected_meta_cache["version"] = version
+    pack_selected_meta["order"].append(preset_name)
+    pack_selected_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_selected_meta["version"] = version
     write_json(file_path, cpreset)
-    write_metas()
+    write_metas(pack_selected_meta)
     return file_path
     
     
 def update_preset(preset_name: str, cpreset: dict):
-    global pack_selected_meta_cache
+    pack_selected_meta = read_pack_meta()
+    read_pack_meta()
     file_name = '.'.join((preset_name, 'json'))
     file_path = os.path.join(pack_selected_path, file_name)
-    pack_selected_meta_cache["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
-    pack_selected_meta_cache["version"] = version
+    pack_selected_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_selected_meta["version"] = version
     write_json(file_path, cpreset)
-    write_metas()
+    write_metas(pack_selected_meta)
     return file_path
 
 
 def delete_preset(preset_name):
-    global pack_selected_meta_cache
+    pack_selected_meta = read_pack_meta()
     file_name = '.'.join((preset_name, 'json'))
     file_path = os.path.join(pack_selected_path, file_name)
-    pack_selected_meta_cache["order"].remove(preset_name)
-    del pack_selected_meta_cache["tree_types"][preset_name]
+    pack_selected_meta["order"].remove(preset_name)
+    del pack_selected_meta["tree_types"][preset_name]
     os.remove(file_path)
-    write_metas()
+    write_metas(pack_selected_meta)
     return file_path
     
     
@@ -549,7 +549,7 @@ def load_preset(preset_name, pack_name=""):
 
 
 def rename_preset(old_name, new_name):
-    global pack_selected_meta_cache
+    pack_selected_meta = read_pack_meta()
     old_file_name = '.'.join((old_name, 'json'))
     old_file_path = os.path.join(pack_selected_path, old_file_name)
     new_file_name = '.'.join((new_name, 'json'))
@@ -560,24 +560,24 @@ def rename_preset(old_name, new_name):
     cpreset["HN_preset_data"]["preset_name"] = new_name
     write_json(new_file_path, cpreset)
     
-    idx = pack_selected_meta_cache["order"].index(old_name)
-    pack_selected_meta_cache["order"][idx] = new_name
-    pack_selected_meta_cache["tree_types"][new_name] = pack_selected_meta_cache["tree_types"].pop(old_name)
-    write_metas()
+    idx = pack_selected_meta["order"].index(old_name)
+    pack_selected_meta["order"][idx] = new_name
+    pack_selected_meta["tree_types"][new_name] = pack_selected_meta["tree_types"].pop(old_name)
+    write_metas(pack_selected_meta)
     
     
 def reorder_preset_meta(preset_names):
-    global pack_selected_meta_cache
-    pack_selected_meta_cache["order"] = preset_names
-    write_metas()
+    pack_selected_meta = read_pack_meta()
+    pack_selected_meta["order"] = preset_names
+    write_metas(pack_selected_meta)
     
     
 def exchange_order_preset_meta(idx1, idx2):
-    global pack_selected_meta_cache
-    temp = pack_selected_meta_cache["order"][idx2]
-    pack_selected_meta_cache["order"][idx2] = pack_selected_meta_cache["order"][idx1]
-    pack_selected_meta_cache["order"][idx1] = temp
-    write_metas()
+    pack_selected_meta = read_pack_meta()
+    temp = pack_selected_meta["order"][idx2]
+    pack_selected_meta["order"][idx2] = pack_selected_meta["order"][idx1]
+    pack_selected_meta["order"][idx1] = temp
+    write_metas(pack_selected_meta)
     
 
 # CRUD of images

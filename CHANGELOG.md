@@ -3,9 +3,14 @@ ChangeLog
 
 
 [0.5.0] - 2024-08-15
+### Added
+- **Undo & Redo Supported.**
+
 ### Fixed
-- Export all packs.
-- Undo may bring some mess to the preset list.
+- Undo causes error.
+- Node ```Capture Attribute``` causes error.
+- Improved stability of ```Node Group```.
+- Improved stability of exporting packs.
 
 
 [0.4.2] - 2024-08-01
