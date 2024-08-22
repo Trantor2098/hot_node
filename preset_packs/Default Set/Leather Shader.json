@@ -1,0 +1,295 @@
+{
+ "Leather Shader": {
+  "name": "Leather Shader",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [
+   {
+    "identifier": "Socket_0",
+    "in_out": "OUTPUT",
+    "index": 0,
+    "item_type": "SOCKET",
+    "name": "Shader",
+    "position": 0,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.800000011920929,
+     0.800000011920929,
+     0.800000011920929,
+     1.0
+    ],
+    "identifier": "Socket_1",
+    "in_out": "INPUT",
+    "index": 1,
+    "item_type": "SOCKET",
+    "name": "Base Color",
+    "position": 1,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "hide_value": true,
+    "identifier": "Socket_4",
+    "in_out": "INPUT",
+    "index": 2,
+    "item_type": "SOCKET",
+    "max_value": 1.0,
+    "min_value": -1.0,
+    "name": "Normal",
+    "position": 2,
+    "socket_type": "NodeSocketVector",
+    "HN_parent_idx": -1
+   }
+  ],
+  "nodes": {
+   "Group Output": {
+    "bl_idname": "NodeGroupOutput",
+    "location": [
+     1001.03759765625,
+     0.0
+    ],
+    "name": "Group Output"
+   },
+   "Group Input": {
+    "bl_idname": "NodeGroupInput",
+    "location": [
+     -1011.03759765625,
+     0.0
+    ],
+    "name": "Group Input"
+   },
+   "Principled BSDF": {
+    "bl_idname": "ShaderNodeBsdfPrincipled",
+    "inputs": [
+     {
+      "default_value": 0.19545455276966095,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.37727272510528564,
+      "HN_idx": 2
+     },
+     {
+      "default_value": 0.25,
+      "HN_idx": 19
+     },
+     {
+      "default_value": [
+       0.03658479079604149,
+       0.03658479079604149,
+       0.03658479079604149,
+       1.0
+      ],
+      "HN_idx": 21
+     }
+    ],
+    "location": [
+     465.18023681640625,
+     137.318115234375
+    ],
+    "name": "Principled BSDF"
+   },
+   "Image Texture.003": {
+    "bl_idname": "ShaderNodeTexImage",
+    "image": {
+     "name": "brown_leather_rough_4k.jpg",
+     "alpha_mode": "STRAIGHT",
+     "filepath": "F:\\Library\\Textures\\PolyHaven - Leather\\brown_leather_rough_4k.jpg",
+     "source": "FILE",
+     "HN_color_space": "Linear Rec.709",
+     "HN_open_mode": "AUTO",
+     "HN_tex_keys": []
+    },
+    "location": [
+     -452.9485778808594,
+     497.5513916015625
+    ],
+    "name": "Image Texture.003"
+   },
+   "Mapping": {
+    "bl_idname": "ShaderNodeMapping",
+    "inputs": [
+     {
+      "default_value": [
+       12.0,
+       12.0,
+       1.0
+      ],
+      "HN_idx": 3
+     }
+    ],
+    "location": [
+     -631.03759765625,
+     493.8651123046875
+    ],
+    "name": "Mapping"
+   },
+   "Texture Coordinate": {
+    "bl_idname": "ShaderNodeTexCoord",
+    "location": [
+     -811.03759765625,
+     493.8651123046875
+    ],
+    "name": "Texture Coordinate"
+   },
+   "Map Range": {
+    "bl_idname": "ShaderNodeMapRange",
+    "inputs": [
+     {
+      "default_value": 1.4901161193847656e-08,
+      "HN_idx": 3
+     },
+     {
+      "default_value": 0.6000000238418579,
+      "HN_idx": 4
+     }
+    ],
+    "location": [
+     57.724334716796875,
+     435.130615234375
+    ],
+    "name": "Map Range"
+   },
+   "Bump": {
+    "bl_idname": "ShaderNodeBump",
+    "inputs": [
+     {
+      "default_value": 0.15833333134651184,
+      "HN_idx": 0
+     }
+    ],
+    "invert": true,
+    "location": [
+     37.38923645019531,
+     -72.5785140991211
+    ],
+    "name": "Bump"
+   },
+   "Map Range.001": {
+    "bl_idname": "ShaderNodeMapRange",
+    "inputs": [
+     {
+      "default_value": 1.0,
+      "HN_idx": 3
+     },
+     {
+      "default_value": 0.0,
+      "HN_idx": 4
+     }
+    ],
+    "location": [
+     -153.0595703125,
+     218.00489807128906
+    ],
+    "name": "Map Range.001"
+   }
+  },
+  "links": [
+   {
+    "HN_from_node_name": "Texture Coordinate",
+    "HN_to_node_name": "Mapping",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Map Range",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Image Texture.003",
+    "HN_to_node_name": "Map Range.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Bump",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 5
+   },
+   {
+    "HN_from_node_name": "Mapping",
+    "HN_to_node_name": "Image Texture.003",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Map Range.001",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 18
+   },
+   {
+    "HN_from_node_name": "Image Texture.003",
+    "HN_to_node_name": "Map Range",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Map Range.001",
+    "HN_to_node_name": "Bump",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Principled BSDF",
+    "HN_to_node_name": "Group Output",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Bump",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 3
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 22
+   }
+  ]
+ },
+ "HN_edit_tree": {
+  "name": "Shader Nodetree",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [],
+  "nodes": {
+   "Group.007": {
+    "bl_idname": "ShaderNodeGroup",
+    "location": [
+     -749.100830078125,
+     -118.68742370605469
+    ],
+    "name": "Group.007",
+    "HN_nt_name": "Leather Shader"
+   }
+  },
+  "links": []
+ },
+ "HN_preset_data": {
+  "preset_name": "Leather Shader",
+  "pack_name": "Default Set",
+  "tree_type": "ShaderNodeTree",
+  "node_center": [
+   -749.100830078125,
+   -118.68742370605469
+  ],
+  "version": [
+   0,
+   2,
+   0
+  ]
+ }
+}

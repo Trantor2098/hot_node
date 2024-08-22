@@ -181,7 +181,7 @@ def undo_post(scene, _):
     step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will decrease by one and be detected (blender did this), 
     # which will bring us into our undo logic
-    if step_checker_cache != step_checker:
+    if step_checker_cache != step_checker and steps:
         # if step_num is bigger than 2147483647... but who cares?
         step_checker_cache = step_checker
         step = steps.popleft()
@@ -196,7 +196,7 @@ def redo_post(scene, _):
     step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will increase by one and be detected (blender did this), 
     # which will bring us into our undo logic
-    if step_checker != step_checker_cache:
+    if step_checker != step_checker_cache and undid_steps:
         step_checker_cache = scene.hot_node_props.step_checker
         step = undid_steps.pop()
         steps.appendleft(step)

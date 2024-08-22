@@ -1,0 +1,372 @@
+{
+ "Skin Shader": {
+  "name": "Skin Shader",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [
+   {
+    "identifier": "Socket_0",
+    "in_out": "OUTPUT",
+    "index": 0,
+    "item_type": "SOCKET",
+    "name": "BSDF",
+    "position": 0,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     1.0,
+     1.0,
+     1.0,
+     1.0
+    ],
+    "identifier": "Socket_1",
+    "in_out": "INPUT",
+    "index": 1,
+    "item_type": "SOCKET",
+    "name": "Base Color",
+    "position": 1,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "hide_value": true,
+    "identifier": "Socket_2",
+    "in_out": "INPUT",
+    "index": 2,
+    "item_type": "SOCKET",
+    "max_value": 1.0,
+    "min_value": -1.0,
+    "name": "Normal",
+    "position": 2,
+    "socket_type": "NodeSocketVector",
+    "HN_parent_idx": -1
+   }
+  ],
+  "nodes": {
+   "Group Output": {
+    "bl_idname": "NodeGroupOutput",
+    "location": [
+     750.36572265625,
+     0.0
+    ],
+    "name": "Group Output"
+   },
+   "Group Input": {
+    "bl_idname": "NodeGroupInput",
+    "location": [
+     -660.36572265625,
+     0.0
+    ],
+    "name": "Group Input"
+   },
+   "Principled BSDF": {
+    "bl_idname": "ShaderNodeBsdfPrincipled",
+    "inputs": [
+     {
+      "default_value": [
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ],
+      "HN_idx": 0
+     },
+     {
+      "default_value": 0.5909090638160706,
+      "HN_idx": 2
+     },
+     {
+      "default_value": 0.0,
+      "HN_idx": 12
+     },
+     {
+      "default_value": 1.0,
+      "HN_idx": 18
+     },
+     {
+      "default_value": 1.0,
+      "HN_idx": 19
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       1.0
+      ],
+      "HN_idx": 26
+     }
+    ],
+    "location": [
+     460.3656921386719,
+     170.69601440429688
+    ],
+    "name": "Principled BSDF"
+   },
+   "RGB to BW": {
+    "bl_idname": "ShaderNodeRGBToBW",
+    "location": [
+     -460.36572265625,
+     -76.09649658203125
+    ],
+    "name": "RGB to BW"
+   },
+   "Color Ramp": {
+    "bl_idname": "ShaderNodeValToRGB",
+    "color_ramp": {
+     "elements": [
+      {
+       "color": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612,
+        1.0
+       ],
+       "position": 0.34545448422431946,
+       "HN_idx": 0
+      },
+      {
+       "color": [
+        0.550000011920929,
+        0.550000011920929,
+        0.550000011920929,
+        1.0
+       ],
+       "position": 0.40454602241516113,
+       "HN_idx": 1
+      }
+     ]
+    },
+    "location": [
+     -97.1890869140625,
+     355.2357482910156
+    ],
+    "name": "Color Ramp"
+   },
+   "Noise Texture": {
+    "bl_idname": "ShaderNodeTexNoise",
+    "inputs": [
+     {
+      "default_value": 1000.0,
+      "HN_idx": 2
+     },
+     {
+      "default_value": 4.0,
+      "HN_idx": 3
+     },
+     {
+      "default_value": 0.5333333015441895,
+      "HN_idx": 4
+     }
+    ],
+    "location": [
+     -224.60791015625,
+     -331.91143798828125
+    ],
+    "name": "Noise Texture",
+    "outputs": [
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HN_idx": 1
+     }
+    ]
+   },
+   "Bump": {
+    "bl_idname": "ShaderNodeBump",
+    "inputs": [
+     {
+      "default_value": 0.1499999761581421,
+      "HN_idx": 0
+     },
+     {
+      "default_value": 0.0020000000949949026,
+      "HN_idx": 1
+     }
+    ],
+    "invert": true,
+    "location": [
+     220.80923461914062,
+     -311.1429748535156
+    ],
+    "name": "Bump"
+   },
+   "ColorRamp": {
+    "bl_idname": "ShaderNodeValToRGB",
+    "color_ramp": {
+     "elements": [
+      {
+       "position": 0.005402025766670704,
+       "HN_idx": 0
+      },
+      {
+       "position": 1.0,
+       "HN_idx": 1
+      }
+     ],
+     "interpolation": "EASE"
+    },
+    "location": [
+     -57.2935791015625,
+     -319.76556396484375
+    ],
+    "name": "ColorRamp",
+    "outputs": [
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HN_idx": 0
+     }
+    ]
+   },
+   "Texture Coordinate": {
+    "bl_idname": "ShaderNodeTexCoord",
+    "location": [
+     -387.6558837890625,
+     -355.23577880859375
+    ],
+    "name": "Texture Coordinate"
+   },
+   "Color Ramp.001": {
+    "bl_idname": "ShaderNodeValToRGB",
+    "color_ramp": {
+     "elements": [
+      {
+       "position": 0.34545448422431946,
+       "HN_idx": 0
+      },
+      {
+       "position": 0.35454607009887695,
+       "HN_idx": 1
+      }
+     ]
+    },
+    "location": [
+     -122.29608154296875,
+     -59.439605712890625
+    ],
+    "name": "Color Ramp.001"
+   }
+  },
+  "links": [
+   {
+    "HN_from_node_name": "Color Ramp",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Noise Texture",
+    "HN_to_node_name": "ColorRamp",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "ColorRamp",
+    "HN_to_node_name": "Bump",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Bump",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 5
+   },
+   {
+    "HN_from_node_name": "Texture Coordinate",
+    "HN_to_node_name": "Noise Texture",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Color Ramp.001",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 18
+   },
+   {
+    "HN_from_node_name": "RGB to BW",
+    "HN_to_node_name": "Color Ramp.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "RGB to BW",
+    "HN_to_node_name": "Color Ramp",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Principled BSDF",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 13
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "RGB to BW",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Principled BSDF",
+    "HN_to_node_name": "Group Output",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Bump",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 3
+   }
+  ]
+ },
+ "HN_edit_tree": {
+  "name": "Shader Nodetree",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [],
+  "nodes": {
+   "Group.006": {
+    "bl_idname": "ShaderNodeGroup",
+    "location": [
+     -746.829345703125,
+     15.030025482177734
+    ],
+    "name": "Group.006",
+    "HN_nt_name": "Skin Shader"
+   }
+  },
+  "links": []
+ },
+ "HN_preset_data": {
+  "preset_name": "Skin Shader",
+  "pack_name": "Default Set",
+  "tree_type": "ShaderNodeTree",
+  "node_center": [
+   -746.829345703125,
+   15.030025482177734
+  ],
+  "version": [
+   0,
+   2,
+   0
+  ]
+ }
+}

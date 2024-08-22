@@ -23,7 +23,7 @@ import bpy
 import os
 from mathutils import Vector
 
-from . import file, utils, node_parser, versioning
+from . import file, utils, node_parser, versioning, constants
 
 # NOTE 
 # In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
@@ -47,8 +47,6 @@ type_b_attrs_setter = (
     ("location", "filepath", "name"),
     None),
 )
-
-node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 failed_tex_num = 0
 
@@ -361,7 +359,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             
         # Set Special Nodes. TODO Change to delegates
         # set node's sub node tree if node is ng
-        if bl_idname in node_group_id_names:
+        if bl_idname in constants.node_group_id_names:
             node.node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
         # set node's image
         elif bl_idname in ("NodeGroupInput", "NodeGroupOutput"):
@@ -521,7 +519,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         link_group_io = True
     # if tree io is not capatible and has group io node, let user to choose whether to reset tree io or not
     elif check_group_io_node(cnode_trees["HN_edit_tree"]["nodes"]):
-        set_tree_io = bpy.context.scene.hot_node_props.overwrite_tree_io
+        set_tree_io = context.preferences.addons[__package__].preferences.overwrite_tree_io
         link_group_io = set_tree_io
     # if dont have group io node, dont need to set tree io
     else:

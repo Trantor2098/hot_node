@@ -1,0 +1,1004 @@
+{
+ "Outline_Shader": {
+  "name": "Outline_Shader",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [
+   {
+    "identifier": "Socket_4",
+    "in_out": "OUTPUT",
+    "index": 0,
+    "item_type": "SOCKET",
+    "name": "Cycles",
+    "position": 0,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "identifier": "Socket_0",
+    "in_out": "OUTPUT",
+    "index": 1,
+    "item_type": "SOCKET",
+    "name": "Eevee",
+    "position": 1,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.019999999552965164,
+     0.019999999552965164,
+     0.019999999552965164,
+     1.0
+    ],
+    "identifier": "Socket_7",
+    "in_out": "INPUT",
+    "index": 2,
+    "item_type": "SOCKET",
+    "name": "Default Color",
+    "position": 2,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.019999999552965164,
+     0.019999999552965164,
+     0.019999999552965164,
+     1.0
+    ],
+    "identifier": "Socket_2",
+    "in_out": "INPUT",
+    "index": 3,
+    "item_type": "SOCKET",
+    "name": "Tex1",
+    "position": 3,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.019999999552965164,
+     0.019999999552965164,
+     0.019999999552965164,
+     1.0
+    ],
+    "identifier": "Socket_5",
+    "in_out": "INPUT",
+    "index": 4,
+    "item_type": "SOCKET",
+    "name": "Tex2",
+    "position": 4,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.019999999552965164,
+     0.019999999552965164,
+     0.019999999552965164,
+     1.0
+    ],
+    "identifier": "Socket_6",
+    "in_out": "INPUT",
+    "index": 5,
+    "item_type": "SOCKET",
+    "name": "Tex3",
+    "position": 5,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": [
+     0.019999999552965164,
+     0.019999999552965164,
+     0.019999999552965164,
+     1.0
+    ],
+    "identifier": "Socket_8",
+    "in_out": "INPUT",
+    "index": 6,
+    "item_type": "SOCKET",
+    "name": "Tex4",
+    "position": 6,
+    "socket_type": "NodeSocketColor",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": 4.0,
+    "identifier": "Socket_9",
+    "in_out": "INPUT",
+    "index": 7,
+    "item_type": "SOCKET",
+    "max_value": 10.0,
+    "min_value": 1.0,
+    "name": "Gamma",
+    "position": 7,
+    "socket_type": "NodeSocketFloat",
+    "subtype": "",
+    "HN_parent_idx": -1
+   }
+  ],
+  "nodes": {
+   "Frame.002": {
+    "bl_idname": "NodeFrame",
+    "label": "Cycles Outline Shader",
+    "location": [
+     -58.306358337402344,
+     -190.84017944335938
+    ],
+    "name": "Frame.002"
+   },
+   "Frame": {
+    "bl_idname": "NodeFrame",
+    "label": "Process Color",
+    "location": [
+     -26.974334716796875,
+     147.85305786132812
+    ],
+    "name": "Frame"
+   },
+   "Frame.001": {
+    "bl_idname": "NodeFrame",
+    "label": "Tex Select",
+    "location": [
+     -7.4637451171875,
+     164.23483276367188
+    ],
+    "name": "Frame.001"
+   },
+   "Group Output": {
+    "bl_idname": "NodeGroupOutput",
+    "location": [
+     1180.28955078125,
+     -122.86923217773438
+    ],
+    "name": "Group Output"
+   },
+   "\u6df7\u5408\u7740\u8272\u5668.001": {
+    "bl_idname": "ShaderNodeMixShader",
+    "location": [
+     608.4829711914062,
+     -48.79856491088867
+    ],
+    "name": "\u6df7\u5408\u7740\u8272\u5668.001",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u6df7\u5408\u7740\u8272\u5668.005": {
+    "bl_idname": "ShaderNodeMixShader",
+    "inputs": [
+     {
+      "show_expanded": true,
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     995.0850830078125,
+     -42.67610549926758
+    ],
+    "name": "\u6df7\u5408\u7740\u8272\u5668.005",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u51e0\u4f55\u6570\u636e": {
+    "bl_idname": "ShaderNodeNewGeometry",
+    "location": [
+     180.8518829345703,
+     124.2972412109375
+    ],
+    "name": "\u51e0\u4f55\u6570\u636e",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u6df7\u5408\u7740\u8272\u5668.004": {
+    "bl_idname": "ShaderNodeMixShader",
+    "inputs": [
+     {
+      "show_expanded": true,
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     799.4181518554688,
+     -37.452205657958984
+    ],
+    "name": "\u6df7\u5408\u7740\u8272\u5668.004",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u900f\u660e BSDF": {
+    "bl_idname": "ShaderNodeBsdfTransparent",
+    "location": [
+     361.9051208496094,
+     -195.42489624023438
+    ],
+    "name": "\u900f\u660e BSDF",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u5149\u7a0b": {
+    "bl_idname": "ShaderNodeLightPath",
+    "location": [
+     355.528564453125,
+     283.1116943359375
+    ],
+    "name": "\u5149\u7a0b",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "\u6df7\u5408\u7740\u8272\u5668": {
+    "bl_idname": "ShaderNodeMixShader",
+    "inputs": [
+     {
+      "show_expanded": true,
+      "HN_idx": 1
+     }
+    ],
+    "location": [
+     365.26141357421875,
+     -47.769535064697266
+    ],
+    "name": "\u6df7\u5408\u7740\u8272\u5668",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.002"
+   },
+   "Gamma": {
+    "bl_idname": "ShaderNodeGamma",
+    "inputs": [
+     {
+      "default_value": 4.0,
+      "HN_idx": 1
+     }
+    ],
+    "location": [
+     -300.4548645019531,
+     -300.0798645019531
+    ],
+    "name": "Gamma",
+    "outputs": [
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HN_idx": 0
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame"
+   },
+   "Emission": {
+    "bl_idname": "ShaderNodeEmission",
+    "location": [
+     -135.29156494140625,
+     -299.24603271484375
+    ],
+    "name": "Emission",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame"
+   },
+   "Math": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 1.0,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.10000000149011612,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -1452.2679443359375,
+     -76.51583099365234
+    ],
+    "name": "Math",
+    "operation": "COMPARE",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Mix.001": {
+    "bl_idname": "ShaderNodeMix",
+    "data_type": "RGBA",
+    "inputs": [
+     {
+      "enabled": false,
+      "HN_idx": 2
+     },
+     {
+      "enabled": false,
+      "HN_idx": 3
+     },
+     {
+      "default_value": [
+       0.019999999552965164,
+       0.019999999552965164,
+       0.019999999552965164,
+       1.0
+      ],
+      "enabled": true,
+      "HN_idx": 6
+     },
+     {
+      "enabled": true,
+      "HN_idx": 7
+     }
+    ],
+    "location": [
+     -1448.4033203125,
+     -258.5039367675781
+    ],
+    "name": "Mix.001",
+    "outputs": [
+     {
+      "enabled": false,
+      "HN_idx": 0
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "enabled": true,
+      "HN_idx": 2
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Math.001": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 2.0,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.10000000149011612,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -1293.8414306640625,
+     -77.06629943847656
+    ],
+    "name": "Math.001",
+    "operation": "COMPARE",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Mix.002": {
+    "bl_idname": "ShaderNodeMix",
+    "data_type": "RGBA",
+    "inputs": [
+     {
+      "enabled": false,
+      "HN_idx": 2
+     },
+     {
+      "enabled": false,
+      "HN_idx": 3
+     },
+     {
+      "enabled": true,
+      "HN_idx": 6
+     },
+     {
+      "enabled": true,
+      "HN_idx": 7
+     }
+    ],
+    "location": [
+     -1287.8214111328125,
+     -259.3125305175781
+    ],
+    "name": "Mix.002",
+    "outputs": [
+     {
+      "enabled": false,
+      "HN_idx": 0
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "enabled": true,
+      "HN_idx": 2
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Mix.003": {
+    "bl_idname": "ShaderNodeMix",
+    "data_type": "RGBA",
+    "inputs": [
+     {
+      "enabled": false,
+      "HN_idx": 2
+     },
+     {
+      "enabled": false,
+      "HN_idx": 3
+     },
+     {
+      "enabled": true,
+      "HN_idx": 6
+     },
+     {
+      "enabled": true,
+      "HN_idx": 7
+     }
+    ],
+    "location": [
+     -1122.6751708984375,
+     -256.6700439453125
+    ],
+    "name": "Mix.003",
+    "outputs": [
+     {
+      "enabled": false,
+      "HN_idx": 0
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "enabled": true,
+      "HN_idx": 2
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Math.002": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 3.0,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.10000000149011612,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -1122.83251953125,
+     -74.2313003540039
+    ],
+    "name": "Math.002",
+    "operation": "COMPARE",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Attribute": {
+    "attribute_name": "OutlineTexOrder",
+    "bl_idname": "ShaderNodeAttribute",
+    "location": [
+     -1651.5440673828125,
+     -77.18272399902344
+    ],
+    "name": "Attribute",
+    "outputs": [
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HN_idx": 0
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001",
+    "width": 166.69818115234375
+   },
+   "Group Input": {
+    "bl_idname": "NodeGroupInput",
+    "location": [
+     -1631.447021484375,
+     -496.93511962890625
+    ],
+    "name": "Group Input",
+    "outputs": [
+     {
+      "default_value": [
+       0.0035145883448421955,
+       0.010926289483904839,
+       0.011646547354757786,
+       1.0
+      ],
+      "HN_idx": 1
+     },
+     {
+      "default_value": [
+       0.5,
+       0.5,
+       0.5,
+       1.0
+      ],
+      "HN_idx": 2
+     },
+     {
+      "default_value": [
+       0.5,
+       0.5,
+       0.5,
+       1.0
+      ],
+      "HN_idx": 3
+     },
+     {
+      "default_value": [
+       0.5,
+       0.5,
+       0.5,
+       1.0
+      ],
+      "HN_idx": 4
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Mix.004": {
+    "bl_idname": "ShaderNodeMix",
+    "data_type": "RGBA",
+    "inputs": [
+     {
+      "enabled": false,
+      "HN_idx": 2
+     },
+     {
+      "enabled": false,
+      "HN_idx": 3
+     },
+     {
+      "enabled": true,
+      "HN_idx": 6
+     },
+     {
+      "enabled": true,
+      "HN_idx": 7
+     }
+    ],
+    "location": [
+     -963.7400512695312,
+     -256.06109619140625
+    ],
+    "name": "Mix.004",
+    "outputs": [
+     {
+      "enabled": false,
+      "HN_idx": 0
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "enabled": true,
+      "HN_idx": 2
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Math.003": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 4.0,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.10000000149011612,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -965.6017456054688,
+     -74.2313003540039
+    ],
+    "name": "Math.003",
+    "operation": "COMPARE",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Math.004": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 5.0,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.10000000149011612,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -813.9918212890625,
+     -75.97428894042969
+    ],
+    "name": "Math.004",
+    "operation": "COMPARE",
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Mix.005": {
+    "bl_idname": "ShaderNodeMix",
+    "data_type": "RGBA",
+    "inputs": [
+     {
+      "enabled": false,
+      "HN_idx": 2
+     },
+     {
+      "enabled": false,
+      "HN_idx": 3
+     },
+     {
+      "enabled": true,
+      "HN_idx": 6
+     },
+     {
+      "default_value": [
+       1.0,
+       0.0,
+       0.002408684231340885,
+       1.0
+      ],
+      "enabled": true,
+      "HN_idx": 7
+     }
+    ],
+    "location": [
+     -811.0372924804688,
+     -254.13873291015625
+    ],
+    "name": "Mix.005",
+    "outputs": [
+     {
+      "enabled": false,
+      "HN_idx": 0
+     },
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "enabled": true,
+      "HN_idx": 2
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame.001"
+   },
+   "Brightness/Contrast": {
+    "bl_idname": "ShaderNodeBrightContrast",
+    "inputs": [
+     {
+      "default_value": -0.3999999463558197,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 0.09999999403953552,
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     -470.3889465332031,
+     -290.27093505859375
+    ],
+    "name": "Brightness/Contrast",
+    "outputs": [
+     {
+      "default_value": [
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ],
+      "HN_idx": 0
+     }
+    ],
+    "HN_ref2_node_attr": "parent",
+    "HN_ref2_node_name": "Frame"
+   }
+  },
+  "links": [
+   {
+    "HN_from_node_name": "\u6df7\u5408\u7740\u8272\u5668",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "\u900f\u660e BSDF",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "\u5149\u7a0b",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "\u900f\u660e BSDF",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "\u51e0\u4f55\u6570\u636e",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668",
+    "HN_from_socket_idx": 6,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "\u6df7\u5408\u7740\u8272\u5668.005",
+    "HN_to_node_name": "Group Output",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "\u6df7\u5408\u7740\u8272\u5668.001",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.004",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "\u5149\u7a0b",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.004",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "\u900f\u660e BSDF",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.004",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "\u6df7\u5408\u7740\u8272\u5668.004",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.005",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "\u5149\u7a0b",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.005",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "\u900f\u660e BSDF",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668.005",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Attribute",
+    "HN_to_node_name": "Math",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Attribute",
+    "HN_to_node_name": "Math.001",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Attribute",
+    "HN_to_node_name": "Math.002",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Math",
+    "HN_to_node_name": "Mix.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Mix.001",
+    "HN_to_node_name": "Mix.002",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 6
+   },
+   {
+    "HN_from_node_name": "Math.001",
+    "HN_to_node_name": "Mix.002",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix.001",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 7
+   },
+   {
+    "HN_from_node_name": "Mix.002",
+    "HN_to_node_name": "Mix.003",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 6
+   },
+   {
+    "HN_from_node_name": "Math.002",
+    "HN_to_node_name": "Mix.003",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix.002",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 7
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix.003",
+    "HN_from_socket_idx": 3,
+    "HN_to_socket_idx": 7
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 6
+   },
+   {
+    "HN_from_node_name": "Mix.003",
+    "HN_to_node_name": "Mix.004",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 6
+   },
+   {
+    "HN_from_node_name": "Math.003",
+    "HN_to_node_name": "Mix.004",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Attribute",
+    "HN_to_node_name": "Math.003",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix.004",
+    "HN_from_socket_idx": 4,
+    "HN_to_socket_idx": 7
+   },
+   {
+    "HN_from_node_name": "Mix.004",
+    "HN_to_node_name": "Mix.005",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 6
+   },
+   {
+    "HN_from_node_name": "Math.004",
+    "HN_to_node_name": "Mix.005",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Attribute",
+    "HN_to_node_name": "Math.004",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Gamma",
+    "HN_to_node_name": "Emission",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Emission",
+    "HN_to_node_name": "\u6df7\u5408\u7740\u8272\u5668",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "Emission",
+    "HN_to_node_name": "Group Output",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "Brightness/Contrast",
+    "HN_to_node_name": "Gamma",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Mix.005",
+    "HN_to_node_name": "Brightness/Contrast",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Gamma",
+    "HN_from_socket_idx": 5,
+    "HN_to_socket_idx": 1
+   }
+  ]
+ },
+ "HN_edit_tree": {
+  "name": "Shader Nodetree",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [],
+  "nodes": {
+   "Group": {
+    "bl_idname": "ShaderNodeGroup",
+    "inputs": [
+     {
+      "show_expanded": true,
+      "HN_idx": 1
+     },
+     {
+      "default_value": 4.999999046325684,
+      "HN_idx": 5
+     }
+    ],
+    "location": [
+     -221.31732177734375,
+     116.68171691894531
+    ],
+    "name": "Group",
+    "width": 157.14532470703125,
+    "HN_nt_name": "Outline_Shader"
+   }
+  },
+  "links": []
+ },
+ "HN_preset_data": {
+  "preset_name": "Outline Material",
+  "pack_name": "Default Set",
+  "tree_type": "ShaderNodeTree",
+  "node_center": [
+   -221.31732177734375,
+   116.68171691894531
+  ],
+  "version": [
+   0,
+   3,
+   1
+  ]
+ }
+}

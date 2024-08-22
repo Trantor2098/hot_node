@@ -1,0 +1,198 @@
+{
+ "Compare Mix Shader": {
+  "name": "Compare Mix Shader",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [
+   {
+    "identifier": "Socket_0",
+    "in_out": "OUTPUT",
+    "index": 0,
+    "item_type": "SOCKET",
+    "name": "Shader",
+    "position": 0,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "identifier": "Socket_1",
+    "in_out": "INPUT",
+    "index": 1,
+    "item_type": "SOCKET",
+    "name": "Shader",
+    "position": 1,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "identifier": "Socket_2",
+    "in_out": "INPUT",
+    "index": 2,
+    "item_type": "SOCKET",
+    "name": "Dst Shader",
+    "position": 2,
+    "socket_type": "NodeSocketShader",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": 0.5,
+    "identifier": "Socket_3",
+    "in_out": "INPUT",
+    "index": 3,
+    "item_type": "SOCKET",
+    "max_value": 1.0,
+    "min_value": 0.0,
+    "name": "Compare x1",
+    "position": 3,
+    "socket_type": "NodeSocketFloat",
+    "HN_parent_idx": -1
+   },
+   {
+    "default_value": 0.5,
+    "identifier": "Socket_4",
+    "in_out": "INPUT",
+    "index": 4,
+    "item_type": "SOCKET",
+    "max_value": 2.0,
+    "min_value": -1.0,
+    "name": "Compare x0.1",
+    "position": 4,
+    "socket_type": "NodeSocketFloat",
+    "HN_parent_idx": -1
+   }
+  ],
+  "nodes": {
+   "Group Output": {
+    "bl_idname": "NodeGroupOutput",
+    "location": [
+     190.80592346191406,
+     0.0
+    ],
+    "name": "Group Output"
+   },
+   "Group Input": {
+    "bl_idname": "NodeGroupInput",
+    "location": [
+     -257.2278137207031,
+     -178.85690307617188
+    ],
+    "name": "Group Input"
+   },
+   "Math": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 0.10000000149011612,
+      "HN_idx": 1
+     }
+    ],
+    "location": [
+     -0.8059234619140625,
+     172.47064208984375
+    ],
+    "name": "Math",
+    "operation": "MULTIPLY"
+   },
+   "Math.001": {
+    "bl_idname": "ShaderNodeMath",
+    "inputs": [
+     {
+      "default_value": 0.019999999552965164,
+      "enabled": true,
+      "label": "Epsilon",
+      "HN_idx": 2
+     }
+    ],
+    "location": [
+     0.0786590576171875,
+     7.912841796875
+    ],
+    "name": "Math.001",
+    "operation": "COMPARE"
+   },
+   "Mix Shader": {
+    "bl_idname": "ShaderNodeMixShader",
+    "location": [
+     0.8059234619140625,
+     -172.47067260742188
+    ],
+    "name": "Mix Shader"
+   }
+  },
+  "links": [
+   {
+    "HN_from_node_name": "Math.001",
+    "HN_to_node_name": "Mix Shader",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Math",
+    "HN_to_node_name": "Math.001",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Mix Shader",
+    "HN_to_node_name": "Group Output",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 0
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix Shader",
+    "HN_from_socket_idx": 0,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Mix Shader",
+    "HN_from_socket_idx": 1,
+    "HN_to_socket_idx": 2
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Math.001",
+    "HN_from_socket_idx": 2,
+    "HN_to_socket_idx": 1
+   },
+   {
+    "HN_from_node_name": "Group Input",
+    "HN_to_node_name": "Math",
+    "HN_from_socket_idx": 3,
+    "HN_to_socket_idx": 0
+   }
+  ]
+ },
+ "HN_edit_tree": {
+  "name": "Shader Nodetree",
+  "bl_idname": "ShaderNodeTree",
+  "interface": [],
+  "nodes": {
+   "Group.008": {
+    "bl_idname": "ShaderNodeGroup",
+    "location": [
+     -955.2847900390625,
+     276.6586608886719
+    ],
+    "name": "Group.008",
+    "width": 166.53729248046875,
+    "HN_nt_name": "Compare Mix Shader"
+   }
+  },
+  "links": []
+ },
+ "HN_preset_data": {
+  "preset_name": "Compare Mix Shader",
+  "pack_name": "Default Set",
+  "tree_type": "ShaderNodeTree",
+  "node_center": [
+   -955.2847900390625,
+   276.6586608886719
+  ],
+  "version": [
+   0,
+   2,
+   0
+  ]
+ }
+}

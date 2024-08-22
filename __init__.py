@@ -31,13 +31,15 @@ bl_info = {
     "tracker_url": "https://github.com/Trantor2098/hot_node"
 }
 
+module_name = __name__
 
-from . import gui, operators, file, props_bl, ops_invoker, versioning, history
+
+from . import gui, operators, file, props_bl, ops_invoker, versioning, history, preferences
 
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser, node_setter, props_py, sync
+    from . import utils, file, node_parser, node_setter, props_py, sync, preferences, constants
     importlib.reload(props_bl)
     importlib.reload(props_py)
     importlib.reload(gui)
@@ -50,13 +52,16 @@ def dev_reload():
     importlib.reload(sync)
     importlib.reload(history)
     importlib.reload(versioning)
+    importlib.reload(preferences)
+    importlib.reload(constants)
     
     
 def register():
     dev_reload()
     
     file.init()
-
+    
+    preferences.register()
     props_bl.register()
     gui.register()
     operators.register()
@@ -68,6 +73,7 @@ def register():
 def unregister():
     file.finalize()
     
+    preferences.unregister()
     gui.unregister()
     operators.unregister()
     props_bl.unregister()

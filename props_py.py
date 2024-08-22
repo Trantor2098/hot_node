@@ -19,7 +19,14 @@
 
 
 # ======== About Packs & Presets
+# TODO put presets in packs
 class Pack():
+    
+    contain_shader_tree = False
+    contain_geometry_tree = False
+    contain_compositor_tree = False
+    contain_texture_tree = False
+    
     def __init__(self, name):
         self.name = name
         
@@ -48,4 +55,5 @@ skip_step_checker_update = False
 # ======== About Hot Node Props
 skip_pack_rename_callback = False
 skip_preset_rename_callback = False
+skip_fast_create_preset_name_callback = False
 skip_preset_selected_callback = False

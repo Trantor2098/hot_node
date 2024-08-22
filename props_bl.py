@@ -139,7 +139,7 @@ def _pack_selected_name_update(self, context):
         
         
 def _fast_create_preset_name_update(self, context):
-    if props_py.skip_preset_rename_callback:
+    if props_py.skip_fast_create_preset_name_callback:
         return
     props = context.scene.hot_node_props
     presets = props.presets
@@ -148,12 +148,16 @@ def _fast_create_preset_name_update(self, context):
         # This is the same with what we do in operators.py
         ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
         edit_tree = context.space_data.edit_tree
+        step = history.Step(context, "Create Preset", 
+                            changed_paths=[file.pack_selected_meta_path],
+                            undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback)
             
         presets.add()
         # select newly created set
         length = len(presets)
         preset_selected_idx = length - 1
         props.preset_selected = preset_selected_idx
+        step.redo_callback_param = preset_selected_idx
         # set type
         presets[preset_selected_idx].type = edit_tree.bl_idname
         props_py.skip_preset_rename_callback = True
@@ -165,10 +169,12 @@ def _fast_create_preset_name_update(self, context):
         from . import node_parser
         node_parser.parse_node_preset(edit_tree)
         cpreset = node_parser.set_preset_data(ensured_fast_name, props_py.gl_pack_selected.name)
-        file.create_preset(ensured_fast_name, cpreset)
-    props_py.skip_preset_rename_callback = True
+        preset_path = file.create_preset(ensured_fast_name, cpreset)
+        step.created_paths = [preset_path]
+        
+    props_py.skip_fast_create_preset_name_callback = True
     props.fast_create_preset_name = ""
-    props_py.skip_preset_rename_callback = False
+    props_py.skip_fast_create_preset_name_callback = False
     
     
 def _step_checker_update(self, context):
@@ -242,17 +248,17 @@ class HotNodeProps(bpy.types.PropertyGroup):
         ]
     ) # type: ignore
     
-    tex_default_mode: EnumProperty(
-        name="Texture Default Mode",
-        description="Default texture saving mode when save the preset",
-        # options=set(),
-        items=[
-            ('AUTO', "Auto", "Try to open textures with the order Name Compare > Fixed Path > Stay Empty"),
-            ('SIMILAR', "Similar", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
-            ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
-            ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
-        ]
-    ) # type: ignore
+    # tex_default_mode: EnumProperty(
+    #     name="Texture Default Mode",
+    #     description="Default texture saving mode when save the preset",
+    #     # options=set(),
+    #     items=[
+    #         ('AUTO', "Auto", "Try to open textures with the order Name Compare > Fixed Path > Stay Empty"),
+    #         ('SIMILAR', "Similar", "Compare the texture names and open the best mattched one from user folder, stay empty when failed"),
+    #         ('FIXED_PATH', "Fixed Path", "Try to open this texture with it's current path, keep empty if failed"),
+    #         ('STAY_EMPTY', "Stay Empty", "Don't load texture for this texture node"),
+    #     ]
+    # ) # type: ignore
     
     tex_key: StringProperty(
         name="Texture Key",
@@ -287,23 +293,23 @@ class HotNodeProps(bpy.types.PropertyGroup):
         update=_step_checker_update
     ) # type: ignore
     
-    overwrite_tree_io: BoolProperty(
-        name='Overwrite Tree IO',
-        description="Overwrite node tree interface (IO sockets, panels) if the existing one is not capatibale with the one in preset. Note: If open, your original node tree interface will be changed and the links to them will be disappeared",
-        default=False,
-    ) # type: ignore
+    # overwrite_tree_io: BoolProperty(
+    #     name='Overwrite Tree IO',
+    #     description="Overwrite node tree interface (IO sockets, panels) if the existing one is not capatibale with the one in preset. Note: If open, your original node tree interface will be changed and the links to them will be disappeared",
+    #     default=False,
+    # ) # type: ignore
     
-    in_one_menu: BoolProperty(
-        name='In One Menu',
-        description="Put packs into one menu rather than listing all of them on the node add menu",
-        default=False,
-    ) # type: ignore
+    # in_one_menu: BoolProperty(
+    #     name='In One Menu',
+    #     description="Put packs into one menu rather than listing all of them on the node add menu",
+    #     default=False,
+    # ) # type: ignore
 
-    extra_confirm: BoolProperty(
-        name='Extra Confirmation',
-        description="Popup a confirmation window when save & delete preset or packs, since it can't be undo",
-        default=False,
-    ) # type: ignore
+    # extra_confirm: BoolProperty(
+    #     name='Extra Confirmation',
+    #     description="Popup a confirmation window when save & delete preset or packs, since it can't be undo",
+    #     default=False,
+    # ) # type: ignore
 
 
 classes = (

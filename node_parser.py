@@ -197,8 +197,6 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 cobj[attr] = result
         # parse bpy_prop_collection attr, it's a list of props
         elif isinstance(value, bpy.types.bpy_prop_collection):
-            print("this is the value:")
-            print(value)
             length = len(value)
             ilength = len(ivalue)
             celements = []
@@ -238,7 +236,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 
         # parse special classes
         elif isinstance(value, bpy.types.Image):
-            cobj[attr] = parse_image(value, bpy.context.scene.hot_node_props.tex_default_mode)
+            cobj[attr] = parse_image(value, bpy.context.preferences.addons[__package__].preferences.tex_default_mode)
         # if a node refers to a related node attributes, we just get refered node's name for our setter to get a ref
         elif isinstance(value, bpy.types.Node) and attr != "node":
             cobj["HN_ref2_node_attr"] = attr
@@ -373,7 +371,8 @@ def parse_node_tree(node_tree: bpy.types.NodeTree, parse_all=False):
 def parse_node_preset(edit_tree: bpy.types.NodeTree):
     '''Top level parser, parse edit_tree and it's sons into hot node json data. Will update the preset cache.
     
-    - edit_tree: Node tree on current user node editor interface.'''
+    - edit_tree: Node tree on current user node editor interface.
+    - Return: cpreset_cache'''
     global cpreset_cache
     cpreset_cache = {}
     sorted_ngs = record_node_group_names(edit_tree)

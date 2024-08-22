@@ -70,7 +70,7 @@ def ensure_dir_existing(dir_path):
         
 def check_sync():
     global last_mtime
-    mtime_data = refresh_root_meta_cache_and_get_mtime_data()
+    mtime_data = get_mtime_data_and_refresh_root_meta_cache()
     if mtime_data != last_mtime:
         last_mtime = mtime_data
         return False
@@ -119,7 +119,7 @@ def get_pack_mtime(pack_name):
 
 
 # Get & Set Meta
-def refresh_root_meta_cache_and_get_mtime_data():
+def get_mtime_data_and_refresh_root_meta_cache():
     global root_meta_cache
     root_meta_cache = read_root_meta()
     mtime_data = root_meta_cache.get("last_mtime", 0.0)
@@ -130,6 +130,14 @@ def update_root_meta_cache_mtime():
     global root_meta_cache, last_mtime
     last_mtime = time.time()
     root_meta_cache["last_mtime"] = last_mtime
+    
+    
+def update_mtime_data():
+    global root_meta_cache, last_mtime
+    root_meta_cache = read_root_meta()
+    last_mtime = time.time()
+    root_meta_cache["last_mtime"] = last_mtime
+    write_root_meta()
 
     
 # CRUD of Json
@@ -154,7 +162,9 @@ def write_pack_meta(pack_path: str, meta_data: dict):
     write_json(meta_path, meta_data)
     
     
-def write_root_meta():
+def write_root_meta(update_mtime=False):
+    if update_mtime:
+        update_root_meta_cache_mtime()
     write_json(root_meta_path, root_meta_cache)
     
     
@@ -279,9 +289,11 @@ def create_pack(pack_name):
 def delete_pack(pack_name):
     pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
     shutil.rmtree(pack_dir_path)
+    update_mtime_data()
     return pack_dir_path
 
 
+# not used
 def clear_pack(pack_names):
     for pack_name in pack_names:
         delete_pack(pack_name)
@@ -293,7 +305,7 @@ def rename_pack(old_pack_name, new_pack_name):
     os.rename(old_path, new_path)
     # reload packs to get the right order of packs
     load_packs()
-    update_root_meta_cache_mtime()
+    update_mtime_data()
     select_pack(props_py.gl_packs[new_pack_name])
 
 
@@ -602,7 +614,7 @@ def init():
     ensure_pack_root()
     ensure_dir_existing(history_dir_path)
     autosave_packs()
-    last_mtime = refresh_root_meta_cache_and_get_mtime_data()
+    last_mtime = get_mtime_data_and_refresh_root_meta_cache()
     pack_selected_name = root_meta_cache["pack_selected"]
     props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
     

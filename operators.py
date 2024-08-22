@@ -25,10 +25,12 @@ from bpy.props import StringProperty
 from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sync, history
 
     
-def _ensure_sync(ops: Operator, context: bpy.types.Context, use_report=True):
+def _ensure_sync(ops: Operator|None, context: bpy.types.Context, use_report=True):
     if not file.check_sync():
+        # history.steps.clear()
+        # history.undid_steps.clear()
         sync.sync(context)
-        if use_report:
+        if use_report and ops is not None:
             ops.report({'WARNING'}, "Out of sync, nothing happend but auto refreshing. Now it's READY!")
         return False
     return True
@@ -39,7 +41,7 @@ def _poll_preset_ops(context):
 
 
 def _exec_pop_confirm_if_need(ops, context, event):
-    if context.scene.hot_node_props.extra_confirm:
+    if context.preferences.addons[__package__].preferences.extra_confirm:
         wm = context.window_manager
         return wm.invoke_confirm(ops, event)
     else:
@@ -49,7 +51,7 @@ def _exec_pop_confirm_if_need(ops, context, event):
 # Operator Functions
 def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
     if not _ensure_sync(ops, context):
-            return {'CANCELLED'}
+        return {'CANCELLED'}
     step = history.Step(context, "Create Preset", 
                         changed_paths=[file.pack_selected_meta_path],
                         undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback)
@@ -58,6 +60,7 @@ def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
     edit_tree = context.space_data.edit_tree
     step.undo_callback_param = props.preset_selected
     # escape rename. The default name is "Preset"... Do this first to check sync
+    # TODO if there is only a ng, set the ng name as the preset name
     new_full_name = utils.ensure_unique_name_dot("Preset", -1, presets)
     
     presets.add()
@@ -114,7 +117,7 @@ def preset_delete(ops: Operator, context, use_report=True):
 def preset_clear(ops: Operator, context: bpy.types.Context, use_report=True):
     if not _ensure_sync(ops, context):
             return {'CANCELLED'}
-    pack = props_py.gl_preset_selected
+    pack = props_py.gl_pack_selected
     props = context.scene.hot_node_props
     history.Step(context, "Clear Preset", 
                  deleted_paths=[file.pack_selected_path])
@@ -337,6 +340,7 @@ def pack_delete(ops: Operator, context: bpy.types.Context, is_his=False):
     del packs[pack_name]
     del pack_names[pack_selected_idx]
     file.delete_pack(pack_name)
+    file.update_mtime_data()
     # note the length is the original length - 1
     length = len(packs)
 

@@ -23,7 +23,7 @@ from bpy.types import Menu, Panel, UIList
 
 import time
 
-from . import file, props_py, ops_invoker, sync
+from . import __init__, file, props_py, ops_invoker, sync, history
 
 
 type_icon = {
@@ -48,6 +48,8 @@ def add_gui_info(message, duration):
 
 def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
     _ensure_sync()
+    # TODO reduce empty pack
+    # edit_tree_type = context.space_data.edit_tree.bl_idname
     if props_py.gl_packs != []:
         self.layout.separator()
         for pack in props_py.gl_packs:
@@ -96,8 +98,11 @@ def _sync_root_by_gui_idle_time():
     last_darw_time = current_time
     
     
+# TODO ensure sync all in one in sync.py
 def _ensure_sync():
     if not file.check_sync():
+        # history.steps.clear()
+        # history.undid_steps.clear()
         sync.sync()
         ops_invoker.late_refresh()
     
@@ -116,6 +121,7 @@ class HOTNODE_MT_specials(Menu):
     bl_label = "Node Preset Specials"
     
     def draw(self, context):
+        addon_prefs = context.preferences.addons[__package__].preferences
         props = context.scene.hot_node_props
         layout = self.layout
         
@@ -134,13 +140,13 @@ class HOTNODE_MT_specials(Menu):
         
         # Nodes Settings
         layout.separator()
-        layout.prop(props, "overwrite_tree_io")
-        layout.prop(props, "tex_default_mode", icon='PREFERENCES', text="")
+        layout.prop(addon_prefs, "overwrite_tree_io")
+        layout.prop(addon_prefs, "tex_default_mode", icon='PREFERENCES', text="")
         
         # Add-on Settings
         layout.separator()
-        layout.prop(props, "in_one_menu")
-        layout.prop(props, "extra_confirm")
+        layout.prop(addon_prefs, "in_one_menu")
+        layout.prop(addon_prefs, "extra_confirm")
                      
         
 class HOTNODE_MT_nodes_add(Menu):
@@ -154,7 +160,7 @@ class HOTNODE_MT_nodes_add(Menu):
     def draw(self, context):
         layout = self.layout
         tree_type = context.space_data.tree_type
-        # TODO transfer to presets_cache rather than read presets.
+        # TODO transfer all packs to presets_cache rather than read presets.
         preset_names, tree_types = file.read_presets(self.bl_label)
         
         row = layout.row()
@@ -322,7 +328,7 @@ class HOTNODE_PT_pack_import_export(HOTNODE_PT_parent, Panel):
         
         
 def draw_ex_nodes_add_menu(self, context):
-    if context.scene.hot_node_props.in_one_menu:
+    if context.preferences.addons[__package__].preferences.in_one_menu:
         self.layout.separator()
         self.layout.menu("HOTNODE_MT_nodes_add_in_one", text="Nodes")
     else:

@@ -1,0 +1,31 @@
+{
+ "order": [
+  "Outline Material",
+  "Colorful Ray",
+  "Cull Shadow",
+  "DXT5nm Normal Unpack",
+  "Leather Shader",
+  "Skin Shader",
+  "Panty Shader",
+  "Iron Kalie Shader",
+  "Compare Mix Shader",
+  "Outline Geo 1.0"
+ ],
+ "tree_types": {
+  "Outline Material": "ShaderNodeTree",
+  "Colorful Ray": "ShaderNodeTree",
+  "Cull Shadow": "ShaderNodeTree",
+  "DXT5nm Normal Unpack": "ShaderNodeTree",
+  "Leather Shader": "ShaderNodeTree",
+  "Skin Shader": "ShaderNodeTree",
+  "Panty Shader": "ShaderNodeTree",
+  "Iron Kalie Shader": "ShaderNodeTree",
+  "Compare Mix Shader": "ShaderNodeTree",
+  "Outline Geo 1.0": "GeometryNodeTree"
+ },
+ "version": [
+  0,
+  3,
+  1
+ ]
+}
