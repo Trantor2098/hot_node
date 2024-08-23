@@ -2,9 +2,19 @@ ChangeLog
 ========
 
 
-[0.5.0] - 2024-08-15
+[0.5.0] - 2024-08-24
+--------
+
 ### Added
 - **Undo & Redo Supported.**
+- Stability significantly improved.
+
+### Changed
+- Improved UI performance in ```Shift A``` menu.
+Now you can see all your packs in ```Shift A``` and choose whether to join them into one menu.
+
+### Deprecated
+- ```Extra Confirm``` checker.
 
 ### Fixed
 - Undo causes error.
