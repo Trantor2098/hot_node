@@ -21,7 +21,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 4, 2),
+    "version": (0, 5, 0),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
@@ -31,51 +31,51 @@ bl_info = {
     "tracker_url": "https://github.com/Trantor2098/hot_node"
 }
 
+module_name = __name__
 
-import bpy
 
-from . import gui,  properties, operators, file
+from . import gui, operators, file, props_bl, ops_invoker, versioning, history, preferences
 
 
 def dev_reload():
     import importlib
-    from . import utils, file, node_parser, node_setter, version_control
+    from . import utils, file, node_parser, node_setter, props_py, sync, preferences, constants
+    importlib.reload(props_bl)
+    importlib.reload(props_py)
     importlib.reload(gui)
-    importlib.reload(properties)
     importlib.reload(operators)
+    importlib.reload(ops_invoker)
     importlib.reload(node_parser)
     importlib.reload(node_setter)
     importlib.reload(utils)
     importlib.reload(file)
-    importlib.reload(version_control)
+    importlib.reload(sync)
+    importlib.reload(history)
+    importlib.reload(versioning)
+    importlib.reload(preferences)
+    importlib.reload(constants)
     
     
-# Functions for Calling Operators
-def execute_refresh():
-    try:
-        bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
-        return None
-    except AttributeError:
-        # '_RestrictContext' object has no attribute 'view_layer'
-        # if the registing is not finished yet, bpy.app.timer will take another 0.1s wait to call this func again
-        return 0.1
-
-
 def register():
     dev_reload()
     
     file.init()
-
-    gui.register()
-    properties.register()
-    operators.register()
     
-    bpy.app.timers.register(execute_refresh, first_interval=0.1)
+    preferences.register()
+    props_bl.register()
+    gui.register()
+    operators.register()
+    history.register()
+    
+    ops_invoker.late_refresh(0.1)
 
 
 def unregister():
     file.finalize()
     
+    preferences.unregister()
     gui.unregister()
-    properties.unregister()
     operators.unregister()
+    props_bl.unregister()
+    history.unregister()
+    

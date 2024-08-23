@@ -23,7 +23,7 @@ import bpy
 import os
 from mathutils import Vector
 
-from . import file, utils, node_parser, version_control
+from . import file, utils, node_parser, versioning, constants
 
 # NOTE 
 # In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
@@ -47,8 +47,6 @@ type_b_attrs_setter = (
     ("location", "filepath", "name"),
     None),
 )
-
-node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 failed_tex_num = 0
 
@@ -361,7 +359,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             
         # Set Special Nodes. TODO Change to delegates
         # set node's sub node tree if node is ng
-        if bl_idname in node_group_id_names:
+        if bl_idname in constants.node_group_id_names:
             node.node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
         # set node's image
         elif bl_idname in ("NodeGroupInput", "NodeGroupOutput"):
@@ -473,7 +471,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     node_groups = bpy.data.node_groups
     # maybe cdata, but we call it cnode_trees
     cnode_trees = file.load_preset(preset_name, pack_name=pack_name)
-    cnode_trees = version_control.check_update_preset_version(preset_name, cnode_trees)
+    cnode_trees = versioning.ensure_preset_version(preset_name, cnode_trees)
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():
@@ -487,7 +485,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
             for full_name in node_groups.keys():
                 name, int_suffix = utils.split_name_suffix(full_name)
                 if name == cname:
-                    cexist_tree = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
+                    cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
                     if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"),)):
                         cnode_tree["HN_ref"] = node_groups[cname]
                         found_same = True
@@ -497,7 +495,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         # if preset it self have suffix, just compare the one with the same suffix
         else:
             if node_groups.find(cname) != -1:
-                cexist_tree = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
+                cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
                 # may be just use == is ok...
                 if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"),)):
                     cnode_tree["HN_ref"] = node_groups[cname]
@@ -521,7 +519,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         link_group_io = True
     # if tree io is not capatible and has group io node, let user to choose whether to reset tree io or not
     elif check_group_io_node(cnode_trees["HN_edit_tree"]["nodes"]):
-        set_tree_io = bpy.context.scene.hot_node_props.overwrite_tree_io
+        set_tree_io = context.preferences.addons[__package__].preferences.overwrite_tree_io
         link_group_io = set_tree_io
     # if dont have group io node, dont need to set tree io
     else:

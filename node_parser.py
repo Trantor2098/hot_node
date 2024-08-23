@@ -21,7 +21,7 @@
 import bpy
 import mathutils
 
-from . import utils
+from . import utils, constants
 
 # Properties for Parsing Nodes
 
@@ -51,11 +51,11 @@ _type_wb_attrs_parser = (
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output"),
     None),
     ((bpy.types.ShaderNodeGroup, bpy.types.GeometryNodeGroup, bpy.types.CompositorNodeGroup),
-     ("bl_idname",),
+     ("bl_idname", "location"),
      ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "interface"),
     None),
     (bpy.types.GeometryNodeCaptureAttribute,
-    ("bl_idname",),
+    ("bl_idname", "capture_items", "location"),
     ("rna_type", "dimensions", 'select', 'is_active_output', "internal_links", "rna_type"),
     "parse_capture_items"),
     (bpy.types.NodeFrame,
@@ -75,7 +75,7 @@ _type_wb_attrs_parser = (
     (),
     None),
     ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem),
-    ("socket_type", "name",),
+    ("socket_type", "name"),
     ("color", "rna_type"),
     None),
 )
@@ -86,12 +86,15 @@ _type_wb_attrs_parser = (
 class SpecialParser():
     
     @staticmethod
-    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj):
+    def parse_capture_items(obj: bpy.types.GeometryNodeCaptureAttribute, cobj: dict):
+        # Here we already parsed the ccapture_items, but we should add some own params into the cobj.
         # XXX data_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
         # why blender dont have a socket_type attribute in CaptureAttributeItem??
         # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
         capture_items = obj.capture_items
-        ccapture_items = cobj["capture_items"]
+        ccapture_items = cobj.get("capture_items", None)
+        if ccapture_items is None:
+            return
         length = len(capture_items)
         for i in range(length):
             data_type = capture_items[i].data_type
@@ -147,11 +150,6 @@ def decode_compare_value(value, ivalue=None):
         vector = list(value)
         if ivalue is not None and type(value) == type(ivalue) and list(ivalue) == vector and vector != None:
             is_default = True
-        # XXX precision control, i'm not sure if i should add this user optional function...
-        # length = len(vector)
-        # result = [0.0] * length
-        # for i in length:
-        #     result[i] = round(4)
         result = vector
     elif isinstance(value, (bool, int, str, float, bpy.types.EnumProperty)):
         if ivalue is not None and value == ivalue:
@@ -167,14 +165,15 @@ def parse_attrs_simply(obj, attrs: tuple):
         if hasattr(obj, attr):
             value = getattr(obj, attr)
             if isinstance(value, (mathutils.Vector, 
-                            mathutils.Euler, 
-                            mathutils.Color, 
-                            bpy.types.bpy_prop_array)):
+                                  mathutils.Euler, 
+                                  mathutils.Color, 
+                                  bpy.types.bpy_prop_array)):
                 value = list(value)
             cobj[attr] = value
     return cobj
 
 
+# XXX have a better structure
 def parse_attrs(obj, iobj=None, white_only=False):
     '''Parse and record node's attrs to cnode, it's a universal, helpful and powerful function.
 
@@ -218,7 +217,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 result, is_default = decode_compare_value(element, ielement)
                 
                 # some common value
-                if result:
+                if result is not None:
                     if not is_default or attr in white_attrs:
                         celement = result
                 # some class...
@@ -231,12 +230,13 @@ def parse_attrs(obj, iobj=None, white_only=False):
                 if celement:
                     celements.append(celement)
                     celement["HN_idx"] = i
-            if celements:
-                    cobj[attr] = celements
+            # XXX should I add this "if"?
+            if celements != []:
+                cobj[attr] = celements
                 
         # parse special classes
         elif isinstance(value, bpy.types.Image):
-            cobj[attr] = parse_image(value, bpy.context.scene.hot_node_props.tex_default_mode)
+            cobj[attr] = parse_image(value, bpy.context.preferences.addons[__package__].preferences.tex_default_mode)
         # if a node refers to a related node attributes, we just get refered node's name for our setter to get a ref
         elif isinstance(value, bpy.types.Node) and attr != "node":
             cobj["HN_ref2_node_attr"] = attr
@@ -294,6 +294,7 @@ def parse_interface(node_tree: bpy.types.NodeTree):
 
 def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
     cnodes = {}
+    states = None
     for node in nodes:
         # note that in a node group every nodes are un-selected, we should consider it.
         if parse_all or node.select:
@@ -318,7 +319,17 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
                 
             nodes.remove(inode)
             cnodes[name] = cnode
-    return cnodes
+    if len(cnodes) == 1:
+        # Can i dont use for to get the only value?
+        for cnode in cnodes.values():
+            if cnode["bl_idname"] in constants.node_group_id_names:
+                states = cnode.get("label", cnode["HN_nt_name"])
+            else:
+                name = cnode["name"]
+                name, _ = utils.split_name_suffix(name)
+                states = cnode.get("label", name)
+        
+    return cnodes, states
 
 
 def parse_links(links, parse_all=False):
@@ -360,31 +371,33 @@ def parse_node_tree(node_tree: bpy.types.NodeTree, parse_all=False):
     cnode_tree["bl_idname"] = node_tree.bl_idname
     nodes = node_tree.nodes
     links = node_tree.links
+    states = None
 
     cnode_tree["interface"] = parse_interface(node_tree)
-    cnode_tree['nodes'] = parse_nodes(nodes, parse_all=parse_all)
+    cnode_tree['nodes'], states = parse_nodes(nodes, parse_all=parse_all)
     cnode_tree["links"] = parse_links(links, parse_all=parse_all)
 
-    return cnode_tree
+    return cnode_tree, states
 
 
 def parse_node_preset(edit_tree: bpy.types.NodeTree):
     '''Top level parser, parse edit_tree and it's sons into hot node json data. Will update the preset cache.
     
-    - edit_tree: Node tree on current user node editor interface.'''
+    - edit_tree: Node tree on current user node editor interface.
+    - Return: cpreset_cache'''
     global cpreset_cache
     cpreset_cache = {}
     sorted_ngs = record_node_group_names(edit_tree)
     # sort ng name by level, ensure the lower ones are ranked first
     for nt_name, level in sorted_ngs:
         ng_tree = bpy.data.node_groups[nt_name]
-        cnode_tree = parse_node_tree(ng_tree, parse_all=True)
+        cnode_tree, _ = parse_node_tree(ng_tree, parse_all=True)
         cpreset_cache[nt_name] = cnode_tree
         
-    cedit_tree = parse_node_tree(edit_tree)
+    cedit_tree, states = parse_node_tree(edit_tree)
     cpreset_cache["HN_edit_tree"] = cedit_tree
     
-    return cpreset_cache
+    return cpreset_cache, states
 
 
 def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, level=1) -> list:
@@ -420,7 +433,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
         return 'NO_NODE_SELECTED'
     if not hasattr(node, "image"):
         return 'NOT_TEX_NODE'
-    from . properties import allow_tex_save
+    from .props_bl import allow_tex_save
     if not allow_tex_save:
         return 'NOT_PRESET_SELECTED'
     
@@ -442,7 +455,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
 
 
 def set_preset_data(preset_name, pack_name, cpreset=None):
-    from . version_control import version
+    from .versioning import version
     # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
         global cpreset_cache

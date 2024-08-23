@@ -2,7 +2,18 @@ ChangeLog
 ========
 
 
-[0.4.2] - 2024-08-09
+[0.5.0] - 2024-08-15
+### Added
+- **Undo & Redo Supported.**
+
+### Fixed
+- Undo causes error.
+- Node ```Capture Attribute``` causes error.
+- Improved stability of ```Node Group```.
+- Improved stability of exporting packs.
+
+
+[0.4.2] - 2024-08-01
 --------
 
 ### Fixed
