@@ -67,7 +67,7 @@ def register():
     operators.register()
     history.register()
     
-    ops_invoker.late_refresh()
+    ops_invoker.late_refresh(0.1)
 
 
 def unregister():

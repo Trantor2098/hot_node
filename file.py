@@ -19,7 +19,7 @@
 
 import os, shutil, json, zipfile, tempfile, time
 
-from . import utils, props_py
+from . import utils, props_py, constants
 from . __init__ import bl_info
 
 
@@ -118,7 +118,7 @@ def get_pack_mtime(pack_name):
     return os.path.getmtime(pack_meta_path)
 
 
-# Get & Set Meta
+# Get & Set Meta Data
 def get_mtime_data_and_refresh_root_meta_cache():
     global root_meta_cache
     root_meta_cache = read_root_meta()
@@ -138,7 +138,40 @@ def update_mtime_data():
     last_mtime = time.time()
     root_meta_cache["last_mtime"] = last_mtime
     write_root_meta()
+    
+    
+def update_pack_types(pack_name: str, write_meta=True):
+    pack_meta: dict = read_pack_meta(pack_name)
+    pack_types = []
+    tree_types = list(pack_meta["tree_types"].values())
+    for tree_type in constants.tree_type_id_names:
+        if tree_type in tree_types and tree_type not in pack_types:
+            pack_types.append(tree_type)
+    pack_meta["pack_types"] = pack_types
+    if write_meta:
+        pack_path = get_pack_path(pack_name)
+        write_pack_meta(pack_path, pack_meta)
+    return pack_meta
 
+
+def update_pack_types_of_meta(pack_meta: dict):
+    pack_types = []
+    tree_types = list(pack_meta["tree_types"].values())
+    for tree_type in constants.tree_type_id_names:
+        if tree_type in tree_types and tree_type not in pack_types:
+            pack_types.append(tree_type)
+    pack_meta["pack_types"] = pack_types
+    return pack_meta
+
+
+def get_pack_types(pack_name):
+    pack_meta: dict = read_pack_meta(pack_name)
+    pack_types = pack_meta.get("pack_types", None)
+    if pack_types is None:
+        pack_meta = update_pack_types(pack_name)
+        pack_types = pack_meta["pack_types"]
+    return pack_types
+    
     
 # CRUD of Json
 def write_json(file_path: str, data: dict):
@@ -279,6 +312,7 @@ def create_pack(pack_name):
     pack_selected_meta["order"] = []
     pack_selected_meta["tree_types"] = {}
     pack_selected_meta["version"] = version
+    pack_selected_meta["pack_types"] = []
     os.mkdir(pack_selected_path)
     write_metas(pack_selected_meta)
     # reload packs to get right order of packs
@@ -468,9 +502,11 @@ def create_preset(preset_name: str, cpreset: dict):
     pack_selected_meta = read_pack_meta()
     file_name = '.'.join((preset_name, 'json'))
     file_path = os.path.join(pack_selected_path, file_name)
+    tree_type = cpreset["HN_preset_data"]["tree_type"]
     pack_selected_meta["order"].append(preset_name)
-    pack_selected_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_selected_meta["tree_types"][preset_name] = tree_type
     pack_selected_meta["version"] = version
+    pack_selected_meta = update_pack_types_of_meta(pack_selected_meta)
     write_json(file_path, cpreset)
     write_metas(pack_selected_meta)
     return file_path
@@ -483,6 +519,7 @@ def update_preset(preset_name: str, cpreset: dict):
     file_path = os.path.join(pack_selected_path, file_name)
     pack_selected_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
     pack_selected_meta["version"] = version
+    pack_selected_meta = update_pack_types_of_meta(pack_selected_meta)
     write_json(file_path, cpreset)
     write_metas(pack_selected_meta)
     return file_path
@@ -494,6 +531,7 @@ def delete_preset(preset_name):
     file_path = os.path.join(pack_selected_path, file_name)
     pack_selected_meta["order"].remove(preset_name)
     del pack_selected_meta["tree_types"][preset_name]
+    pack_selected_meta = update_pack_types_of_meta(pack_selected_meta)
     os.remove(file_path)
     write_metas(pack_selected_meta)
     return file_path

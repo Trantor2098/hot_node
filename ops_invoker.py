@@ -44,29 +44,10 @@ def late_call_helper_ops(mode, param):
 
 def refresh():
     bpy.ops.node.hot_node_refresh('EXEC_DEFAULT')
-    
-    
-def report(type='INFO', message=''):
-    props_py.report_type = type
-    props_py.report_message = message
-    
-    
-def show_gui_info_directly():
-    bpy.ops.node.hot_node_show_gui_info('EXEC_DEFAULT')
-    
-    
-def show_gui_info(message):
-    props_py.gui_info = message
-    bpy.ops.node.hot_node_show_gui_info('EXEC_DEFAULT')
-    
-    
-def late_show_gui_info(message, interval=3.0):
-    props_py.gui_info = message
-    bpy.app.timers.register(show_gui_info_directly, first_interval=interval)
 
     
-def late_refresh():
-    bpy.app.timers.register(refresh)
+def late_refresh(interval=0.0):
+    bpy.app.timers.register(refresh, first_interval=interval)
     
     
 def update_pack_menu_for_pack_renaming(new_pack_name):

@@ -41,7 +41,7 @@ def ensure_preset_version(preset_name, cpreset):
     return cpreset
 
 
-def ensure_meta_version():
+def ensure_all_pack_meta_version():
     pass
     
     

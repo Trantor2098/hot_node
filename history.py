@@ -23,9 +23,15 @@ import bpy
 from collections import deque
 
 from . import file, ops_invoker, props_py, gui
+from . sync import ensure_ui_pack_name_sync, sync
 
 
 step_checker_cache = True
+
+# For syncing history between two thread.
+# Sometimes between two hot node steps there is a blender step changes our values. 
+# This helps us to do one more sync when undo to ensure the values won't be changed.
+last_undo_redo_excuted = 0
 
 
 class Step():
@@ -63,6 +69,8 @@ class Step():
         self.redo_callback = redo_callback
         self.undo_callback_param = undo_callback_param
         self.redo_callback_param = redo_callback_param
+        # used to undo "undo" when undo unsynced steps, protecting props from being modified by user undo.
+        self.discarded = False
         
         steps.appendleft(self)
         undid_steps.clear()
@@ -70,55 +78,71 @@ class Step():
         context.scene.hot_node_props.step_checker = not context.scene.hot_node_props.step_checker
     
     def undo(self, scene: bpy.types.Scene):
-        # Create Undo
-        self.his_created_paths = file.push_history(self.created_paths, "create")
-        file.del_paths(self.created_paths)
-        # Delete Undo
-        file.pull_history(self.deleted_paths, self.his_deleted_paths)
-        # Change Undo
-        new_his_changed_paths = file.push_history(self.changed_paths)
-        file.pull_history(self.changed_paths, self.his_changed_paths)
-        self.his_changed_paths = new_his_changed_paths
-        
-        if self.refresh:
-            ops_invoker.refresh()
-        if self.undo_callback is not None:
-            if isinstance(self.undo_callback, tuple):
-                for i, callback in enumerate(self.undo_callback):
-                    callback(scene, self.undo_callback_param[i])
-            else:
-                self.undo_callback(scene, self.undo_callback_param)
+        global last_undo_redo_excuted
+        if not file.check_sync():
+            discard_steps()
+        if self.discarded:
+            sync(scene.hot_node_props)
+            last_undo_redo_excuted = 3
+            infos = [f"Undo skipped: {self.name}.", "Synced from another file."]
+            gui.add_gui_infos(infos, 3.0, 'LINK_BLEND')
+        else:
+            # Create Undo
+            self.his_created_paths = file.push_history(self.created_paths, "create")
+            file.del_paths(self.created_paths)
+            # Delete Undo
+            file.pull_history(self.deleted_paths, self.his_deleted_paths)
+            # Change Undo
+            new_his_changed_paths = file.push_history(self.changed_paths)
+            file.pull_history(self.changed_paths, self.his_changed_paths)
+            self.his_changed_paths = new_his_changed_paths
             
-        print("Undo: " + self.name)
+            if self.refresh:
+                sync(scene.hot_node_props)
+            if self.undo_callback is not None:
+                if isinstance(self.undo_callback, tuple):
+                    for i, callback in enumerate(self.undo_callback):
+                        callback(scene, self.undo_callback_param[i])
+                else:
+                    self.undo_callback(scene, self.undo_callback_param)
+            gui.add_gui_infos([f"Undo: {self.name}"], 2.0, 'LOOP_BACK')
         
     def redo(self, scene: bpy.types.Scene):
-        # Create Redo
-        file.pull_history(self.created_paths, self.his_created_paths)
-        # Delete Redo
-        self.his_deleted_paths = file.push_history(self.deleted_paths, "delete")
-        file.del_paths(self.deleted_paths)
-        # Change Redo
-        new_his_changed_paths = file.push_history(self.changed_paths)
-        file.pull_history(self.changed_paths, self.his_changed_paths)
-        self.his_changed_paths = new_his_changed_paths
-        
-        if self.refresh:
-            ops_invoker.refresh()
-        if self.redo_callback is not None:
-            if isinstance(self.undo_callback, tuple):
-                for i, callback in enumerate(self.redo_callback):
-                    callback(scene, self.redo_callback_param[i])
-            else:
-                self.redo_callback(scene, self.redo_callback_param)
+        global last_undo_redo_excuted
+        if not file.check_sync():
+            discard_steps()
+        if self.discarded:
+            sync(scene.hot_node_props)
+            last_undo_redo_excuted = 3
+            infos = [f"Redo skipped: {self.name}.", "Synced from another file."]
+            gui.add_gui_infos(infos, 3.0, 'LINK_BLEND')
+        else:
+            # Create Redo
+            file.pull_history(self.created_paths, self.his_created_paths)
+            # Delete Redo
+            self.his_deleted_paths = file.push_history(self.deleted_paths, "delete")
+            file.del_paths(self.deleted_paths)
+            # Change Redo
+            new_his_changed_paths = file.push_history(self.changed_paths)
+            file.pull_history(self.changed_paths, self.his_changed_paths)
+            self.his_changed_paths = new_his_changed_paths
             
-        print("Redo: " + self.name)
+            if self.refresh:
+                sync(scene.hot_node_props)
+            if self.redo_callback is not None:
+                if isinstance(self.undo_callback, tuple):
+                    for i, callback in enumerate(self.redo_callback):
+                        callback(scene, self.redo_callback_param[i])
+                else:
+                    self.redo_callback(scene, self.redo_callback_param)
+            gui.add_gui_infos([f"Redo: {self.name}"], 2.0, 'LOOP_FORWARDS')
 
 
 steps: deque[Step] = deque(maxlen=256)
 undid_steps: list[Step] = []
 
 
-# Callbacks for step to call
+# Callbacks for step undo redo
 def select_pack_callback(scene: bpy.types.Scene, pack_name):
     props = scene.hot_node_props
     ops_invoker.call_helper_ops('PACK_SELECT', pack_name)
@@ -168,31 +192,49 @@ def preset_move_to(scene, src_dst_idx: tuple):
     presets[dst_idx].name = name
     presets[dst_idx].type = type
     props_py.skip_preset_rename_callback = False
-
+    
+    
+# Functios for modifying step states
+def discard_steps():
+    global steps
+    global undid_steps
+    for step in steps:
+        step.discarded = True
+    for step in undid_steps:
+        step.discarded = True
+    
 
 # Function to be registed
 def undo_redo_pre(scene, _):
     props_py.skip_preset_rename_callback = True
     props_py.skip_step_checker_update = True
+    props_py.skip_fast_create_preset_name_callback = True
+    props_py.skip_preset_selected_callback = True
 
 
 def undo_post(scene, _):
-    global steps, step_checker_cache
+    global steps, step_checker_cache, last_undo_redo_excuted
     step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will decrease by one and be detected (blender did this), 
     # which will bring us into our undo logic
     if step_checker_cache != step_checker and steps:
-        # if step_num is bigger than 2147483647... but who cares?
         step_checker_cache = step_checker
         step = steps.popleft()
         undid_steps.append(step)
         step.undo(scene)
+    else:
+        if last_undo_redo_excuted > 0:
+            last_undo_redo_excuted -= 1
+            sync(scene.hot_node_props)
+        ensure_ui_pack_name_sync(scene.hot_node_props, late_ensure=True)
     props_py.skip_preset_rename_callback = False
     props_py.skip_step_checker_update = False
+    props_py.skip_fast_create_preset_name_callback = False
+    props_py.skip_preset_selected_callback = False
         
         
 def redo_post(scene, _):
-    global steps, step_checker_cache
+    global steps, step_checker_cache, last_undo_redo_excuted
     step_checker = scene.hot_node_props.step_checker
     # if we are undoing hot node's operators, the step_num will increase by one and be detected (blender did this), 
     # which will bring us into our undo logic
@@ -201,8 +243,15 @@ def redo_post(scene, _):
         step = undid_steps.pop()
         steps.appendleft(step)
         step.redo(scene)
+    else:
+        if last_undo_redo_excuted:
+            last_undo_redo_excuted -= 1
+            sync(scene.hot_node_props)
+        ensure_ui_pack_name_sync(scene.hot_node_props, late_ensure=True)
     props_py.skip_preset_rename_callback = False
     props_py.skip_step_checker_update = False
+    props_py.skip_fast_create_preset_name_callback = False
+    props_py.skip_preset_selected_callback = False
 
 
 def register():

@@ -21,7 +21,7 @@
 import bpy
 import mathutils
 
-from . import utils
+from . import utils, constants
 
 # Properties for Parsing Nodes
 
@@ -294,6 +294,7 @@ def parse_interface(node_tree: bpy.types.NodeTree):
 
 def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
     cnodes = {}
+    states = None
     for node in nodes:
         # note that in a node group every nodes are un-selected, we should consider it.
         if parse_all or node.select:
@@ -318,7 +319,17 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
                 
             nodes.remove(inode)
             cnodes[name] = cnode
-    return cnodes
+    if len(cnodes) == 1:
+        # Can i dont use for to get the only value?
+        for cnode in cnodes.values():
+            if cnode["bl_idname"] in constants.node_group_id_names:
+                states = cnode.get("label", cnode["HN_nt_name"])
+            else:
+                name = cnode["name"]
+                name, _ = utils.split_name_suffix(name)
+                states = cnode.get("label", name)
+        
+    return cnodes, states
 
 
 def parse_links(links, parse_all=False):
@@ -360,12 +371,13 @@ def parse_node_tree(node_tree: bpy.types.NodeTree, parse_all=False):
     cnode_tree["bl_idname"] = node_tree.bl_idname
     nodes = node_tree.nodes
     links = node_tree.links
+    states = None
 
     cnode_tree["interface"] = parse_interface(node_tree)
-    cnode_tree['nodes'] = parse_nodes(nodes, parse_all=parse_all)
+    cnode_tree['nodes'], states = parse_nodes(nodes, parse_all=parse_all)
     cnode_tree["links"] = parse_links(links, parse_all=parse_all)
 
-    return cnode_tree
+    return cnode_tree, states
 
 
 def parse_node_preset(edit_tree: bpy.types.NodeTree):
@@ -379,13 +391,13 @@ def parse_node_preset(edit_tree: bpy.types.NodeTree):
     # sort ng name by level, ensure the lower ones are ranked first
     for nt_name, level in sorted_ngs:
         ng_tree = bpy.data.node_groups[nt_name]
-        cnode_tree = parse_node_tree(ng_tree, parse_all=True)
+        cnode_tree, _ = parse_node_tree(ng_tree, parse_all=True)
         cpreset_cache[nt_name] = cnode_tree
         
-    cedit_tree = parse_node_tree(edit_tree)
+    cedit_tree, states = parse_node_tree(edit_tree)
     cpreset_cache["HN_edit_tree"] = cedit_tree
     
-    return cpreset_cache
+    return cpreset_cache, states
 
 
 def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, level=1) -> list:

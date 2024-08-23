@@ -34,6 +34,10 @@ class Pack():
 gl_packs = {}
 # for script to get current selected pack, for CRUDing it.
 gl_pack_selected: Pack = None
+
+def get_gl_pack_selected_name():
+    return gl_pack_selected.name if gl_pack_selected is not None else ""
+
 # only for checking rename as a name cache, wont be used to get preset
 gl_preset_selected = ""
 

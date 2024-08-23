@@ -21,16 +21,15 @@
 import bpy
 from bpy.props import StringProperty, EnumProperty, CollectionProperty, IntProperty, BoolProperty, FloatProperty
 
-from . import utils, file, props_py, ops_invoker, history
+from . import utils, file, props_py, history
 
 
 # poll parameters
 allow_tex_save = False
 
 
-def select_pack(context, dst_pack: props_py.Pack):
+def select_pack(props, dst_pack: props_py.Pack):
     # to escaping overwrite 
-    props = context.scene.hot_node_props
     props_py.gl_pack_selected = dst_pack
     props_py.skip_pack_rename_callback = True
     props.pack_selected_name = dst_pack.name if dst_pack is not None else ""
@@ -167,7 +166,7 @@ def _fast_create_preset_name_update(self, context):
         
         # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
         from . import node_parser
-        node_parser.parse_node_preset(edit_tree)
+        cpreset, states = node_parser.parse_node_preset(edit_tree)
         cpreset = node_parser.set_preset_data(ensured_fast_name, props_py.gl_pack_selected.name)
         preset_path = file.create_preset(ensured_fast_name, cpreset)
         step.created_paths = [preset_path]
@@ -219,11 +218,16 @@ class HotNodeProps(bpy.types.PropertyGroup):
         update=_preset_select_update
     ) # type: ignore
     
+    useless_int: IntProperty(
+        name="A Test Int",
+        default=0
+    ) # type: ignore
+    
     # for user to change pack name.
     pack_selected_name: StringProperty(
         name="Selected Pack",
         description="Selected pack's name",
-        default=props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else "",
+        default=props_py.get_gl_pack_selected_name(),
         update=_pack_selected_name_update
     ) # type: ignore
     

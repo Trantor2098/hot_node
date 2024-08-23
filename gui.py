@@ -23,7 +23,7 @@ from bpy.types import Menu, Panel, UIList
 
 import time
 
-from . import __init__, file, props_py, ops_invoker, sync, history
+from . import file, props_py, sync
 
 
 type_icon = {
@@ -40,20 +40,34 @@ _pack_menu_num = 0
 
 last_darw_time = 0.0
 
+gui_info = None
+gui_info_duration = 3.0
+gui_info_icon = None
+gui_info_born_time = 0.0
 
-def add_gui_info(message, duration):
-    ops_invoker.show_gui_info(message)
-    ops_invoker.late_show_gui_info("", duration)
+
+def add_gui_infos(message: list[str], duration: float=3.0, icon: str|None=None):
+    global gui_info, gui_info_duration, gui_info_icon, gui_info_born_time
+    gui_info = message
+    gui_info_duration = duration
+    gui_info_icon = icon
+    gui_info_born_time = time.time()
 
 
 def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
-    _ensure_sync()
+    sync.ensure_sync(context, from_gui=True)
     # TODO reduce empty pack
-    # edit_tree_type = context.space_data.edit_tree.bl_idname
-    if props_py.gl_packs != []:
-        self.layout.separator()
-        for pack in props_py.gl_packs:
-            self.layout.menu(packs_Menus[pack].__name__)
+    edit_tree = context.space_data.edit_tree
+    if edit_tree is None:
+        return
+    if props_py.gl_packs != {}:
+        first_draw = True
+        for pack_name in props_py.gl_packs.keys():
+            if edit_tree.bl_idname in file.get_pack_types(pack_name):
+                if first_draw:
+                    self.layout.separator()
+                    first_draw = False
+                self.layout.menu(packs_Menus[pack_name].__name__)
             
             
 def create_pack_menu_class(pack_name: str):
@@ -90,21 +104,12 @@ def ensure_existing_pack_menu(pack_name: str|None=None):
             
         
 # Sync Functions, will be called in draw()
-def _sync_root_by_gui_idle_time():
+def _ensure_sync_by_gui_idle_time(context):
     global last_darw_time
     current_time = time.time()
     if current_time - last_darw_time > 0.7:
-        _ensure_sync()
+        sync.ensure_sync(context, from_gui=True)
     last_darw_time = current_time
-    
-    
-# TODO ensure sync all in one in sync.py
-def _ensure_sync():
-    if not file.check_sync():
-        # history.steps.clear()
-        # history.undid_steps.clear()
-        sync.sync()
-        ops_invoker.late_refresh()
     
 
 class HOTNODE_MT_pack_select(Menu):
@@ -112,9 +117,9 @@ class HOTNODE_MT_pack_select(Menu):
     
     def draw(self, context):
         layout = self.layout
-        for pack in props_py.gl_packs:
+        for pack_name in props_py.gl_packs.keys():
             # TODO use pack rather than pack name
-            layout.operator("node.hot_node_pack_select", text=pack).pack_name = pack
+            layout.operator("node.hot_node_pack_select", text=pack_name).pack_name = pack_name
 
 
 class HOTNODE_MT_specials(Menu):
@@ -127,7 +132,7 @@ class HOTNODE_MT_specials(Menu):
         
         # Refresh
         layout.operator("node.hot_node_refresh", icon='FILE_REFRESH')
-        layout.operator("node.hot_node_repair_corruption", icon='FILE_REFRESH')
+        # layout.operator("node.hot_node_repair_corruption", icon='FILE_REFRESH')
 
         # Move top / bottom
         layout.separator()
@@ -150,6 +155,7 @@ class HOTNODE_MT_specials(Menu):
                      
         
 class HOTNODE_MT_nodes_add(Menu):
+    '''A menu shows a pack's presets.'''
     # Take bl_label as pack name
     bl_label = ""
     
@@ -202,7 +208,8 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
     bl_idname = "HOTNODE_PT_nodes"
 
     def draw(self, context):
-        _sync_root_by_gui_idle_time()
+        global gui_info, gui_info_icon
+        _ensure_sync_by_gui_idle_time(context)
         # once packs changed, pack menu will be updated
         layout = self.layout
         props = context.scene.hot_node_props
@@ -249,10 +256,21 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
         
-        # Prompt Message
-        if context.space_data.edit_tree is None:
-            row = layout.row()
-            row.label(text="Open a node tree to start", icon="INFO")
+        # Prompts
+        # if context.space_data.edit_tree is None:
+        #     row = layout.row()
+        #     row.label(text="Open a node tree to start", icon="INFO")
+        if gui_info is not None:
+            if time.time() - gui_info_born_time < gui_info_duration:
+                for i, info in enumerate(gui_info):
+                    row = layout.row()
+                    if i == 0:
+                        row.label(text=info, icon=gui_info_icon)
+                    else:
+                        row.label(text=info, icon='BLANK1')
+            else:
+                gui_info = None
+                gui_info_icon = None
    
    
 class HOTNODE_PT_texture(HOTNODE_PT_parent, Panel):
