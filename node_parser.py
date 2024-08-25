@@ -74,7 +74,7 @@ _type_wb_attrs_parser = (
     ("name", "alpha_mode", "colorspace_settings", "filepath", "source"),
     (),
     None),
-    ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem),
+    ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem, bpy.types.RepeatItem),
     ("socket_type", "name"),
     ("color", "rna_type"),
     None),

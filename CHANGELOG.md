@@ -2,6 +2,18 @@ ChangeLog
 ========
 
 
+[0.5.1] - 2024-08-24
+--------
+
+### Fixed
+- Error occurs when applying preset with ```Repeat Zone```.
+
+### Recent New Features
+### Added
+- **Undo & Redo Supported.**
+- Stability significantly improved.
+
+
 [0.5.0] - 2024-08-24
 --------
 
@@ -12,6 +24,7 @@ ChangeLog
 ### Changed
 - Improved UI performance in ```Shift A``` menu.
 Now you can see all your packs in ```Shift A``` and choose whether to join them into one menu.
+- Preset name will be auto setted to the node name when creating preset with single selected node.
 
 ### Deprecated
 - ```Extra Confirm``` checker.

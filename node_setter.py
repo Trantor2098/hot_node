@@ -255,8 +255,11 @@ def new_element(obj, cobj, attr_name):
     def new(*parameter):
         getattr(obj, "new")(*parameter)
     # XXX it's weak. we should use some other way to specify it. maybe need to add an attr_owner...
+    
+    # i forgot what this is...
     if attr_name == "elements":
         new(cobj["position"])
+    # curve[i].points, for curvemap
     elif attr_name == "points":
         new(cobj["location"][0], cobj["location"][1])
 
@@ -287,6 +290,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         else:
             # length > clength, for when we only recorded part of the list
+            # TODO Risk: if max HN_idx actually is bigger than the length, but clength is lower...
             for i in range(clength):
                 set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name)
     elif isinstance(cobj, dict):
@@ -304,7 +308,12 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
                 if attr == "subtype" and cvalue == "":
                     cvalue = 'NONE'
-                setattr(obj, attr, cvalue)
+                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
+                try:
+                    setattr(obj, attr, cvalue)
+                except AttributeError:
+                    print(f"Hot Node Setter AttributeError: {attr} can't be set to the {obj}.")
+                # setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
@@ -374,6 +383,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
                 pass
             else:
                 node.image = tex
+        # TODO more beautiful...
         elif bl_idname == "GeometryNodeSimulationOutput":
             cstate_items = cnode.get("state_items", [])
             length = len(cstate_items)
@@ -381,11 +391,18 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             for i in range(1, length):
                 citem = cstate_items[i]
                 node.state_items.new(citem["socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeRepeatOutput":
+            crepeat_items = cnode.get("repeat_items", [])
+            length = len(crepeat_items)
+            # idx 0 is a build-in geometry socket, skip it
+            for i in range(1, length):
+                citem = crepeat_items[i]
+                node.repeat_items.new(citem["socket_type"], citem["name"])
         elif bl_idname == "GeometryNodeCaptureAttribute":
             capture_items = cnode.get("capture_items", [])
             for citem in capture_items:
                 node.capture_items.new(citem["HN_socket_type"], citem["name"])
-        elif bl_idname == "GeometryNodeSimulationInput":
+        elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeRepeatInput"):
             later_setup_cnodes[cnode['name']] = (node, cnode)
             continue
         
