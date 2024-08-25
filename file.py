@@ -232,7 +232,10 @@ def check_read_pack_meta(pack_name):
         return 'INEXISTENCE'
     metadata: dict = read_json(pack_meta_path)
     keys = list(metadata.keys())
-    if keys != ["order", "tree_types", "version"]:
+    # This cause uncompatible error
+    # if keys != ["order", "tree_types", "version", "pack_types"]:
+    #     return 'INVALID_META'
+    if "tree_types" not in keys:
         return 'INVALID_META'
     return metadata
 

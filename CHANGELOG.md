@@ -7,9 +7,9 @@ ChangeLog
 
 ### Fixed
 - Error occurs when applying preset with ```Repeat Zone```.
+- Emergency repaired pack import / recover error of 0.5.1.
 
 ### Recent New Features
-### Added
 - **Undo & Redo Supported.**
 - Stability significantly improved.
 

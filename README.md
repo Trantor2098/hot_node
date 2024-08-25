@@ -109,7 +109,7 @@ Aknowledgement
 --------
 
 ##### BUG Reporting & Suggestions
-Victoryluode, DKPress, 异次元学者, SatohamaUmika
+Victoryluode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika
 (In no particular order.)
 
 
