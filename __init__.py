@@ -21,7 +21,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 5, 2),
+    "version": (0, 5, 3),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
@@ -33,6 +33,8 @@ bl_info = {
 
 module_name = __name__
 
+import bpy
+from bpy.app.handlers import persistent
 
 from . import gui, operators, file, props_bl, ops_invoker, versioning, history, preferences
 
@@ -56,6 +58,20 @@ def dev_reload():
     importlib.reload(constants)
     
     
+@persistent
+def load_handler(_):
+    '''Will be called after a file is loaded.'''
+    # ensure the bl props are correct
+    preferences.unregister()
+    props_bl.unregister()
+    history.unregister()
+    preferences.register()
+    props_bl.register()
+    history.register()
+    
+    ops_invoker.late_refresh()
+
+    
 def register():
     dev_reload()
     
@@ -67,7 +83,10 @@ def register():
     operators.register()
     history.register()
     
-    ops_invoker.late_refresh(0.1)
+    # for reloading add-on
+    ops_invoker.late_refresh()
+    # for opening a new file (maybe the file lasts some legacy hot node data)
+    bpy.app.handlers.load_post.append(load_handler)
 
 
 def unregister():
@@ -79,3 +98,4 @@ def unregister():
     props_bl.unregister()
     history.unregister()
     
+    bpy.app.handlers.load_post.remove(load_handler)

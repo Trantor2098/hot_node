@@ -17,6 +17,7 @@
 #
 # END GPL LICENSE BLOCK #####
 
+
 import os, shutil, json, zipfile, tempfile, time
 
 from . import utils, props_py, constants
@@ -78,16 +79,13 @@ def check_sync():
 
 
 def check_pack_existing():
-    if os.path.exists(pack_selected_path):
-        return True
-    return False
+    return os.path.exists(pack_selected_path)
 
 
 def check_preset_existing(preset_name):
-    preset_path = os.path.join(pack_selected_path, preset_name)
-    if os.path.exists(preset_path):
-        return True
-    return False
+    file_name = '.'.join((preset_name, 'json'))
+    file_path = os.path.join(pack_selected_path, file_name)
+    return os.path.exists(file_path)
 
 
 # Get File Info & Path
@@ -174,9 +172,9 @@ def get_pack_types(pack_name):
     
     
 # CRUD of Json
-def write_json(file_path: str, data: dict):
+def write_json(file_path: str, data: dict, indent: int|str|None=None):
     with open(file_path, 'w', encoding='utf-8') as file:
-        json.dump(data, file, indent=1)
+        json.dump(data, file, indent=indent)
 
 
 def read_json(file_path) -> dict:
@@ -186,19 +184,19 @@ def read_json(file_path) -> dict:
     
 def write_metas(pack_selected_meta):
     update_root_meta_cache_mtime()
-    write_json(pack_selected_meta_path, pack_selected_meta)
-    write_json(root_meta_path, root_meta_cache)
+    write_json(pack_selected_meta_path, pack_selected_meta, 1)
+    write_json(root_meta_path, root_meta_cache, 1)
     
     
 def write_pack_meta(pack_path: str, meta_data: dict):
     meta_path = os.path.join(pack_path, ".metadata.json")
-    write_json(meta_path, meta_data)
+    write_json(meta_path, meta_data, 1)
     
     
 def write_root_meta(update_mtime=False):
     if update_mtime:
         update_root_meta_cache_mtime()
-    write_json(root_meta_path, root_meta_cache)
+    write_json(root_meta_path, root_meta_cache, 1)
     
     
 def read_pack_meta(pack_name: str|None=None):
@@ -590,6 +588,7 @@ def refresh_pack_meta(pack_name):
         pack_meta["tree_types"][preset_name] = preset["HN_preset_data"]["tree_type"]
         
     write_pack_meta(pack_path, pack_meta)
+    return filtered_preset_names, pack_meta
 
 
 def load_preset(preset_name, pack_name=""):
@@ -660,7 +659,8 @@ def init():
     props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
     
     
-def finalize():
+def finalize(remove_his_dir=True):
     autosave_packs()
     clear_outdated_autosave_packs()
-    shutil.rmtree(history_dir_path)
+    if os.path.exists(history_dir_path) and remove_his_dir:
+        shutil.rmtree(history_dir_path)

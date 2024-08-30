@@ -312,7 +312,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 try:
                     setattr(obj, attr, cvalue)
                 except AttributeError:
-                    print(f"Hot Node Setter AttributeError: {attr} can't be set to the {obj}.")
+                    print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
                 # setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:

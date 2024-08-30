@@ -14,7 +14,7 @@ Features
 Requirement
 --------
 
-- Blender 4.2 compatible.
+- Blender 4.2, 4.3 compatible.
 
 
 Installation
@@ -82,17 +82,6 @@ Packs can be imported / exported as zip files. In ```Pack Sharing``` panel:
 
 ### Details of Usage
 Here are some features in detail which may help you better using the Hot Node.
-
-##### Undo & Redo
-- ```Undo``` of ```Create```, ```Save```, ```Delete``` operations **haven't been supported yet**. For now you can turn on the ```Extra Comformation``` option in ```Node Preset Specials``` menu to prevent misoperation.
-
-##### Auto Sync
-When switched between .blend files and doing some operations, a warning may pop-up:
-```
-"Out of sync, nothing happend but auto refreshing. Now it's READY!"
-```
-Just as the message said, Hot Node refreshed itself, and now you can do the things you want.
-You can also refresh menually by clicking ```Refresh``` button.
 
 ##### Node Tree Interface Setup
 If your preset contains nodes like ```NodeGroupInput```, or your preset type is geometry, a node tree interface containing IO sockets will be needed. 

@@ -85,7 +85,7 @@ class Step():
             sync(scene.hot_node_props)
             last_undo_redo_excuted = 3
             infos = [f"Undo skipped: {self.name}.", "Synced from another file."]
-            gui.add_gui_infos(infos, 3.0, 'LINK_BLEND')
+            gui.set_gui_info(infos, 3.0, 'LINK_BLEND')
         else:
             # Create Undo
             self.his_created_paths = file.push_history(self.created_paths, "create")
@@ -105,7 +105,7 @@ class Step():
                         callback(scene, self.undo_callback_param[i])
                 else:
                     self.undo_callback(scene, self.undo_callback_param)
-            gui.add_gui_infos([f"Undo: {self.name}"], 2.0, 'LOOP_BACK')
+            gui.set_gui_info([f"Undo: {self.name}"], 2.0, 'LOOP_BACK')
         
     def redo(self, scene: bpy.types.Scene):
         global last_undo_redo_excuted
@@ -115,7 +115,7 @@ class Step():
             sync(scene.hot_node_props)
             last_undo_redo_excuted = 3
             infos = [f"Redo skipped: {self.name}.", "Synced from another file."]
-            gui.add_gui_infos(infos, 3.0, 'LINK_BLEND')
+            gui.set_gui_info(infos, 3.0, 'LINK_BLEND')
         else:
             # Create Redo
             file.pull_history(self.created_paths, self.his_created_paths)
@@ -135,7 +135,7 @@ class Step():
                         callback(scene, self.redo_callback_param[i])
                 else:
                     self.redo_callback(scene, self.redo_callback_param)
-            gui.add_gui_infos([f"Redo: {self.name}"], 2.0, 'LOOP_FORWARDS')
+            gui.set_gui_info([f"Redo: {self.name}"], 2.0, 'LOOP_FORWARDS')
 
 
 steps: deque[Step] = deque(maxlen=256)
@@ -262,7 +262,11 @@ def register():
 
 
 def unregister():
-    bpy.app.handlers.undo_pre.remove(undo_redo_pre)
-    bpy.app.handlers.undo_post.remove(undo_post)
-    bpy.app.handlers.redo_pre.remove(undo_redo_pre)
-    bpy.app.handlers.redo_post.remove(redo_post)
+    if undo_redo_pre in bpy.app.handlers.undo_pre:
+        bpy.app.handlers.undo_pre.remove(undo_redo_pre)
+    if undo_redo_pre in bpy.app.handlers.redo_pre:
+        bpy.app.handlers.redo_pre.remove(undo_redo_pre)
+    if undo_post in bpy.app.handlers.undo_post:
+        bpy.app.handlers.undo_post.remove(undo_post)
+    if redo_post in bpy.app.handlers.redo_post:
+        bpy.app.handlers.redo_post.remove(redo_post)

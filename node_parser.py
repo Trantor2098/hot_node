@@ -39,7 +39,7 @@ _required_attr_types = (
 _node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 # <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes, and special later parser func for special attrs.
-# NOTE the lowest type should be in the front, if there are parent relation between two types.
+# NOTE the smallest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 _type_wb_attrs_parser = (
     (bpy.types.NodeTreeInterfaceItem, 
@@ -62,6 +62,10 @@ _type_wb_attrs_parser = (
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "width", "height"),
     None),
+    (bpy.types.CompositorNodeColorBalance,
+    ("bl_idname", "location", "correction_method", "lift", "gamma", "gain", "offset", "power", "slope"),
+    ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type"),
+    "parse_compositor_node_color_balance"),
     (bpy.types.Node,
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type"),
@@ -102,6 +106,23 @@ class SpecialParser():
                 ccapture_items[i]["HN_socket_type"] = 'VECTOR'
             else:
                 ccapture_items[i]["HN_socket_type"] = data_type
+                
+    @staticmethod
+    def parse_compositor_node_color_balance(obj: bpy.types.CompositorNodeColorBalance, cobj: dict):
+        # Here we already parsed the color_balance, but different correction_method need to set different rbg values.
+        # e.g. mode OFFSET_POWER_SLOPE need to set offset, power, slope, but escaping setting lift, gamma, gain.
+        # if dont do so, setting a wrong value will make the node rgb values incorrect.
+        # NOTE Additionally, if both values like lift and offset are set (no matter by user or by our script),
+        # the node will be "crashed" and the rgb values will always be incorrect. It's a blender bug i think.
+        # For now we only ensure the user set mode's values are correct.
+        if obj.correction_method == 'LIFT_GAMMA_GAIN':
+            del cobj["offset"]
+            del cobj["power"]
+            del cobj["slope"]
+        elif obj.correction_method == 'OFFSET_POWER_SLOPE':
+            del cobj["lift"]
+            del cobj["gamma"]
+            del cobj["gain"]
                 
 
 # ★★★ Functions for Parsing Nodes ★★★
@@ -144,9 +165,9 @@ def decode_compare_value(value, ivalue=None):
     result = None
     is_default = False
     if isinstance(value, (mathutils.Vector, 
-                            mathutils.Euler, 
-                            mathutils.Color, 
-                            bpy.types.bpy_prop_array)):
+                          mathutils.Euler, 
+                          mathutils.Color, 
+                          bpy.types.bpy_prop_array)):
         vector = list(value)
         if ivalue is not None and type(value) == type(ivalue) and list(ivalue) == vector and vector != None:
             is_default = True
@@ -190,11 +211,9 @@ def parse_attrs(obj, iobj=None, white_only=False):
         result, is_default = decode_compare_value(value, ivalue)
         
         # Parse common attrs that dont contains another class, dict... 
-        # note that 0, 0.0, False will not go into the branch so, use "is not None".
-        if result is not None:
-            # Dont parse if value == default, but help white attr pass the default check
-            if not is_default or attr in white_attrs:
-                cobj[attr] = result
+        # Dont parse if value == default, but help white attr pass the default check
+        if result is not None and (not is_default or attr in white_attrs):
+            cobj[attr] = result
         # parse bpy_prop_collection attr, it's a list of props
         elif isinstance(value, bpy.types.bpy_prop_collection):
             length = len(value)
@@ -455,7 +474,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
 
 
 def set_preset_data(preset_name, pack_name, cpreset=None):
-    from .versioning import version
+    from . versioning import version, blender
     # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
         global cpreset_cache
@@ -486,6 +505,7 @@ def set_preset_data(preset_name, pack_name, cpreset=None):
     cdata["node_center"] = node_center
     # NOTE version can be set only when: save preset / set by version_control.py
     cdata["version"] = version
+    cdata["blender"] = blender
     
     if cpreset is None:
         return cpreset_cache

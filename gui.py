@@ -23,7 +23,7 @@ from bpy.types import Menu, Panel, UIList
 
 import time
 
-from . import file, props_py, sync
+from . import file, props_py, sync, ops_invoker
 
 
 type_icon = {
@@ -46,9 +46,9 @@ gui_info_icon = None
 gui_info_born_time = 0.0
 
 
-def add_gui_infos(message: list[str], duration: float=3.0, icon: str|None=None):
+def set_gui_info(messages: list[str], duration: float=3.0, icon: str|None=None):
     global gui_info, gui_info_duration, gui_info_icon, gui_info_born_time
-    gui_info = message
+    gui_info = messages
     gui_info_duration = duration
     gui_info_icon = icon
     gui_info_born_time = time.time()
@@ -56,19 +56,20 @@ def add_gui_infos(message: list[str], duration: float=3.0, icon: str|None=None):
 
 def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
     sync.ensure_sync(context, from_gui=True)
-    # TODO reduce empty pack
     edit_tree = context.space_data.edit_tree
     if edit_tree is None:
         return
     if props_py.gl_packs != {}:
-        first_draw = True
+        top_one = True
+        # bpy.app.timers.register(_register_existing_menus)
         for pack_name in props_py.gl_packs.keys():
             if edit_tree.bl_idname in file.get_pack_types(pack_name):
-                if first_draw:
+                if top_one:
                     self.layout.separator()
-                    first_draw = False
-                self.layout.menu(packs_Menus[pack_name].__name__)
-            
+                    top_one = False
+                pack_Menu = packs_Menus.get(pack_name, None)
+                self.layout.menu(pack_Menu.__name__)
+                
             
 def create_pack_menu_class(pack_name: str):
     global _pack_menu_num
@@ -79,9 +80,17 @@ def create_pack_menu_class(pack_name: str):
     return Menu
 
 
-def _register_menus():
+def _register_new_menus():
     for Menu in new_Menus:
         bpy.utils.register_class(Menu)
+        
+        
+def _register_existing_menus():
+    for Menu in packs_Menus.values():
+        try:
+            bpy.utils.register_class(Menu)
+        except ValueError:
+            pass
     
 
 def ensure_existing_pack_menu(pack_name: str|None=None):
@@ -100,7 +109,9 @@ def ensure_existing_pack_menu(pack_name: str|None=None):
                 new_Menus.append(create_pack_menu_class(pack_name))
     elif pack_name not in pack_names:
         new_Menus.append(create_pack_menu_class(pack_name))
-    bpy.app.timers.register(_register_menus)
+    # XXX More cost but safer
+    # bpy.app.timers.register(_register_new_menus)
+    bpy.app.timers.register(_register_existing_menus)
             
         
 # Sync Functions, will be called in draw()
@@ -215,16 +226,13 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         props = context.scene.hot_node_props
         presets = props.presets
         
-        # Preset Usage UI
-        # col = layout.column(align=True)
-        # row = col.row(align=True)
+        # Pack Select UI
         row = layout.row(align=True)
-        row.operator("node.hot_node_preset_apply", text="Apply").preset_name = ""
-        row.operator("node.hot_node_preset_save", text="Save")
-        # row.separator(factor=1.45)
-        # col = row.column()
-        # col.operator("node.hot_node_refresh", icon='FILE_REFRESH', text="")
-
+        row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
+        row.prop(props, "pack_selected_name", text="", placeholder="Select a pack")
+        row.operator("node.hot_node_pack_create", icon='ADD', text="")
+        row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
+        
         # Preset Select UI
         rows = 3
         if presets:
@@ -248,14 +256,17 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
             col.separator()
             col.operator("node.hot_node_preset_move", icon='TRIA_UP', text="").direction = 'UP'
             col.operator("node.hot_node_preset_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
-
-        # Pack Select UI
+            
+        # Preset Usage UI
+        # col = layout.column(align=True)
+        # row = col.row(align=True)
         row = layout.row(align=True)
-        row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
-        row.prop(props, "pack_selected_name", text="", placeholder="Select a pack")
-        row.operator("node.hot_node_pack_create", icon='ADD', text="")
-        row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
-        
+        row.operator("node.hot_node_preset_apply", text="Apply").preset_name = ""
+        row.operator("node.hot_node_preset_save", text="Save")
+        # row.separator(factor=1.45)
+        # col = row.column()
+        # col.operator("node.hot_node_refresh", icon='FILE_REFRESH', text="")
+
         # Prompts
         # if context.space_data.edit_tree is None:
         #     row = layout.row()
@@ -384,7 +395,10 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
     for Menu in packs_Menus.values():
-        bpy.utils.unregister_class(Menu)
+        try:
+            bpy.utils.unregister_class(Menu)
+        except RuntimeError:
+            pass
         
     bpy.types.NODE_MT_add.remove(draw_ex_nodes_add_menu)
     bpy.types.NODE_MT_context_menu.remove(draw_ex_fast_create_preset)

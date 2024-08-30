@@ -38,7 +38,7 @@ def _exec_pop_confirm_if_need(ops, context, event):
 
 
 # Operator Functions
-def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
+def preset_create(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     step = history.Step(context, "Create Preset", 
@@ -74,11 +74,12 @@ def preset_create(ops: Operator, context: bpy.types.Context, use_report=True):
     presets[preset_selected_idx].name = new_full_name
     props_py.gl_preset_selected = new_full_name
     props_py.skip_preset_rename_callback = False
+    # ops.report(type={'INFO'}, message=f"Saved selected nodes as \"{new_full_name}\".")
 
     return {'FINISHED'}
 
 
-def preset_delete(ops: Operator, context, use_report=True):
+def preset_delete(ops: Operator, context):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     
@@ -93,7 +94,7 @@ def preset_delete(ops: Operator, context, use_report=True):
         preset_path = file.get_preset_path(preset_name)
         step = history.Step(context, "Delete Preset", 
                             deleted_paths=[preset_path], changed_paths=[file.pack_selected_meta_path],
-                            undo_callback=history.select_preset_callback, redo_callback=history.select_pack_callback,
+                            undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback,
                             undo_callback_param=preset_selected_idx)
         presets.remove(preset_selected_idx)
         if preset_selected_idx == length - 1:
@@ -107,7 +108,7 @@ def preset_delete(ops: Operator, context, use_report=True):
     return {'FINISHED'}
 
 
-def preset_clear(ops: Operator, context: bpy.types.Context, use_report=True):
+def preset_clear(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
             return {'CANCELLED'}
     pack = props_py.gl_pack_selected
@@ -121,7 +122,7 @@ def preset_clear(ops: Operator, context: bpy.types.Context, use_report=True):
     return {'FINISHED'}
 
 
-def preset_move_to(selected_idx, dst_idx, presets):
+def _preset_move_to(selected_idx, dst_idx, presets):
     preset = presets[selected_idx]
     name, type = preset.name, preset.type
     if selected_idx > dst_idx:
@@ -138,11 +139,9 @@ def preset_move_to(selected_idx, dst_idx, presets):
     presets[dst_idx].type = type
 
 
-def preset_move(ops: Operator, context: bpy.types.Context, direction, user_report=True):
+def preset_move(ops: Operator, context: bpy.types.Context, direction):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
-    step = history.Step(context, "Move Preset", refresh=False,
-                        changed_paths=[file.pack_selected_meta_path])
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
@@ -150,6 +149,9 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
     length = len(presets)
     if length < 2:
         return {'FINISHED'}
+    
+    step = history.Step(context, "Move Preset", refresh=False,
+                        changed_paths=[file.pack_selected_meta_path])
     
     props_py.skip_preset_rename_callback = True
     props_py.skip_preset_selected_callback = True
@@ -172,7 +174,7 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
     elif direction == 'BOTTOM':
         dst_idx = length - 1
         
-    preset_move_to(preset_selected_idx, dst_idx, presets)
+    _preset_move_to(preset_selected_idx, dst_idx, presets)
     # step.undo_callback_param = (dst_idx, preset_selected_idx)
     # step.redo_callback_param = (preset_selected_idx, dst_idx)
 
@@ -193,7 +195,7 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction, user_repor
     return {'FINISHED'}
 
 
-def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
+def preset_save(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
             return {'CANCELLED'}
     pack = props_py.gl_pack_selected
@@ -209,7 +211,9 @@ def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
     pack_meta_path = file.get_pack_selected_meta_path()
     preset_path = file.get_preset_path(preset_name)
     history.Step(context, "Save Preset", 
-                 changed_paths=[pack_meta_path, preset_path])
+                 changed_paths=[pack_meta_path, preset_path],
+                 undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback,
+                 undo_callback_param=preset_selected_idx, redo_callback_param=preset_selected_idx)
     
     # in node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     cpreset, states = node_parser.parse_node_preset(edit_tree)
@@ -217,7 +221,7 @@ def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
     file.update_preset(preset_name, cpreset)
     
     props_bl.allow_tex_save = True
-    ops.report(type={'INFO'}, message="Preset saved.")
+    # ops.report(type={'INFO'}, message=f"Saved selected nodes to \"{preset_name}\".")
 
     return {'FINISHED'}
     
@@ -225,7 +229,7 @@ def preset_save(ops: Operator, context: bpy.types.Context, user_report=True):
 def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name, tree_type, user_report=True):
     '''Add nodes to the node tree. This function uses preset_name to find preset json and apply it.'''
     if not sync.ensure_sync(context, ops):
-            return {'CANCELLED'}
+        return {'CANCELLED'}
     props = context.scene.hot_node_props
     presets = props.presets
     preset_selected_idx = props.preset_selected
@@ -261,7 +265,7 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
     return {'FINISHED'}
     
     
-def texture_save(ops: Operator, context: bpy.types.Context, user_report=True):
+def texture_save(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     pack = props_py.gl_pack_selected
@@ -273,8 +277,6 @@ def texture_save(ops: Operator, context: bpy.types.Context, user_report=True):
     
     pack_meta_path = file.get_pack_selected_meta_path()
     preset_path = file.get_preset_path(preset_name)
-    history.Step(context, "Save Texture", 
-                 changed_paths=[pack_meta_path], created_paths=[preset_path])
     
     open_mode = props.tex_preset_mode
     tex_key = props.tex_key
@@ -293,13 +295,15 @@ def texture_save(ops: Operator, context: bpy.types.Context, user_report=True):
             ops.report(type={'ERROR'}, message="Current selected preset is not the last saved one. Do a save first.")
         return {'CANCELLED'}
     else:
+        history.Step(context, "Save Texture", 
+                 changed_paths=[pack_meta_path], created_paths=[preset_path])
         file.update_preset(preset_name, cpreset)
         ops.report({'INFO'}, f"Texture saved.")
     
     return {'FINISHED'}
     
     
-def pack_create(ops: Operator, context: bpy.types.Context, user_report=True):
+def pack_create(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     old_pack_name = props_py.get_gl_pack_selected_name()
@@ -315,7 +319,7 @@ def pack_create(ops: Operator, context: bpy.types.Context, user_report=True):
     return {'FINISHED'}
 
 
-def pack_delete(ops: Operator, context: bpy.types.Context, is_his=False):
+def pack_delete(ops: Operator, context: bpy.types.Context):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     packs = props_py.gl_packs
@@ -369,7 +373,7 @@ def pack_select(ops: Operator, context: bpy.types.Context, pack_name, push_step=
     return {'FINISHED'}
     
     
-def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path, is_recovering, user_report=True):
+def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path, is_recovering):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     
@@ -439,13 +443,15 @@ def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path,
                     ops.report({'INFO'}, f"\"{pack_name}\" imported.")
         else:
             ops.report({'INFO'}, f"Imported {success_num} packs of all {file_num} packs. The others were failed to import, see the previous error infos.")
+    # XXX is this complete?
     elif file_num > 1:
         ops.report({'WARNING'}, f"Failed to import. See the previous error infos.")
+        return {'CANCELLED'}
         
     return {'FINISHED'}
     
     
-def pack_export(ops: Operator, context: bpy.types.Context, file_path, file_name, user_report=True):
+def pack_export(ops: Operator, context: bpy.types.Context, file_path, file_name):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     
@@ -459,20 +465,12 @@ def pack_export(ops: Operator, context: bpy.types.Context, file_path, file_name,
     return {'FINISHED'}
     
     
-def pack_export_all(ops: Operator, context: bpy.types.Context, dir_path, user_report=True):
+def pack_export_all(ops: Operator, context: bpy.types.Context, dir_path):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     file.export_packs(props_py.gl_packs.keys(), dir_path)
         
     ops.report({'INFO'}, f"Exported all packs to {dir_path}.")
-    return {'FINISHED'}
-
-
-def repair_curruption(ops: Operator, context: bpy.types.Context, user_report=True):
-    pack_names = file.load_packs()
-    for pack_name in pack_names:
-        file.refresh_pack_meta(pack_name)
-    ops.report({'INFO'}, f"Hot Node repaired.")
     return {'FINISHED'}
     
 
@@ -795,19 +793,6 @@ class HOTNODE_OT_refresh(Operator):
         return {'FINISHED'}
     
     
-class HOTNODE_OT_repair_corruption(Operator):
-    bl_idname = "node.hot_node_repair_corruption"
-    bl_label = "Repair Corruption"
-    bl_description = "Repair the presets"
-    bl_options = {'REGISTER'}
-
-    def execute(self, context):
-        repair_curruption(self, context)
-        sync.sync(context.scene.hot_node_props)
-        self.report({'INFO'}, "Hot Node repaired.")
-        return {'FINISHED'}
-    
-    
 class HOTNODE_OT_reporter(Operator):
     bl_idname = "node.hot_node_reporter"
     bl_label = "Report Messages"
@@ -865,7 +850,6 @@ classes = (
     HOTNODE_OT_pack_export,
     HOTNODE_OT_pack_export_all,
     HOTNODE_OT_refresh,
-    HOTNODE_OT_repair_corruption,
     HOTNODE_OT_helper,
 )
 

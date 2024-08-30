@@ -2,16 +2,38 @@ ChangeLog
 ========
 
 
-[0.5.1] - 2024-08-24
+[0.5.3] - 2024-08-29
+--------
+
+### Changed
+- Reduce data file size by 1/3 (by removing indents).
+- UI layout changes.
+- Improved stability.
+
+### Fixed
+- Undo redo cannot work on old blender files.
+- Node `Color Balance` cannot be set correctly.
+- Incorrect presets panel when opened a .blend file.
+- Sometimes packs disappear on `Shift A` menu.
+- Sometimes re-enabling add-on throws errors.
+
+### Recent Features
+- **Undo & Redo Supported.**
+
+
+[0.5.2] - 2024-08-26
 --------
 
 ### Fixed
 - Error occurs when applying preset with ```Repeat Zone```.
 - Emergency repaired pack import / recover error of 0.5.1.
 
-### Recent New Features
-- **Undo & Redo Supported.**
-- Stability significantly improved.
+
+[0.5.1] - 2024-08-26
+--------
+
+### Fixed
+- Error occurs when applying preset with ```Repeat Zone```.
 
 
 [0.5.0] - 2024-08-24
@@ -27,7 +49,7 @@ Now you can see all your packs in ```Shift A``` and choose whether to join them 
 - Preset name will be auto setted to the node name when creating preset with single selected node.
 
 ### Deprecated
-- ```Extra Confirm``` checker.
+- ```Extra Confirmation``` checker.
 
 ### Fixed
 - Undo causes error.

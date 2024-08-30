@@ -32,7 +32,8 @@ def select_pack(props, dst_pack: props_py.Pack):
     # to escaping overwrite 
     props_py.gl_pack_selected = dst_pack
     props_py.skip_pack_rename_callback = True
-    props.pack_selected_name = dst_pack.name if dst_pack is not None else ""
+    pack_name = dst_pack.name if dst_pack is not None else ""
+    props.pack_selected_name = pack_name
     props_py.skip_pack_rename_callback = False
     # load presets in the newly selected pack
     presets = props.presets
@@ -46,7 +47,11 @@ def select_pack(props, dst_pack: props_py.Pack):
         props_py.skip_preset_rename_callback = True
         for i in range(preset_num):
             name = preset_names[i]
-            type = tree_types[name]
+            type = tree_types.get(name, None)
+            if type is None:
+                preset_names, tree_types = file.refresh_pack_meta(pack_name)
+                select_pack(props, dst_pack)
+                break
             presets.add()
             presets[i].name = name
             presets[i].type = type
@@ -179,6 +184,7 @@ def _fast_create_preset_name_update(self, context):
 def _step_checker_update(self, context):
     if props_py.skip_step_checker_update:
         return
+    print("Step Checker Update")
     history.step_checker_cache = context.scene.hot_node_props.step_checker
         
 
@@ -286,11 +292,6 @@ class HotNodeProps(bpy.types.PropertyGroup):
         subtype='DIR_PATH'
     ) # type: ignore
     
-    ui_refresher: StringProperty(
-        name="",
-        default="HHH"
-    ) # type: ignore
-    
     step_checker: BoolProperty(
         name="Undo Redo Checker",
         default=True,
@@ -327,13 +328,17 @@ def register():
         bpy.utils.register_class(cls)
     
     bpy.types.Scene.hot_node_props = bpy.props.PointerProperty(
-        name='Hot Node Prop Group',
+        name="Hot Node Prop Group",
         type=HotNodeProps
     ) # type: ignore
     
 
 def unregister():
     for cls in classes:
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except:
+            pass
         
-    del bpy.types.Scene.hot_node_props
+    if hasattr(bpy.types.Scene, "hot_node_props"):
+        del bpy.types.Scene.hot_node_props

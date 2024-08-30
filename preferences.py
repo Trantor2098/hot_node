@@ -69,4 +69,7 @@ def register():
 
 
 def unregister():
-    bpy.utils.unregister_class(HotNodePreferences)
+    try:
+        bpy.utils.unregister_class(HotNodePreferences)
+    except:
+        pass

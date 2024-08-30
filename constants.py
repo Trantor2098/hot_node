@@ -18,5 +18,5 @@
 # END GPL LICENSE BLOCK #####
 
 
-node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
-tree_type_id_names = ("ShaderNodeTree", "GeometryNodeTree", "CompositorNodeTree", "TextureNodeTree")
+node_group_id_names = {"ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup"}
+tree_type_id_names = {"ShaderNodeTree", "GeometryNodeTree", "CompositorNodeTree", "TextureNodeTree"}

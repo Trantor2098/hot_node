@@ -22,11 +22,6 @@
 # TODO put presets in packs
 class Pack():
     
-    contain_shader_tree = False
-    contain_geometry_tree = False
-    contain_compositor_tree = False
-    contain_texture_tree = False
-    
     def __init__(self, name):
         self.name = name
         
