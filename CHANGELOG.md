@@ -6,7 +6,6 @@ ChangeLog
 --------
 
 ### Fixed
-- Changing name of the pack makes it disappear from Shift A menu.
 - Changing the name of the preset which is not selected causes error.
 - Node `Image Info` cannot be saved by texture saving.
 
@@ -19,6 +18,7 @@ ChangeLog
 - Improved performance.
 
 ### Fixed
+- Changing name of the pack makes it disappear in Shift A menu.
 - Node `Menu Switch` causes error.
 
 
