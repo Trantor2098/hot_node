@@ -287,18 +287,24 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 if i > length - 1:
                     new_element(obj, cobj[i], attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
-        # XXX this branch solves the Risk below, but im not sure is it safe...
-        elif length < max_HN_idx + 1:
-            for cvalue in cobj:
-                HN_idx = cvalue["HN_idx"]
-                if HN_idx > length - 1:
-                    new_element(obj, cvalue, attr_name)
-                set_attrs(obj[HN_idx], cvalue, attr_name=attr_name)
+        # XXX [DEPRECATED] this branch solves the Risk below, but im not sure is it safe...
+        # elif length < max_HN_idx + 1:
+        #     for cvalue in cobj:
+        #         HN_idx = cvalue["HN_idx"]
+        #         if HN_idx > length - 1:
+        #             new_element(obj, cvalue, attr_name)
+        #             length += 1
+        #         if HN_idx < length:
+        #             set_attrs(obj[HN_idx], cvalue, attr_name=attr_name)
         else:
             # length > clength, for when we only recorded part of the list
             # TODO Risk: if max HN_idx actually is bigger than the length, but clength is lower...
+            # NOTE This Risk will be solved by the special logic in set_nodes() because we will create the needed items first.
             for i in range(clength):
-                set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name)
+                HN_idx = cobj[i]["HN_idx"]
+                # we may recorded a virtual input whose idx is bigger than the length, but we dont need to set it.
+                if HN_idx < length:
+                    set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name)
     elif isinstance(cobj, dict):
         for attr, cvalue in cobj.items():
             if attr in black_attrs or attr.startswith("HN_"):
@@ -418,7 +424,12 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
                 node.capture_items.new(citem["HN_socket_type"], citem["name"])
         elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeRepeatInput"):
             later_setup_cnodes[cnode['name']] = (node, cnode)
-            continue
+        elif bl_idname == "GeometryNodeMenuSwitch":
+            cenum_items = cnode.get("enum_items", [])
+            clength = len(cenum_items)
+            max_HN_idx = cenum_items[clength - 1]["HN_idx"]
+            for i in range(2, max_HN_idx):
+                node.enum_items.new("")
         
         # set attributes, io sockets
         set_attrs(node, cnode)
