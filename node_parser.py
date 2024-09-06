@@ -47,9 +47,9 @@ _type_wb_attrs_parser = (
     # ("item_type", "socket_type", "in_out", "index", "position", "identifier"),
     # ("default_value", ),
     # None),
-    (bpy.types.NodeTreeInterfaceItem, 
+    ((bpy.types.NodeTreeInterfaceItem, bpy.types.NodeTreeInterfacePanel),
     ("item_type", "socket_type", "in_out", "index", "position", "identifier"), 
-    (),
+    ("interface_items"),
     None),
     (bpy.types.NodeSocket,
     (),
@@ -87,7 +87,7 @@ _type_wb_attrs_parser = (
     ("name", "alpha_mode", "colorspace_settings", "filepath", "source"),
     (),
     None),
-    ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem, bpy.types.RepeatItem, bpy.types.NodeEnumItem),
+    ((bpy.types.SimulationStateItem, bpy.types.NodeGeometryCaptureAttributeItem, bpy.types.RepeatItem),
     ("socket_type", "name"),
     ("color", "rna_type"),
     None),
@@ -154,7 +154,7 @@ def get_attrs_values(obj, white_attrs: list|tuple=(), black_attrs: list|tuple=()
     else:
         attrs_values = {attr: getattr(obj, attr) 
                         for attr in attrs if
-                        attr in white_attrs
+                        (attr in white_attrs and hasattr(obj, attr))
                         or (not attr.startswith("__")
                         and not attr.startswith("bl_")
                         and not attr in black_attrs

@@ -43,9 +43,9 @@ class Step():
         
         - context: Context to get registered properties.
         - name: Step's name, will be used to show infos to the user.
-        - deleted_paths: Paths of files that will be deleted in this step.
-        - changed_paths: Paths of files that will be changed in this step.
-        - created_paths: Paths of files that will be created in this step.
+        - deleted_paths: Paths of files that will be deleted in this step. Set it when newing step!
+        - changed_paths: Paths of files that will be changed in this step. Set it when newing step!
+        - created_paths: Paths of files that will be created in this step. Set it after changes werfe made.
         
         - undo_callback: Callback function(s) that will be invoked when this step undos. 
           Receive two params: scene, undo_callback_param. You can pass multiple callbacks with tuple like (callback1, callback2), 

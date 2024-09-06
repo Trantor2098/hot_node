@@ -105,6 +105,11 @@ def get_pack_path(pack_name):
 def get_preset_path(preset_name):
     file_name = "".join((preset_name, ".json"))
     return os.path.join(pack_selected_path, file_name)
+
+
+def get_preset_in_pack_path(pack_name, preset_name):
+    file_name = "".join((preset_name, ".json"))
+    return os.path.join(get_pack_path(pack_name), file_name)
     
     
 def get_root_meta_path():
@@ -182,9 +187,10 @@ def read_json(file_path) -> dict:
         return json.load(file)
     
     
-def write_metas(pack_selected_meta):
+def write_metas(pack_meta, pack_name: str|None=None):
     update_root_meta_cache_mtime()
-    write_json(pack_selected_meta_path, pack_selected_meta, 1)
+    pack_meta_path = pack_selected_meta_path if pack_name is None else get_pack_meta_path(pack_name)
+    write_json(pack_meta_path, pack_meta, 1)
     write_json(root_meta_path, root_meta_cache, 1)
     
     
@@ -233,6 +239,40 @@ def check_read_pack_meta(pack_name):
     if "tree_types" not in keys:
         return 'INVALID_META'
     return metadata
+
+
+def refresh_pack_meta(pack_name):
+    '''Read presets by listing directory and update the pack meta'''
+    old_pack_meta = read_pack_meta()
+    old_order = old_pack_meta["order"]
+    pack_path = get_pack_path(pack_name)
+    preset_names = read_existing_files(pack_path, suffix=".json", cull_suffix=True)
+    filtered_preset_names = []
+    if ".metadata" in preset_names:
+        preset_names.remove(".metadata")
+    # order the new preset names by the order before
+    for i in range(len(old_order)):
+        pack_name = old_order[i]
+        if pack_name in preset_names:
+            preset_names.remove(pack_name)
+            filtered_preset_names.append(pack_name)
+    filtered_preset_names.extend(preset_names)
+    
+    tree_types = {}
+    for preset_name in filtered_preset_names:
+        preset = load_preset(preset_name)
+        tree_types[preset_name] = preset["HN_preset_data"]["tree_type"]
+        
+    pack_meta = {}
+    pack_meta["order"] = filtered_preset_names
+    pack_meta["tree_types"] = tree_types
+    pack_meta["version"] = version
+    for preset_name in filtered_preset_names:
+        preset = load_preset(preset_name)
+        pack_meta["tree_types"][preset_name] = preset["HN_preset_data"]["tree_type"]
+        
+    write_pack_meta(pack_path, pack_meta)
+    return filtered_preset_names, pack_meta
 
 
 def read_translation_dict():
@@ -560,6 +600,32 @@ def delete_preset(preset_name):
 def clear_preset(pack_name):
     delete_pack(pack_name)
     create_pack(pack_name)
+    
+    
+def preset_to_pack(src_preset_name, dst_preset_name, dst_pack_name, is_move=False, is_overwrite=False):
+    '''Wont check existing, rename'''
+    src_file_path = get_preset_path(src_preset_name)
+    dst_file_path = get_preset_in_pack_path(dst_pack_name, dst_preset_name)
+    try:
+        shutil.copyfile(src_file_path, dst_file_path)
+    except shutil.SameFileError:
+        print("Hot Node SameFileError in file.preset_to_pack()")
+    
+    # modify meta
+    dst_pack_meta = read_pack_meta(dst_pack_name)
+    cpreset = load_preset(dst_preset_name, dst_pack_name)
+    tree_type = cpreset["HN_preset_data"]["tree_type"]
+    if not is_overwrite:
+        dst_pack_meta["order"].append(dst_preset_name)
+    dst_pack_meta["tree_types"][dst_preset_name] = tree_type
+    dst_pack_meta["version"] = version
+    dst_pack_meta = update_pack_types_of_meta(dst_pack_meta)
+    
+    if is_move:
+        delete_preset(src_preset_name)
+        write_pack_meta(get_pack_path(dst_pack_name), dst_pack_meta)
+    else:
+        write_metas(dst_pack_meta, dst_pack_name)
 
 
 def read_presets(pack_name=""):
@@ -574,40 +640,6 @@ def read_presets(pack_name=""):
     tree_types = metadata["tree_types"]
     
     return preset_names, tree_types
-
-
-def refresh_pack_meta(pack_name):
-    '''Read presets by listing directory and update the pack meta'''
-    old_pack_meta = read_pack_meta()
-    old_order = old_pack_meta["order"]
-    pack_path = get_pack_path(pack_name)
-    preset_names = read_existing_files(pack_path, suffix=".json", cull_suffix=True)
-    filtered_preset_names = []
-    if ".metadata" in preset_names:
-        preset_names.remove(".metadata")
-    # order the new preset names by the order before
-    for i in range(len(old_order)):
-        pack_name = old_order[i]
-        if pack_name in preset_names:
-            preset_names.remove(pack_name)
-            filtered_preset_names.append(pack_name)
-    filtered_preset_names.extend(preset_names)
-    
-    tree_types = {}
-    for preset_name in filtered_preset_names:
-        preset = load_preset(preset_name)
-        tree_types[preset_name] = preset["HN_preset_data"]["tree_type"]
-        
-    pack_meta = {}
-    pack_meta["order"] = filtered_preset_names
-    pack_meta["tree_types"] = tree_types
-    pack_meta["version"] = version
-    for preset_name in filtered_preset_names:
-        preset = load_preset(preset_name)
-        pack_meta["tree_types"][preset_name] = preset["HN_preset_data"]["tree_type"]
-        
-    write_pack_meta(pack_path, pack_meta)
-    return filtered_preset_names, pack_meta
 
 
 def load_preset(preset_name, pack_name=""):

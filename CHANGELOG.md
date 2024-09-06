@@ -15,11 +15,21 @@ ChangeLog
 
 ### Add
 - Simplified Chinese supported.
+- Move / copy preset into another pack.
+- Optional UI setting: Bigger `Get` (`Apply` in previous) button, smaller `Set` (`Save` in previous) button (default open).
+- Optional UI setting: Utilities Bar & Settings Bar.
+- Preferences pabel on add-on installing window available.
 - Improved performance.
 
+### Changed
+- `Apply` renamed to `Get`, `Save` renamed to `Set`.
+- Other UI naming details.
+
 ### Fixed
-- Changing name of the pack makes it disappear in Shift A menu.
+- Changing name of the pack makes it disappear in `Shift A` menu.
 - Node `Menu Switch` causes error.
+- Undo redo of `Delete All Presets` causes error.
+- Risk of losing history steps.
 
 
 [0.5.3] - 2024-08-29

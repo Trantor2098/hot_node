@@ -39,6 +39,12 @@ class HotNodePreferences(AddonPreferences):
         description=i18n.msg["desc_in_one_menu"],
         default=False,
     ) # type: ignore
+    
+    focus_on_get: BoolProperty(
+        name=i18n.msg["Focus On Get"],
+        description=i18n.msg["desc_focus_on_get"],
+        default=True,
+    ) # type: ignore
 
     extra_confirm: BoolProperty(
         name=i18n.msg["Extra Confirmation"],
@@ -57,17 +63,38 @@ class HotNodePreferences(AddonPreferences):
             ('STAY_EMPTY', i18n.msg["Stay Empty"], i18n.msg["desc_tex_mode_stay_empty"]),
         ]
     ) # type: ignore
+    
+    utilities_bar: BoolProperty(
+        name=i18n.msg["Utilities Bar"],
+        description=i18n.msg["desc_utilities_bar"],
+        default=False,
+    ) # type: ignore
+    
+    settings_bar: BoolProperty(
+        name=i18n.msg["Settings Bar"],
+        description=i18n.msg["desc_settings_bar"],
+        default=False,
+    ) # type: ignore
 
-    # def draw(self, context):
-    #     layout = self.layout
-    #     layout.label(text="This is a preferences view for our add-on")
-    #     layout.prop(self, "overwrite_tree_io")
-    #     layout.prop(self, "in_one_menu")
-    #     layout.prop(self, "extra_confirm")
+    def draw(self, context):
+        layout = self.layout
+        layout.alignment = 'RIGHT'
+        layout.prop(self, "overwrite_tree_io")
+        layout.prop(self, "tex_default_mode")
+        layout.separator(type='LINE')
+        layout.prop(self, "in_one_menu")
+        layout.prop(self, "focus_on_get")
+        layout.prop(self, "extra_confirm")
+        layout.separator(type='LINE')
+        layout.prop(self, "settings_bar")
+        layout.prop(self, "utilities_bar")
         
         
 def register():
-    bpy.utils.register_class(HotNodePreferences)
+    try:
+        bpy.utils.register_class(HotNodePreferences)
+    except:
+        pass
 
 
 def unregister():

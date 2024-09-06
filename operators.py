@@ -20,12 +20,12 @@
 
 import bpy
 from bpy.types import Operator
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty
 
 from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sync, history, i18n
             
       
-def _poll_preset_ops(context):
+def _poll_has_pack_edtree(context):
     return props_py.gl_pack_selected is not None and context.space_data.edit_tree is not None
 
 
@@ -114,8 +114,10 @@ def preset_clear(ops: Operator, context: bpy.types.Context):
             return {'CANCELLED'}
     pack = props_py.gl_pack_selected
     props = context.scene.hot_node_props
-    history.Step(context, i18n.msg["Create Preset"], 
-                 deleted_paths=[file.pack_selected_path])
+    history.Step(context, i18n.msg["Clear Presets"], 
+                 changed_paths=[file.pack_selected_path],
+                 undo_callback=history.select_pack_callback, redo_callback=history.select_pack_callback,
+                 undo_callback_param=pack.name, redo_callback_param=pack.name)
     file.clear_preset(pack.name)
     props.presets.clear()
     ops.report({'INFO'}, i18n.msg["rpt_preset_clear_success"].format(pack_name=pack.name))
@@ -211,7 +213,7 @@ def preset_save(ops: Operator, context: bpy.types.Context):
     
     pack_meta_path = file.get_pack_selected_meta_path()
     preset_path = file.get_preset_path(preset_name)
-    history.Step(context, i18n.msg["Save Preset"], 
+    history.Step(context, i18n.msg["Update Preset"], 
                  changed_paths=[pack_meta_path, preset_path],
                  undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback,
                  undo_callback_param=preset_selected_idx, redo_callback_param=preset_selected_idx)
@@ -222,7 +224,7 @@ def preset_save(ops: Operator, context: bpy.types.Context):
     file.update_preset(preset_name, cpreset)
     
     props_bl.allow_tex_save = True
-    # ops.report(type={'INFO'}, message=f"Saved selected nodes to \"{preset_name}\".")
+    ops.report(type={'INFO'}, message=i18n.msg["rpt_preset_save_success"].format(preset_name=preset_name))
 
     return {'FINISHED'}
     
@@ -263,6 +265,51 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
     for node in selected_node_frames:
         node.select = True
         
+    return {'FINISHED'}
+
+
+def preset_to_pack(ops: Operator, context: bpy.types.Context, dst_pack_name, is_move=False, is_overwrite=False):
+    if not sync.ensure_sync(context, ops):
+        return {'CANCELLED'}
+    props = context.scene.hot_node_props
+    presets = props.presets
+    preset_selected_idx = props.preset_selected
+    preset_selected = presets[preset_selected_idx]
+    preset_name = preset_selected.name
+    pack_name = props_py.gl_pack_selected.name
+    
+    if is_move:
+        if is_overwrite:
+            changed_paths=[file.get_pack_selected_meta_path(), file.get_pack_meta_path(dst_pack_name), file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+        else:
+            changed_paths=[file.get_pack_selected_meta_path(), file.get_pack_meta_path(dst_pack_name)]
+        step = history.Step(context, i18n.msg["Move to Pack"], 
+                            deleted_paths=[file.get_preset_path(preset_name)],
+                            changed_paths=changed_paths,
+                            undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback,
+                            redo_callback_param=preset_selected_idx)
+        length = len(presets)
+        if length > 0:
+            presets.remove(preset_selected_idx)
+            if preset_selected_idx == length - 1:
+                props.preset_selected = preset_selected_idx - 1
+                step.undo_callback_param = preset_selected_idx - 1
+    else:
+        if is_overwrite:
+            changed_paths=[file.get_pack_meta_path(dst_pack_name), file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+        else:
+            changed_paths=[file.get_pack_meta_path(dst_pack_name)]
+        step = history.Step(context, i18n.msg["Copy to Pack"], 
+                            changed_paths=changed_paths)
+    
+    if not is_overwrite:
+        step.created_paths = [file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+        
+    file.preset_to_pack(preset_name, preset_name, dst_pack_name, is_move, is_overwrite)
+    operation = i18n.msg["Moved"] if is_move else i18n.msg["Copied"]
+    ops.report({'INFO'}, i18n.msg["rpt_preset_to_pack_success"].format(
+        src_preset_name=preset_name, operation=operation, dst_pack_name=dst_pack_name, dst_preset_name=preset_name))
+    
     return {'FINISHED'}
     
     
@@ -487,7 +534,7 @@ class HOTNODE_OT_preset_create(Operator):
 
     @classmethod
     def poll(cls, context):
-        return _poll_preset_ops(context)
+        return _poll_has_pack_edtree(context)
 
     def execute(self, context):
         return preset_create(self, context)
@@ -518,10 +565,10 @@ class HOTNODE_OT_preset_clear(Operator):
     
     @classmethod
     def poll(cls, context):
-        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
-        return preset_clear(self, context, use_report=True)
+        return preset_clear(self, context)
     
 
 class HOTNODE_OT_preset_move(Operator):
@@ -545,13 +592,13 @@ class HOTNODE_OT_preset_move(Operator):
 
 class HOTNODE_OT_preset_save(Operator):
     bl_idname = "node.hot_node_preset_save"
-    bl_label = i18n.msg["Save Preset"]
+    bl_label = i18n.msg["Update Preset"]
     bl_description = i18n.msg["desc_save_preset"]
     bl_options = {'UNDO', 'REGISTER'}
     
     @classmethod
     def poll(cls, context):
-        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         return preset_save(self, context)
@@ -614,12 +661,71 @@ class HOTNODE_OT_preset_apply(HOTNODE_OT_nodes_add):
     
     @classmethod
     def poll(cls, context):
-        return _poll_preset_ops(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+    
+    
+class HOTNODE_OT_preset_to_pack(Operator):
+    bl_idname = "node.hot_node_preset_to_pack"
+    bl_label = i18n.msg["Preset to Pack"]
+    bl_description = i18n.msg["desc_preset_to_pack"]
+    bl_options = {'UNDO', 'REGISTER'}
+
+    pack_name: StringProperty(
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    # This ops also helps to pop a menulist of packs for invoking this ops
+    # pop_menu: BoolProperty(
+    #     default=False,
+    #     options={'HIDDEN'}
+    # ) # type: ignore
+    
+    # COPY, MOVE
+    is_move: BoolProperty(
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    is_overwrite: BoolProperty(
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    @classmethod
+    def poll(self, context):
+        return props_py.gl_pack_selected is not None and len(context.scene.hot_node_props.presets) > 0
+    
+    def execute(self, context):
+        print("IM EXECUTED !!!")
+        return preset_to_pack(self, context, self.pack_name, self.is_move, self.is_overwrite)
+    
+    def invoke(self, context, event):
+        # if self.pop_menu:
+        #     wm = context.window_manager
+        #     if self.is_move:
+        #         wm.popup_menu(draw_func=gui.draw_move_to_pack_menu)
+        #     else:
+        #         wm.popup_menu(draw_func=gui.draw_copy_to_pack_menu)
+        #     return {'RUNNING_MODAL'}
+        dst_pack_preset_names, _ = file.read_presets(self.pack_name)
+        props = context.scene.hot_node_props
+        preset_name = props.presets[props.preset_selected].name
+        if preset_name in dst_pack_preset_names:
+            wm = context.window_manager
+            # result = wm.invoke_confirm(self, event=event, title=i18n.msg["Preset Already Existed"], confirm_text="Overwrite")
+            result = wm.invoke_confirm(self, event=event, title=i18n.msg["Preset Already Existed"], confirm_text="Overwrite",
+                message=i18n.msg["msg_preset_to_pack_overwrite_confirm"].format(src_preset_name=preset_name, dst_pack_name=self.pack_name))
+            self.is_overwrite = True
+            return result
+        else:
+            self.is_overwrite = False
+            return self.execute(context)
     
     
 class HOTNODE_OT_texture_save(Operator):
     bl_idname = "node.hot_node_texture_save"
-    bl_label = i18n.msg["Save Texture"]
+    bl_label = i18n.msg["Set Texture"]
     bl_description = i18n.msg["desc_save_texture"]
     bl_options = {'UNDO', 'REGISTER'}
     
@@ -768,10 +874,10 @@ class HOTNODE_OT_refresh(Operator):
     def execute(self, context):
         props = context.scene.hot_node_props
         sync.sync(props)
-        self.report({'INFO'}, "Hot Node refreshed.")
+        self.report({'INFO'}, i18n.msg["rpt_hot_node_refreshed"])
         return {'FINISHED'}
     
-    
+       
 # help to invoke some functions without import it as a module and allows accessing context. call this ops only in codes.
 class HOTNODE_OT_helper(Operator):
     bl_idname = "node.hot_node_helper"
@@ -805,6 +911,7 @@ classes = (
     HOTNODE_OT_preset_save,
     HOTNODE_OT_preset_apply,
     HOTNODE_OT_nodes_add,
+    HOTNODE_OT_preset_to_pack,
     HOTNODE_OT_texture_save,
     HOTNODE_OT_pack_create,
     HOTNODE_OT_pack_delete,

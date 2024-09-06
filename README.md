@@ -36,8 +36,8 @@ Presets are nodes templetes that can be stored, modified, applied.
 ##### Manage & Apply Presets
 You can manage & apply presets across .blend files:
 - **Create**
-    - Click ```Plus``` icon button on the right of the preset select window.
-    - Or use ```Shift + A``` at node editor window then in ```Add``` > ```Nodes``` > ```Quick Menu``` > ```Fast Create Preset``` enter the new preset's name.
+    - Click ```Plus``` icon button on the right of the preset select window. Current selected nodes will be saved to the new preset.
+    - Or select the nodes and right click then type new preset's name in `Fast Create Preset Name`.
     Then a new preset recording the current selected nodes will be created:
 - **Save** - select the nodes, click ```Save```, these selected nodes will be saved to the current selected preset.
 - **Delete** - select the preset and click the ```Minus``` icon button on the right of the preset select window.
@@ -93,6 +93,13 @@ Hot Node will check whether the tree interface is as same as the current edit tr
 When apply node presset:
 - If the current .blend file exists a re-named node group with the same inner nodes, it will be re-used rather than create a Group.001.
 - The same goes for textures, the re-named textures' file size will be compared.
+
+
+Testing Process
+--------
+Here we record a fairly complete process for testing add-on.
+- 
+
 
 Aknowledgement
 --------

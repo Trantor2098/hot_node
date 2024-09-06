@@ -284,8 +284,14 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
         elif length < clength:
             # may be the new node should append list manually, like curve[i].points, simulationInputs, etc. here we do this.
             for i in range(clength):
-                if i > length - 1:
+                if i >= length:
                     new_element(obj, cobj[i], attr_name)
+                print("====================xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                print(obj)
+                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                print(cobj)
+                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                print(attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         # XXX [DEPRECATED] this branch solves the Risk below, but im not sure is it safe...
         # elif length < max_HN_idx + 1:
@@ -320,26 +326,28 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
                 if attr == "subtype" and cvalue == "":
                     cvalue = 'NONE'
-                # XXX It is annoying to add special setter for each type, we should find a better way to do this.
+                # XXX [TEMP SOLUTION] It is annoying to add special setter for each type, we should find a better way to do this.
                 elif isinstance(obj, bpy.types.NodeTreeInterfaceSocketMenu) and attr == "default_value":
                     global late_setter_func
                     def socket_menu_solver(params):
-                        obj, cvalue = params
-                        obj.default_value = cvalue
-                    late_setter_func.append((socket_menu_solver, (obj, cvalue)))
+                        obj, attr, cvalue = params
+                        setattr(obj, attr, cvalue)
+                    late_setter_func.append((socket_menu_solver, (obj, attr, cvalue)))
                     continue
-                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
                 try:
                     setattr(obj, attr, cvalue)
+                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
                 except AttributeError:
                     print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
-                # setattr(obj, attr, cvalue)
+                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
+                except TypeError:
+                    print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}.")
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
 
         
-def set_interface(interface, cinterface):
+def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
     interface.clear()
     clength = len(cinterface)
     child_parent_pairs = []
@@ -355,6 +363,7 @@ def set_interface(interface, cinterface):
             item = interface.new_socket(name, in_out=in_out, socket_type=socket_type)
         elif item_type == 'PANEL':
             item = interface.new_panel(name)
+        print(interface.items_tree)
             
         # set item attributes
         interface.move(item, citem["position"])
@@ -404,6 +413,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             else:
                 node.image = tex
         # TODO more beautiful...
+        # All items, especially sockets, should be newed here
         elif bl_idname == "GeometryNodeSimulationOutput":
             cstate_items = cnode.get("state_items", [])
             length = len(cstate_items)
@@ -493,7 +503,7 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     for node in nodes:
         node.select = False
         
-    # Setup Tree Interface if there are group io nodes in the preset
+    # Setup Tree Interface if there are group io nodes in the preset or it's a ng
     if set_tree_io:
         set_interface(interface, cnode_tree["interface"])
             
