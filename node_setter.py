@@ -286,12 +286,6 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             for i in range(clength):
                 if i >= length:
                     new_element(obj, cobj[i], attr_name)
-                print("====================xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                print(obj)
-                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                print(cobj)
-                print("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
-                print(attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         # XXX [DEPRECATED] this branch solves the Risk below, but im not sure is it safe...
         # elif length < max_HN_idx + 1:
@@ -363,7 +357,6 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
             item = interface.new_socket(name, in_out=in_out, socket_type=socket_type)
         elif item_type == 'PANEL':
             item = interface.new_panel(name)
-        print(interface.items_tree)
             
         # set item attributes
         interface.move(item, citem["position"])

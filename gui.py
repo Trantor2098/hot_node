@@ -90,8 +90,9 @@ def _register_existing_menus():
         try:
             bpy.utils.register_class(Menu)
         except ValueError:
-            print("_register_existing_menus failed")
             pass
+            # print("_register_existing_menus failed")
+            
     
 
 def ensure_existing_pack_menu(pack_name: str|None=None):
@@ -165,6 +166,7 @@ class HOTNODE_MT_preset_copy_to_pack(Menu):
     def draw(self, context):
         layout = self.layout
         layout.label(text=i18n.msg["Copy to Pack"])
+        layout.separator()
         for pack_name in props_py.gl_packs.keys():
             if pack_name != props_py.gl_pack_selected.name:
                 ops = layout.operator("node.hot_node_preset_to_pack", text=pack_name, translate=False)
@@ -181,11 +183,30 @@ class HOTNODE_MT_preset_move_to_pack(Menu):
     def draw(self, context):
         layout = self.layout
         layout.label(text=i18n.msg["Move to Pack"])
+        layout.separator()
         for pack_name in props_py.gl_packs.keys():
             if pack_name != props_py.gl_pack_selected.name:
                 ops = layout.operator("node.hot_node_preset_to_pack", text=pack_name, translate=False)
                 ops.pack_name = pack_name
                 ops.is_move = self.is_move
+                
+                
+class HOTNODE_MT_ui_preferences(Menu):
+    bl_label = i18n.msg["UI Preferences"]
+    bl_description = i18n.msg["desc_ui_preferences"]
+    
+    def draw(self, context):
+        # Add-on UI Settings
+        addon_prefs = context.preferences.addons[__package__].preferences
+        layout = self.layout
+        layout.label(text=i18n.msg["UI Preferences"])
+        layout.separator()
+        layout.prop(addon_prefs, "in_one_menu")
+        layout.prop(addon_prefs, "focus_on_get")
+        layout.prop(addon_prefs, "extra_confirm")
+        # Utilities & settings Bar
+        layout.prop(addon_prefs, "settings_bar")
+        layout.prop(addon_prefs, "utilities_bar")
 
 
 class HOTNODE_MT_specials(Menu):
@@ -224,16 +245,16 @@ class HOTNODE_MT_specials(Menu):
         layout.prop(addon_prefs, "overwrite_tree_io")
         layout.prop_menu_enum(addon_prefs, "tex_default_mode", icon='FILE_IMAGE')
         
-        # Add-on Settings
+        # # Add-on UI Settings
+        # layout.separator()
+        # layout.prop(addon_prefs, "in_one_menu")
+        # layout.prop(addon_prefs, "focus_on_get")
+        # layout.prop(addon_prefs, "extra_confirm")
+        # # Utilities & settings Bar
+        # layout.prop(addon_prefs, "settings_bar")
+        # layout.prop(addon_prefs, "utilities_bar")
         layout.separator()
-        layout.prop(addon_prefs, "in_one_menu")
-        layout.prop(addon_prefs, "focus_on_get")
-        layout.prop(addon_prefs, "extra_confirm")
-        
-        # Utilities & settings Bar
-        layout.separator()
-        layout.prop(addon_prefs, "settings_bar")
-        layout.prop(addon_prefs, "utilities_bar")
+        layout.menu("HOTNODE_MT_ui_preferences", icon='PREFERENCES')
                      
         
 class HOTNODE_MT_nodes_add(Menu):
@@ -472,6 +493,7 @@ classes = (
     HOTNODE_MT_pack_select,
     HOTNODE_MT_preset_copy_to_pack,
     HOTNODE_MT_preset_move_to_pack,
+    HOTNODE_MT_ui_preferences,
     HOTNODE_MT_specials,
     HOTNODE_MT_nodes_add_in_one,
     HOTNODE_UL_presets,

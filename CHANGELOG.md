@@ -14,11 +14,10 @@ ChangeLog
 --------
 
 ### Add
-- Simplified Chinese supported.
+- Simplified Chinese supported / 全面支持简体中文.
 - Move / copy preset into another pack.
 - Optional UI setting: Bigger `Get` (`Apply` in previous) button, smaller `Set` (`Save` in previous) button (default open).
 - Optional UI setting: Utilities Bar & Settings Bar.
-- Preferences pabel on add-on installing window available.
 - Improved performance.
 
 ### Changed

@@ -20,7 +20,7 @@
 
 import bpy
 from bpy.types import AddonPreferences
-from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
+from bpy.props import BoolProperty, EnumProperty
 
 from . import i18n
 
@@ -41,7 +41,7 @@ class HotNodePreferences(AddonPreferences):
     ) # type: ignore
     
     focus_on_get: BoolProperty(
-        name=i18n.msg["Focus On Get"],
+        name=i18n.msg["Focus on Get"],
         description=i18n.msg["desc_focus_on_get"],
         default=True,
     ) # type: ignore
@@ -85,7 +85,6 @@ class HotNodePreferences(AddonPreferences):
         layout.prop(self, "in_one_menu")
         layout.prop(self, "focus_on_get")
         layout.prop(self, "extra_confirm")
-        layout.separator(type='LINE')
         layout.prop(self, "settings_bar")
         layout.prop(self, "utilities_bar")
         

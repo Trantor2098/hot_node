@@ -342,7 +342,6 @@ def texture_save(ops: Operator, context: bpy.types.Context):
         elif cpreset == 'NOT_PRESET_SELECTED':
             ops.report(type={'WARNING'}, message=i18n.msg["rpt_tex_save_fail_not_preset_selected"])
         else:
-            print(cpreset)
             ops.report(type={'WARNING'}, message="Failed to save texture settings")
         return {'CANCELLED'}
     else:
@@ -697,7 +696,6 @@ class HOTNODE_OT_preset_to_pack(Operator):
         return props_py.gl_pack_selected is not None and len(context.scene.hot_node_props.presets) > 0
     
     def execute(self, context):
-        print("IM EXECUTED !!!")
         return preset_to_pack(self, context, self.pack_name, self.is_move, self.is_overwrite)
     
     def invoke(self, context, event):
