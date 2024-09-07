@@ -42,6 +42,7 @@ _node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeG
 # NOTE the smallest type should be in the front, if there are parent relation between two types.
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 # TODO specify the node tree type (or the super type) then specify the node to improve the parsing speed.
+# NOTE This helps escaping some errors, and the other errors were solved by setter's try-except.
 _type_wb_attrs_parser = (
     # (bpy.types.NodeTreeInterfaceSocketMenu,
     # ("item_type", "socket_type", "in_out", "index", "position", "identifier"),
@@ -67,6 +68,7 @@ _type_wb_attrs_parser = (
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "width", "height"),
     None),
+    # this can be moved, leave it to the setter to handle the error, but just keep it is fine.
     (bpy.types.GeometryNodeMenuSwitch,
     ("bl_idname", "location"),
     ("rna_type", "dimensions", 'select', "enum_definition", 'is_active_output', "internal_links", "rna_type"),

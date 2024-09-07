@@ -99,9 +99,9 @@ When apply node presset:
 For the other settings in the add-on panel, they can be understood by a glance, just discover!
 
 
-Testing Process
+Notifications of Publishing
 --------
-Here we record a fairly complete process for testing add-on.
+##### Testing Process
 - `Get` & `Set` of all kinds of nodes.
 - `Get` & `Set` of modified nodes, like `RGB Curve`.
 - `Get` & `Set` of nodes that can be added items, like `GeometryNodeSimulationInput`.
@@ -122,6 +122,9 @@ Here we record a fairly complete process for testing add-on.
 - Polls of operators
 - Redundant print().
 - Console infos.
+
+##### Check These
+- File indent.
 
 
 Aknowledgement

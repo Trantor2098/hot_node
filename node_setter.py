@@ -258,6 +258,33 @@ def new_element(obj, cobj, attr_name):
         new(cobj["location"][0], cobj["location"][1])
     elif attr_name == "enum_items":
         new(cobj["name"])
+        
+        
+def try_setattr(obj, attr, cvalue):
+    '''setattr with try catch. When debug, use setattr directly to find out bugs, rather than try catch.'''
+    try:
+        setattr(obj, attr, cvalue)
+    # Setting Read-only attr may cause this
+    except AttributeError:
+        print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
+    # Forgot what may cause this...
+    except TypeError:
+        print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}.")
+    # Set float to Vector may cause this
+    except ValueError:
+        if hasattr(obj, attr):
+            import mathutils
+            obj_attr = getattr(obj, attr)
+            if isinstance(cvalue, float) and isinstance(obj_attr, (mathutils.Vector, 
+                                                                   mathutils.Euler, 
+                                                                   mathutils.Color, 
+                                                                   bpy.types.bpy_prop_array)):
+                cvalue = len(obj_attr) * [cvalue]
+                setattr(obj, attr, cvalue)
+            else:
+                print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
+        else:
+            print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
 
 
 def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
@@ -287,7 +314,8 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 if i >= length:
                     new_element(obj, cobj[i], attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
-        # XXX [DEPRECATED] this branch solves the Risk below, but im not sure is it safe...
+        # XXX This branch solves the Risk below, and it's a universal way for node that has custom sockets. 
+        # but im not sure is it safe... because there are too many uncertain things in new() progress...
         # elif length < max_HN_idx + 1:
         #     for cvalue in cobj:
         #         HN_idx = cvalue["HN_idx"]
@@ -328,14 +356,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                         setattr(obj, attr, cvalue)
                     late_setter_func.append((socket_menu_solver, (obj, attr, cvalue)))
                     continue
-                try:
-                    setattr(obj, attr, cvalue)
-                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
-                except AttributeError:
-                    print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
-                # NOTE When debug, use setattr directly to find out bugs, rather than try catch.
-                except TypeError:
-                    print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}.")
+                try_setattr(obj, attr, cvalue)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
@@ -431,8 +452,16 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             cenum_items = cnode.get("enum_items", [])
             clength = len(cenum_items)
             max_HN_idx = cenum_items[clength - 1]["HN_idx"]
-            for i in range(2, max_HN_idx):
+            # inputs idx 0, 1 are enum items that is created by default, skip them
+            for i in range(2, max_HN_idx + 1):
                 node.enum_items.new("")
+        elif bl_idname == "CompositorNodeOutputFile":
+            cfile_slots = cnode.get("file_slots", [])
+            clength = len(cfile_slots)
+            max_HN_idx = cfile_slots[clength - 1]["HN_idx"]
+            # idx 1 is a file slot that is created by default, skip it
+            for i in range(1, max_HN_idx + 1):
+                node.file_slots.new("")
         
         # set attributes, io sockets
         set_attrs(node, cnode)
@@ -449,7 +478,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             # for parent NodeFrames, set parent location means change all sons' locations
             else:
                 node.location = Vector(cnode["location"]) + node_offset
-                setattr(node, attr, cnodes[ref2_node_name]["HN_ref"])
+                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"])
         # dont have paired output in our data, remove input in late set list
         elif attr == "paired_output":
             # node.location = Vector(cnode["location"]) + node_offset

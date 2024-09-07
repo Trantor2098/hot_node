@@ -2,15 +2,25 @@ ChangeLog
 ========
 
 
-[0.6.1] - 2024-09-05
+[0.6.2] - 2024-09-07
 --------
 
 ### Fixed
+- Sometimes add-on leaves residual history file.
 - Changing the name of the preset which is not selected causes error.
-- Node `Image Info` cannot be saved by texture saving.
+- Better group reuse logic.
 
 
-[0.6.0] - 2024-09-05
+[0.6.1] - 2024-09-07
+--------
+
+### Fixed
+- Node `File Output` causes error.
+- Node `Menu Switch` lost items sometimes.
+- Improved performance and downward compatibility of presets.
+
+
+[0.6.0] - 2024-09-06
 --------
 
 ### Add
