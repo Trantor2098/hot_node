@@ -125,6 +125,7 @@ Notifications of Publishing
 
 ##### Check These
 - File indent.
+- Add-on version in manifest and bl_info.
 
 
 Aknowledgement
