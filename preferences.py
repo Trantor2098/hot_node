@@ -1,28 +1,9 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import bpy
+import rna_keymap_ui
 from bpy.types import AddonPreferences
 from bpy.props import BoolProperty, EnumProperty
 
-from . import i18n
+from . import i18n, keymap
 
 
 class HotNodePreferences(AddonPreferences):
@@ -32,6 +13,12 @@ class HotNodePreferences(AddonPreferences):
         name=i18n.msg["Overwrite Tree I/O"],
         description=i18n.msg["desc_overwrite_tree_io"],
         default=False,
+    ) # type: ignore
+    
+    append_node_add_menu: BoolProperty(
+        name=i18n.msg["In One Menu"],
+        description=i18n.msg["desc_in_one_menu"],
+        default=True,
     ) # type: ignore
     
     in_one_menu: BoolProperty(
@@ -87,6 +74,8 @@ class HotNodePreferences(AddonPreferences):
         layout.prop(self, "extra_confirm")
         layout.prop(self, "settings_bar")
         layout.prop(self, "utilities_bar")
+        
+        keymap.draw_kmis(layout)
         
         
 def register():

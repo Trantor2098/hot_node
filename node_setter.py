@@ -1,23 +1,3 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import bpy
 
 import os
@@ -172,9 +152,9 @@ def open_tex(cobj):
             if match_num > max_match_num:
                 tex_name = name
                 max_match_num = match_num
-        tex_path = "\\".join((tex_dir_path, tex_name))
         if tex_name is None:
             return 'NO_MATCHED_TEX'
+        tex_path = "\\".join((tex_dir_path, tex_name))
     # Stay Empty Mode
     elif open_mode == 'STAY_EMPTY':
         return 'STAY_EMPTY'
@@ -212,12 +192,13 @@ def open_tex(cobj):
                 tex_path = "\\".join((tex_dir_path, tex_name))
         
     images = bpy.data.images
-    # have the tex in data
+    # if have the tex in data
     if images.find(tex_name) != -1:
         old_tex_path = bpy.data.images[tex_name].filepath
         old_tex = bpy.data.images[tex_name]
-        # different with the existing tex, load a the new tex and ensure using an unique name
-        if not utils.compare_size_same(old_tex_path, tex_path):
+        # if different with the existing tex or the existing tex is lost, 
+        # load a new tex and ensure using an unique name
+        if not file.exist_path(old_tex_path) or not utils.compare_size_same(old_tex_path, tex_path):
             old_name = tex_name
             tex_name = utils.ensure_unique_name(tex_name, -1, images.keys())
             # make a room for new tex
@@ -365,6 +346,7 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
 def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
     interface.clear()
     clength = len(cinterface)
+    panels_citems = []
     child_parent_pairs = []
     # dont know why, after we newed all the items, their index will change. so we store references.
     for i in range(clength):
@@ -378,11 +360,15 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
             item = interface.new_socket(name, in_out=in_out, socket_type=socket_type)
         elif item_type == 'PANEL':
             item = interface.new_panel(name)
+            panels_citems.append((item, citem))
+        # get ref
+        citem["HN_ref"] = item
+        
+        # move position (order)
+        interface.move(item, citem["position"])
             
         # set item attributes
-        interface.move(item, citem["position"])
         set_attrs(item, citem)
-        citem["HN_ref"] = item
         
         # get parent relations
         if citem["HN_parent_idx"] != -1:
@@ -392,8 +378,13 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
     for item, HN_parent_idx, to_position in child_parent_pairs:
         interface.move_to_parent(item, cinterface[HN_parent_idx]["HN_ref"], to_position)
         
+    # putting items into the panel makes the panel go to the top of the interface, 
+    # so we set the panel's position again after all items are created
+    for panel, citem in panels_citems:
+        interface.move(panel, citem["position"])
         
 def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False):
+    global failed_tex_num
     node_cnode_attr_ref2nodenames = []
     later_setup_cnodes = {}
     for cnode in cnodes.values():
@@ -430,17 +421,20 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
         # All items, especially sockets, should be newed here
         elif bl_idname == "GeometryNodeSimulationOutput":
             cstate_items = cnode.get("state_items", [])
-            length = len(cstate_items)
+            clength = len(cstate_items)
+            max_HN_idx = cstate_items[clength - 1]["HN_idx"]
             # idx 0 is a build-in geometry socket, skip it
-            for i in range(1, length):
+            for i in range(1, max_HN_idx + 1):
                 citem = cstate_items[i]
                 node.state_items.new(citem["socket_type"], citem["name"])
         elif bl_idname == "GeometryNodeRepeatOutput":
             crepeat_items = cnode.get("repeat_items", [])
-            length = len(crepeat_items)
+            clength = len(crepeat_items)
+            max_HN_idx = crepeat_items[clength - 1]["HN_idx"]
             # idx 0 is a build-in geometry socket, skip it
-            for i in range(1, length):
+            for i in range(1, max_HN_idx + 1):
                 citem = crepeat_items[i]
+                # node.repeat_items.new(citem["socket_type"], citem["name"])
                 node.repeat_items.new(citem["socket_type"], citem["name"])
         elif bl_idname == "GeometryNodeCaptureAttribute":
             capture_items = cnode.get("capture_items", [])
@@ -448,6 +442,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
                 node.capture_items.new(citem["HN_socket_type"], citem["name"])
         elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeRepeatInput"):
             later_setup_cnodes[cnode['name']] = (node, cnode)
+            continue
         elif bl_idname == "GeometryNodeMenuSwitch":
             cenum_items = cnode.get("enum_items", [])
             clength = len(cenum_items)
@@ -542,7 +537,7 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     late_setter_func.clear()
             
 
-def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False):
+def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False, new_tree=False):
     '''Set nodes for the current edit tree'''
     global failed_tex_num
     failed_tex_num = 0
@@ -551,6 +546,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     # maybe cdata, but we call it cnode_trees
     cnode_trees = file.load_preset(preset_name, pack_name=pack_name)
     cnode_trees = versioning.ensure_preset_version(preset_name, cnode_trees)
+    cdata = cnode_trees["HN_preset_data"]
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():
@@ -585,15 +581,32 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True)
         cnode_tree["HN_ref"] = node_tree
         
+    # Generate Main Node Tree to a new tree
+    if new_tree:
+        cname = cnode_trees["HN_preset_data"]["preset_name"]
+        tree_type = cdata["tree_type"]
+        edit_tree = node_groups.new(cname, tree_type)
+        if tree_type == "GeometryNodeTree":
+            nodes_modifier = context.active_object.modifiers.new(name=cname, type='NODES')
+            nodes_modifier.node_group = edit_tree
+            nodes_modifier.name = edit_tree.name
     # Generate Main Node Tree To Current Editing Tree
-    edit_tree = space_data.edit_tree
+    else:
+        edit_tree = space_data.edit_tree
     cedit_interface = node_parser.parse_interface(edit_tree)
+    if new_tree:
+        if check_group_io_node(cnode_trees["HN_edit_tree"]["nodes"]):
+            set_tree_io = True
+            link_group_io = True
+        else:
+            set_tree_io = False
+            link_group_io = False
     # if is base node tree, skip setting io for trees except geo tree
-    if edit_tree is space_data.node_tree and edit_tree.bl_idname != "GeometryNodeTree":
+    elif edit_tree is space_data.node_tree and edit_tree.bl_idname != "GeometryNodeTree":
         set_tree_io = False
         link_group_io = False
     elif cnode_trees["HN_edit_tree"].get("interface", None) is not None:
-    # if the existing tree interface is capatibale with our preset, just use it
+        # if the existing tree interface is capatibale with our preset, just use it
         if compare_same(cedit_interface, cnode_trees["HN_edit_tree"]["interface"]):
             set_tree_io = False
             link_group_io = True
@@ -608,7 +621,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     else:
         set_tree_io = False
         link_group_io = True
-    if apply_offset:
+    if apply_offset and not new_tree:
         cnode_center = cnode_trees["HN_preset_data"]["node_center"]
         cursor_location = space_data.cursor_location
         node_offset = cursor_location - Vector(cnode_center)

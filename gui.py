@@ -1,29 +1,9 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import bpy
 from bpy.types import Menu, Panel, UIList
 
 import time
 
-from . import file, props_py, sync, i18n
+from . import file, props_py, sync, i18n, ops_invoker
 
 
 type_icon = {
@@ -70,6 +50,20 @@ def draw_nodes_add_menus(self: Menu, context: bpy.types.Context):
                 pack_Menu = packs_Menus.get(pack_name, None)
                 self.layout.menu(pack_Menu.__name__, text=pack_name, translate=False)
                 
+                
+def draw_geo_add_menus(self: Menu, context: bpy.types.Context):
+    sync.ensure_sync(context, from_gui=True)
+    if props_py.gl_packs != {}:
+        top_one = True
+        # bpy.app.timers.register(_register_existing_menus)
+        for pack_name in props_py.gl_packs.keys():
+            if "GeometryNodeTree" in file.get_pack_types(pack_name):
+                if top_one:
+                    self.layout.separator()
+                    top_one = False
+                pack_Menu = packs_Menus.get(pack_name, None)
+                self.layout.menu(pack_Menu.__name__, text=pack_name, translate=False)
+                
             
 def create_pack_menu_class(pack_name: str):
     global _pack_menu_num
@@ -78,6 +72,11 @@ def create_pack_menu_class(pack_name: str):
     Menu = type(Menu_name, (HOTNODE_MT_nodes_add, ), {"bl_label": pack_name})
     packs_Menus[pack_name] = Menu
     return Menu
+
+
+def create_key_map(context: bpy.types.Context):
+    kc = context.window_manager.keyconfigs
+    context.window_manager.keyconfigs.addon.keymaps.new(name="Node Editor", space_type='NODE_EDITOR')
 
 
 def _register_new_menus():
@@ -189,24 +188,6 @@ class HOTNODE_MT_preset_move_to_pack(Menu):
                 ops = layout.operator("node.hot_node_preset_to_pack", text=pack_name, translate=False)
                 ops.pack_name = pack_name
                 ops.is_move = self.is_move
-                
-                
-class HOTNODE_MT_ui_preferences(Menu):
-    bl_label = i18n.msg["UI Preferences"]
-    bl_description = i18n.msg["desc_ui_preferences"]
-    
-    def draw(self, context):
-        # Add-on UI Settings
-        addon_prefs = context.preferences.addons[__package__].preferences
-        layout = self.layout
-        layout.label(text=i18n.msg["UI Preferences"])
-        layout.separator()
-        layout.prop(addon_prefs, "in_one_menu")
-        layout.prop(addon_prefs, "focus_on_get")
-        layout.prop(addon_prefs, "extra_confirm")
-        # Utilities & settings Bar
-        layout.prop(addon_prefs, "settings_bar")
-        layout.prop(addon_prefs, "utilities_bar")
 
 
 class HOTNODE_MT_specials(Menu):
@@ -255,6 +236,7 @@ class HOTNODE_MT_specials(Menu):
         # layout.prop(addon_prefs, "utilities_bar")
         layout.separator()
         layout.menu("HOTNODE_MT_ui_preferences", icon='PREFERENCES')
+        # layout.popover("HOTNODE_MT_ui_preferences", icon='PREFERENCES')
                      
         
 class HOTNODE_MT_nodes_add(Menu):
@@ -264,7 +246,13 @@ class HOTNODE_MT_nodes_add(Menu):
     
     def draw(self, context):
         layout = self.layout
-        tree_type = context.space_data.tree_type
+        space_data = context.space_data
+        new_tree = False
+        if isinstance(space_data, bpy.types.SpaceNodeEditor):
+            tree_type = space_data.tree_type
+        elif isinstance(space_data, bpy.types.SpaceProperties):
+            tree_type = "GeometryNodeTree"
+            new_tree = True
         # TODO transfer all packs to presets_cache rather than read presets.
         preset_names, tree_types = file.read_presets(self.bl_label)
         
@@ -278,12 +266,26 @@ class HOTNODE_MT_nodes_add(Menu):
                 ops.preset_name = preset_name
                 ops.pack_name = self.bl_label
                 ops.tree_type = tree_type
+                ops.new_tree = new_tree
+                
+                
+class HOTNODE_MT_preset_create(Menu):
+    bl_label = i18n.msg["Nodes"]
+    def draw(self, context):
+        for pack_name in props_py.gl_packs.keys():
+            self.layout.operator("node.hot_node_preset_create", text=pack_name, translate=False).pack_name = pack_name
                 
                 
 class HOTNODE_MT_nodes_add_in_one(Menu):
     bl_label = i18n.msg["Nodes"]
     def draw(self, context):
         draw_nodes_add_menus(self, context)
+        
+        
+class HOTNODE_MT_geo_add_in_one(Menu):
+    bl_label = i18n.msg["Nodes"]
+    def draw(self, context):
+        draw_geo_add_menus(self, context)
 
 
 class HOTNODE_UL_presets(UIList):
@@ -300,6 +302,28 @@ class HOTNODE_PT_parent(Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
     bl_category = "Hot Node"
+    
+    
+# class HOTNODE_MT_ui_preferences(HOTNODE_PT_parent):
+class HOTNODE_MT_ui_preferences(Menu):
+    bl_label = i18n.msg["UI Preferences"]
+    bl_description = i18n.msg["desc_ui_preferences"]
+    # bl_options = {'DEFAULT_CLOSED'}
+    # bl_order = 999
+    
+    def draw(self, context):
+        # Add-on UI Settings
+        addon_prefs = context.preferences.addons[__package__].preferences
+        layout = self.layout
+        # layout.alignment = 'CENTER'
+        # layout.label(text=i18n.msg["UI Preferences"])
+        # layout.separator()
+        layout.prop(addon_prefs, "in_one_menu")
+        layout.prop(addon_prefs, "focus_on_get")
+        layout.prop(addon_prefs, "extra_confirm")
+        # Utilities & settings Bar
+        layout.prop(addon_prefs, "settings_bar")
+        layout.prop(addon_prefs, "utilities_bar")
     
     
 class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
@@ -320,7 +344,9 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         # if props_py.gl_packs == {}:
         #     row.operator("node.hot_node_pack_create", icon='COLLECTION_NEW', text="")
         # else:
+        row.scale_x = 1.75
         row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
+        row.scale_x = 1.0
         row.prop(props, "pack_selected_name", text="", placeholder=i18n.msg["Select a pack"])
         row.operator("node.hot_node_pack_create", icon='ADD', text="")
         row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
@@ -377,6 +403,7 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent, Panel):
         layout.separator(factor=0.1)
         if addon_prefs.focus_on_get:
             row = layout.row()
+            # row.scale_y = 1.25
             row.operator("node.hot_node_preset_apply", text=i18n.msg["Get"]).preset_name = ""
             row.operator("node.hot_node_preset_save", icon='CURRENT_FILE', text="")
         else:
@@ -482,6 +509,16 @@ def draw_ex_nodes_add_menu(self, context):
         self.layout.menu("HOTNODE_MT_nodes_add_in_one", text=i18n.msg["Nodes"])
     else:
         draw_nodes_add_menus(self, context)
+        
+        
+def draw_ex_geo_add_menu(self, context):
+    self.layout.separator()
+    self.layout.menu("HOTNODE_MT_geo_add_in_one", icon='GEOMETRY_NODES', text=i18n.msg["Nodes"])
+    # if context.preferences.addons[__package__].preferences.in_one_menu:
+    #     self.layout.separator()
+    #     self.layout.menu("HOTNODE_MT_geo_add_in_one", text=i18n.msg["Nodes"])
+    # else:
+    #     draw_geo_add_menus(self, context)
     
     
 def draw_ex_fast_create_preset(self, context):
@@ -489,13 +526,19 @@ def draw_ex_fast_create_preset(self, context):
     self.layout.prop(context.scene.hot_node_props, "fast_create_preset_name", text="", placeholder=i18n.msg["Fast Create Preset Name"])
 
 
+def draw_ex_preset_create_menu(self, context):
+    self.layout.separator()
+    self.layout.menu("HOTNODE_MT_preset_create", text=i18n.msg["Create Preset"])
+
 classes = (
     HOTNODE_MT_pack_select,
     HOTNODE_MT_preset_copy_to_pack,
     HOTNODE_MT_preset_move_to_pack,
     HOTNODE_MT_ui_preferences,
     HOTNODE_MT_specials,
+    HOTNODE_MT_preset_create,
     HOTNODE_MT_nodes_add_in_one,
+    HOTNODE_MT_geo_add_in_one,
     HOTNODE_UL_presets,
     HOTNODE_PT_nodes,
     HOTNODE_PT_texture,
@@ -507,10 +550,16 @@ classes = (
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        try:
+            bpy.utils.register_class(cls)
+        # already registered
+        except ValueError:
+            pass
         
     bpy.types.NODE_MT_add.append(draw_ex_nodes_add_menu)
+    # bpy.types.OBJECT_MT_modifier_add.append(draw_ex_geo_add_menu)
     bpy.types.NODE_MT_context_menu.append(draw_ex_fast_create_preset)
+    # bpy.types.NODE_MT_context_menu.append(draw_ex_preset_create_menu)
 
 
 def unregister():
@@ -524,6 +573,8 @@ def unregister():
             pass
         
     bpy.types.NODE_MT_add.remove(draw_ex_nodes_add_menu)
+    # bpy.types.OBJECT_MT_modifier_add.remove(draw_ex_geo_add_menu)
     bpy.types.NODE_MT_context_menu.remove(draw_ex_fast_create_preset)
+    # bpy.types.NODE_MT_context_menu.remove(draw_ex_preset_create_menu)
     
     packs_Menus.clear()

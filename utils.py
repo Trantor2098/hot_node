@@ -1,24 +1,16 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
+import bpy
 
 import os, difflib, time
+
+
+class NoneClass:
+    pass
+
+
+def btype(bpy_type: str):
+    '''Try to get bpy.types.<dst_type> from a string. Example: "Mesh" -> bpy.types.Mesh.
+    Return: The type, or utils.NoneClass if the type is not found.'''
+    return getattr(bpy.types, bpy_type, NoneClass)
 
 
 def split_by_slash(string: str):
@@ -37,7 +29,7 @@ def split_by_slash(string: str):
 
 
 def split_name_suffix(full_name: str):
-    '''Split blender name style str into name and int suffix. Example: Obj.001 -> Obj 1. No suffix means -1.'''
+    '''Split blender name style str into name and int suffix. Example: Obj.001 -> Obj, 1. No suffix means -1.'''
     last_dot_idx = full_name.rfind('.')
     name: str = full_name
     int_suffix: int = 0
@@ -289,6 +281,24 @@ def parse_autosave_time_str(autosave_time_str):
     hour = int(autosave_time_str[2:4])
     minute = int(autosave_time_str[4:6])
     return [day, hour, minute]
+
+
+def check_slash_anti_slash_in_string(string: str):
+    '''Check whether the string contains both slash or anti-slash.'''
+    string = repr(string)
+    if string.find("/") != -1 or string.find("\\") != -1:
+        return True
+    return False
+
+
+def delete_slash_anti_slash_in_string(string: str):
+    '''Check whether the string contains both slash or anti-slash.'''
+    string = repr(string)
+    string = string.replace("/", "")
+    string = string.replace("\\", "")
+    # cull "'"
+    string = string[1:-1]
+    return string
 
 
 def compare_size_same(file_path1: str, file_path2: str, tolerance: int=4):

@@ -1,23 +1,3 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import os, shutil, json, zipfile, tempfile, time
 
 from . import utils, props_py, constants
@@ -88,6 +68,10 @@ def check_preset_existing(preset_name):
     return os.path.exists(file_path)
 
 
+def exist_path(path):
+    return os.path.exists(path)
+
+
 # Get File Info & Path
 def get_pack_selected_meta_path():
     return os.path.join(pack_selected_path, ".metadata.json")
@@ -107,7 +91,7 @@ def get_preset_path(preset_name):
     return os.path.join(pack_selected_path, file_name)
 
 
-def get_preset_in_pack_path(pack_name, preset_name):
+def get_preset_file_path(pack_name, preset_name):
     file_name = "".join((preset_name, ".json"))
     return os.path.join(get_pack_path(pack_name), file_name)
     
@@ -157,6 +141,20 @@ def update_pack_types(pack_name: str, write_meta=True):
     return pack_meta
 
 
+def update_pack_types_deep(pack_name: str, write_meta=True):
+    pack_meta: dict = read_pack_meta(pack_name)
+    pack_types = []
+    tree_types = list(pack_meta["tree_types"].values())
+    for tree_type in constants.tree_type_id_names:
+        if tree_type in tree_types and tree_type not in pack_types:
+            pack_types.append(tree_type)
+    pack_meta["pack_types"] = pack_types
+    if write_meta:
+        pack_path = get_pack_path(pack_name)
+        write_pack_meta(pack_path, pack_meta)
+    return pack_meta
+
+
 def update_pack_types_of_meta(pack_meta: dict):
     pack_types = []
     tree_types = list(pack_meta["tree_types"].values())
@@ -167,6 +165,36 @@ def update_pack_types_of_meta(pack_meta: dict):
     return pack_meta
 
 
+def reorder_preset_meta(preset_names):
+    pack_selected_meta = read_pack_meta()
+    pack_selected_meta["order"] = preset_names
+    write_metas(pack_selected_meta)
+    
+    
+def exchange_order_preset_meta(idx1, idx2):
+    pack_selected_meta = read_pack_meta()
+    temp = pack_selected_meta["order"][idx2]
+    pack_selected_meta["order"][idx2] = pack_selected_meta["order"][idx1]
+    pack_selected_meta["order"][idx1] = temp
+    write_metas(pack_selected_meta)
+
+
+def update_presets_of_meta_deep(pack_name):
+    pack_meta = read_pack_meta(pack_name)
+    order = pack_meta["order"]
+    preset_names = get_preset_names_deep(pack_name)
+    for preset_name in preset_names:
+        if preset_name not in order:
+            order.append(preset_name)
+    write_pack_meta(get_pack_path(pack_name), pack_meta)
+    
+    
+def update_pack_types_of_meta_deep(pack_name):
+    pack_meta = read_pack_meta(pack_name)
+    pack_meta["pack_types"] = get_pack_types_deep(pack_name)
+    write_pack_meta(get_pack_path(pack_name), pack_meta)
+
+
 def get_pack_types(pack_name):
     pack_meta: dict = read_pack_meta(pack_name)
     pack_types = pack_meta.get("pack_types", None)
@@ -174,9 +202,27 @@ def get_pack_types(pack_name):
         pack_meta = update_pack_types(pack_name)
         pack_types = pack_meta["pack_types"]
     return pack_types
+
+
+def get_preset_names_deep(pack_name):
+    pack_path = get_pack_path(pack_name)
+    preset_names = read_existing_file_names(pack_path, suffix=".json", cull_suffix=True)
+    preset_names.remove(".metadata")
+    return preset_names
+
+
+def get_pack_types_deep(pack_name):
+    preset_names = get_preset_names_deep(pack_name)
+    pack_types = []
+    for preset_name in preset_names:
+        preset = load_preset(preset_name, pack_name)
+        tree_type = preset["HN_preset_data"]["tree_type"]
+        if tree_type not in pack_types:
+            pack_types.append(tree_type)
     
     
 # CRUD of Json
+# if test, set the indent default value as 1, else, as None
 def write_json(file_path: str, data: dict, indent: int|str|None=None):
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=indent)
@@ -246,7 +292,7 @@ def refresh_pack_meta(pack_name):
     old_pack_meta = read_pack_meta()
     old_order = old_pack_meta["order"]
     pack_path = get_pack_path(pack_name)
-    preset_names = read_existing_files(pack_path, suffix=".json", cull_suffix=True)
+    preset_names = read_existing_file_names(pack_path, suffix=".json", cull_suffix=True)
     filtered_preset_names = []
     if ".metadata" in preset_names:
         preset_names.remove(".metadata")
@@ -280,7 +326,7 @@ def read_translation_dict():
 
 
 # Read Existing Files
-def read_existing_files(dir_path, suffix=".zip", cull_suffix=True):
+def read_existing_file_names(dir_path, suffix=".zip", cull_suffix=True):
     existing_file_names = os.listdir(dir_path)
     filtered_file_names: list[str] = []
     if cull_suffix:
@@ -456,7 +502,7 @@ def export_selected_pack(dst_file_path, unique_name=True):
     global pack_selected_path
     if unique_name:
         dst_dir_path = os.path.dirname(dst_file_path)
-        existing_zip_namebodys = read_existing_files(dst_dir_path, suffix=".zip")
+        existing_zip_namebodys = read_existing_file_names(dst_dir_path, suffix=".zip")
         pack_name = props_py.gl_pack_selected.name
         ensured_pack_name = utils.ensure_unique_name(pack_name, -1, existing_zip_namebodys)
         dst_file_path = os.path.join(dst_dir_path, ".".join((ensured_pack_name, "zip")))
@@ -472,7 +518,7 @@ def export_selected_pack(dst_file_path, unique_name=True):
 def export_packs(pack_names, dst_dir_path):
     # ensure we are getting a dir path, not a file path. if it's a file path, get the dir path of it using dirname()
     dst_dir_path = os.path.dirname(dst_dir_path)
-    existing_zip_namebodys = read_existing_files(dst_dir_path, suffix=".zip")
+    existing_zip_namebodys = read_existing_file_names(dst_dir_path, suffix=".zip")
             
     for pack_name in pack_names:
         pack_dir_path = os.path.join(pack_root_dir_path, pack_name)
@@ -493,7 +539,7 @@ def autosave_packs():
     ensure_dir_existing(autosave_dir_path)
     pack_names = load_packs()
     
-    existing_zips = read_existing_files(autosave_dir_path, suffix=".zip", cull_suffix=False)
+    existing_zips = read_existing_file_names(autosave_dir_path, suffix=".zip", cull_suffix=False)
     existing_packs = []
     for i in range(len(existing_zips)):
         file_name = existing_zips[i]
@@ -534,7 +580,7 @@ def auto_recover_packs():
     '''Recover all the packs which were marked as "autosave".'''
     if not os.path.exists(autosave_dir_path):
         os.mkdir(autosave_dir_path)
-    existing_zips = read_existing_files(autosave_dir_path, suffix=".zip", cull_suffix=False)
+    existing_zips = read_existing_file_names(autosave_dir_path, suffix=".zip", cull_suffix=False)
     for file_name in existing_zips:
         pack_name = utils.get_string_between_words(file_name, None, ("_autosave_",))
         if pack_name is not False:
@@ -544,7 +590,7 @@ def auto_recover_packs():
     
 def clear_outdated_autosave_packs():
     '''Clear packs which were autosaved 1 day before or autosaved in the last month.'''
-    existing_zip_namebodys = read_existing_files(autosave_dir_path, suffix=".zip")
+    existing_zip_namebodys = read_existing_file_names(autosave_dir_path, suffix=".zip")
     current_time = utils.get_autosave_time()
     for namebody in existing_zip_namebodys:
         # DDHHMM
@@ -558,17 +604,16 @@ def clear_outdated_autosave_packs():
                 os.remove(file_path)
     
 
-def create_preset(preset_name: str, cpreset: dict):
-    pack_selected_meta = read_pack_meta()
-    file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_path, file_name)
+def create_preset(pack_name: str, preset_name: str, cpreset: dict):
+    pack_meta = read_pack_meta()
+    file_path = get_preset_file_path(pack_name, preset_name)
     tree_type = cpreset["HN_preset_data"]["tree_type"]
-    pack_selected_meta["order"].append(preset_name)
-    pack_selected_meta["tree_types"][preset_name] = tree_type
-    pack_selected_meta["version"] = version
-    pack_selected_meta = update_pack_types_of_meta(pack_selected_meta)
+    pack_meta["order"].append(preset_name)
+    pack_meta["tree_types"][preset_name] = tree_type
+    pack_meta["version"] = version
+    pack_meta = update_pack_types_of_meta(pack_meta)
     write_json(file_path, cpreset)
-    write_metas(pack_selected_meta)
+    write_metas(pack_meta, pack_name)
     return file_path
     
     
@@ -605,7 +650,7 @@ def clear_preset(pack_name):
 def preset_to_pack(src_preset_name, dst_preset_name, dst_pack_name, is_move=False, is_overwrite=False):
     '''Wont check existing, rename'''
     src_file_path = get_preset_path(src_preset_name)
-    dst_file_path = get_preset_in_pack_path(dst_pack_name, dst_preset_name)
+    dst_file_path = get_preset_file_path(dst_pack_name, dst_preset_name)
     try:
         shutil.copyfile(src_file_path, dst_file_path)
     except shutil.SameFileError:
@@ -629,7 +674,9 @@ def preset_to_pack(src_preset_name, dst_preset_name, dst_pack_name, is_move=Fals
 
 
 def read_presets(pack_name=""):
-    '''Read presets via pack meta'''
+    '''Read presets via pack meta
+    Return: preset_names, tree_types'''
+    
     if pack_name == "":
         metadata_path = os.path.join(pack_selected_path, ".metadata.json")
     else:
@@ -668,23 +715,11 @@ def rename_preset(old_name, new_name):
     pack_selected_meta["tree_types"][new_name] = pack_selected_meta["tree_types"].pop(old_name)
     write_metas(pack_selected_meta)
     
-    
-def reorder_preset_meta(preset_names):
-    pack_selected_meta = read_pack_meta()
-    pack_selected_meta["order"] = preset_names
-    write_metas(pack_selected_meta)
-    
-    
-def exchange_order_preset_meta(idx1, idx2):
-    pack_selected_meta = read_pack_meta()
-    temp = pack_selected_meta["order"][idx2]
-    pack_selected_meta["order"][idx2] = pack_selected_meta["order"][idx1]
-    pack_selected_meta["order"][idx1] = temp
-    write_metas(pack_selected_meta)
-    
 
 # CRUD of images
 def get_tex_names_in_dir(tex_dir_path):
+    if not os.path.exists(tex_dir_path):
+        return 'DIR_NOT_FOUND'
     try:
         files = os.listdir(tex_dir_path)
     except FileNotFoundError:
@@ -701,9 +736,16 @@ def get_tex_names_in_dir(tex_dir_path):
 # Initialize & finalize files when opening & closing blender
 def init():
     global last_mtime
-    load_packs()
+    pack_names = load_packs()
+    
     ensure_pack_root()
     ensure_dir_existing(history_dir_path)
+    
+    # ensure pack health
+    for pack_name in pack_names:
+        update_presets_of_meta_deep(pack_name)
+        update_pack_types_of_meta_deep(pack_name)
+        
     autosave_packs()
     last_mtime = get_mtime_data_and_refresh_root_meta_cache()
     pack_selected_name = root_meta_cache["pack_selected"]

@@ -1,25 +1,5 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import bpy
-from bpy.types import Operator
+from bpy.types import Context, Event, Operator
 from bpy.props import StringProperty, BoolProperty
 
 from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sync, history, i18n
@@ -38,44 +18,64 @@ def _exec_pop_confirm_if_need(ops, context, event):
 
 
 # Operator Functions
-def preset_create(ops: Operator, context: bpy.types.Context):
+def preset_create(ops: Operator, context: bpy.types.Context, pack_name: str="", preset_name: str=""):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
+    if pack_name == "": 
+        pack_name = props_py.gl_pack_selected.name
+        undo_callback=history.select_preset_callback
+        redo_callback=history.select_preset_callback
+    # we dont switch pack for user to have a coherent experience, so dont need to select preset
+    else:
+        undo_callback=None
+        redo_callback=None
     step = history.Step(context, i18n.msg["Create Preset"], 
-                        changed_paths=[file.pack_selected_meta_path],
-                        undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback)
+                        changed_paths=[file.get_pack_meta_path(pack_name)],
+                        undo_callback=undo_callback, redo_callback=redo_callback)
     props = context.scene.hot_node_props
     presets = props.presets
     edit_tree = context.space_data.edit_tree
     step.undo_callback_param = props.preset_selected
-    # escape rename. The default name is "Preset"... Do this first to check sync
-    # TODO if there is only a ng, set the ng name as the preset name
-    # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     cpreset, states = node_parser.parse_node_preset(edit_tree)
     
+    # use user's preset name
+    if preset_name != "":
+        preset_names, _ = file.read_presets(pack_name)
+        new_full_name = utils.delete_slash_anti_slash_in_string(preset_name)
+        if new_full_name == "":
+            new_full_name = i18n.msg["Preset"]
+        new_full_name = utils.ensure_unique_name(preset_name, -1, preset_names)
     # for now states means single node's name, we may extend it in the future
-    if states is None:
+    # default name "Preset"
+    elif states is None:
         new_full_name = utils.ensure_unique_name_dot(i18n.msg["Preset"], -1, presets)
+    # use single node's name
     else:
-        new_full_name = utils.ensure_unique_name_dot(states, -1, presets)
+        new_full_name = utils.delete_slash_anti_slash_in_string(states)
+        if new_full_name == "":
+            new_full_name = i18n.msg["Preset"]
+        new_full_name = utils.ensure_unique_name_dot(new_full_name, -1, presets)
     cpreset = node_parser.set_preset_data(new_full_name, props_py.gl_preset_selected)
-    preset_path = file.create_preset(new_full_name, cpreset)
+    preset_path = file.create_preset(pack_name, new_full_name, cpreset)
     step.created_paths = [preset_path]
     
-    presets.add()
-    # select newly created set
-    length = len(presets)
-    preset_selected_idx = length - 1
-    props.preset_selected = preset_selected_idx
-    step.redo_callback_param = preset_selected_idx
-    # set type
-    presets[preset_selected_idx].type = edit_tree.bl_idname
-    props_py.skip_preset_rename_callback = True
-    presets[preset_selected_idx].name = new_full_name
-    props_py.gl_preset_selected = new_full_name
-    props_py.skip_preset_rename_callback = False
-    props_bl.allow_tex_save = True
-    # ops.report(type={'INFO'}, message=f"Saved selected nodes as \"{new_full_name}\".")
+    # do ui changes for selected pack
+    if pack_name == props_py.gl_pack_selected.name: 
+        presets.add()
+        # select newly created set
+        length = len(presets)
+        preset_selected_idx = length - 1
+        props.preset_selected = preset_selected_idx
+        step.redo_callback_param = preset_selected_idx
+        # set type
+        presets[preset_selected_idx].type = edit_tree.bl_idname
+        props_py.skip_preset_rename_callback = True
+        presets[preset_selected_idx].name = new_full_name
+        props_py.gl_preset_selected = new_full_name
+        props_py.skip_preset_rename_callback = False
+        props_bl.allow_tex_save = True
+    else:
+        ops.report(type={'INFO'}, message=f"Saved selected nodes as \"{new_full_name}\" to pack \"{pack_name}\".")
 
     return {'FINISHED'}
 
@@ -229,7 +229,7 @@ def preset_save(ops: Operator, context: bpy.types.Context):
     return {'FINISHED'}
     
     
-def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name, tree_type, user_report=True):
+def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name, tree_type, new_tree=False):
     '''Add nodes to the node tree. This function uses preset_name to find preset json and apply it.'''
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
@@ -241,6 +241,10 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
         preset_name = preset.name
         tree_type = preset.type
     
+    if new_tree:
+        failed_tex_num= node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, new_tree=True)
+        return {'FINISHED'}
+        
     edit_tree = context.space_data.edit_tree
     edit_tree_type = edit_tree.bl_idname
     if tree_type != edit_tree_type:
@@ -280,7 +284,7 @@ def preset_to_pack(ops: Operator, context: bpy.types.Context, dst_pack_name, is_
     
     if is_move:
         if is_overwrite:
-            changed_paths=[file.get_pack_selected_meta_path(), file.get_pack_meta_path(dst_pack_name), file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+            changed_paths=[file.get_pack_selected_meta_path(), file.get_pack_meta_path(dst_pack_name), file.get_preset_file_path(dst_pack_name, preset_name)]
         else:
             changed_paths=[file.get_pack_selected_meta_path(), file.get_pack_meta_path(dst_pack_name)]
         step = history.Step(context, i18n.msg["Move to Pack"], 
@@ -296,14 +300,14 @@ def preset_to_pack(ops: Operator, context: bpy.types.Context, dst_pack_name, is_
                 step.undo_callback_param = preset_selected_idx - 1
     else:
         if is_overwrite:
-            changed_paths=[file.get_pack_meta_path(dst_pack_name), file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+            changed_paths=[file.get_pack_meta_path(dst_pack_name), file.get_preset_file_path(dst_pack_name, preset_name)]
         else:
             changed_paths=[file.get_pack_meta_path(dst_pack_name)]
         step = history.Step(context, i18n.msg["Copy to Pack"], 
                             changed_paths=changed_paths)
     
     if not is_overwrite:
-        step.created_paths = [file.get_preset_in_pack_path(dst_pack_name, preset_name)]
+        step.created_paths = [file.get_preset_file_path(dst_pack_name, preset_name)]
         
     file.preset_to_pack(preset_name, preset_name, dst_pack_name, is_move, is_overwrite)
     operation = i18n.msg["Moved"] if is_move else i18n.msg["Copied"]
@@ -345,7 +349,7 @@ def texture_save(ops: Operator, context: bpy.types.Context):
             ops.report(type={'WARNING'}, message="Failed to save texture settings")
         return {'CANCELLED'}
     else:
-        history.Step(context, i18n.msg["Save Texture"], 
+        history.Step(context, i18n.msg["Set Texture"], 
                      changed_paths=[pack_meta_path, preset_path])
         file.update_preset(preset_name, cpreset)
         ops.report({'INFO'}, i18n.msg["rpt_tex_save_success"])
@@ -530,13 +534,22 @@ class HOTNODE_OT_preset_create(Operator):
     bl_label = i18n.msg["Create Preset"]
     bl_description = i18n.msg["desc_create_preset"]
     bl_options = {'UNDO', 'REGISTER'}
+    
+    pack_name: StringProperty(name="Pack of preset", default="", options={'HIDDEN'}) # type: ignore
+    preset_name: StringProperty(name="New Preset Name", default="") # type: ignore
 
     @classmethod
     def poll(cls, context):
         return _poll_has_pack_edtree(context)
 
     def execute(self, context):
-        return preset_create(self, context)
+        return preset_create(self, context, self.pack_name, self.preset_name)
+    
+    def invoke(self, context, event):
+        if self.pack_name != "":
+            wm = context.window_manager
+            return wm.invoke_popup(self)
+        return self.execute(context)
     
 
 class HOTNODE_OT_preset_delete(Operator):
@@ -629,6 +642,11 @@ class HOTNODE_OT_nodes_add(Operator):
         default=""
     ) # type: ignore
     
+    new_tree: BoolProperty(
+        name="new_tree",
+        default=False
+    ) # type: ignore
+    
     @staticmethod
     def store_mouse_cursor(context, event):
         space = context.space_data
@@ -646,10 +664,11 @@ class HOTNODE_OT_nodes_add(Operator):
         return context.space_data.edit_tree is not None
     
     def execute(self, context):
-        return nodes_add(self, context, self.preset_name, self.pack_name, self.tree_type)
+        return nodes_add(self, context, self.preset_name, self.pack_name, self.tree_type, new_tree=self.new_tree)
     
     def invoke(self, context, event):
-        self.store_mouse_cursor(context, event)
+        if not self.new_tree:
+            self.store_mouse_cursor(context, event)
         return self.execute(context)
     
     
@@ -661,6 +680,40 @@ class HOTNODE_OT_preset_apply(HOTNODE_OT_nodes_add):
     @classmethod
     def poll(cls, context):
         return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+    
+    
+class HOTNODE_OT_tree_add(Operator):
+    bl_idname = "node.hot_node_tree_add"
+    bl_label = i18n.msg["Add Nodes"]
+    bl_description = i18n.msg["desc_add_nodes"]
+    bl_options = {'REGISTER'}
+    
+    # "" means use selected one in the UI
+    preset_name: StringProperty(
+        name="preset_name",
+        default=""
+    ) # type: ignore
+    
+    # "" means use selected one in the UI
+    pack_name: StringProperty(
+        name="pack_name",
+        default=""
+    ) # type: ignore
+    
+    tree_type: StringProperty(
+        name="tree_type",
+        default=""
+    ) # type: ignore
+    
+    @classmethod
+    def poll(cls, context):
+        pass
+    
+    def execute(self, context):
+        return nodes_add(self, context, self.preset_name, self.pack_name, self.tree_type, new_tree=True)
+    
+    def invoke(self, context, event):
+        return self.execute(context)
     
     
 class HOTNODE_OT_preset_to_pack(Operator):
@@ -909,6 +962,7 @@ classes = (
     HOTNODE_OT_preset_save,
     HOTNODE_OT_preset_apply,
     HOTNODE_OT_nodes_add,
+    HOTNODE_OT_tree_add,
     HOTNODE_OT_preset_to_pack,
     HOTNODE_OT_texture_save,
     HOTNODE_OT_pack_create,
@@ -924,9 +978,15 @@ classes = (
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        try:
+            bpy.utils.register_class(cls)
+        except ValueError:
+            pass
 
 
 def unregister():
     for cls in classes:
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except:
+            pass

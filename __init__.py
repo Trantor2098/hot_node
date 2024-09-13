@@ -1,6 +1,7 @@
 # BEGIN GPL LICENSE BLOCK #####
 #
-# This file is part of Hot Node.
+# This file and the files staying in the folder containing this file
+# are part of Hot Node.
 #
 # Hot Node is free software: you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
@@ -21,7 +22,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 6, 1),
+    "version": (0, 6, 4),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
@@ -39,7 +40,7 @@ from bpy.app.handlers import persistent
 
 def dev_reload():
     import importlib
-    from . import gui, operators, file, props_bl, ops_invoker, versioning, history, preferences, utils, node_parser, node_setter, props_py, sync, preferences, constants
+    from . import gui, operators, file, props_bl, ops_invoker, versioning, history, preferences, utils, node_parser, node_setter, props_py, sync, preferences, constants, keymap
     importlib.reload(props_bl)
     importlib.reload(props_py)
     importlib.reload(gui)
@@ -54,6 +55,7 @@ def dev_reload():
     importlib.reload(versioning)
     importlib.reload(preferences)
     importlib.reload(constants)
+    importlib.reload(keymap)
     
     
 @persistent
@@ -79,7 +81,7 @@ def register():
     from . import i18n
     i18n.select_language()
     
-    from . import gui, operators, file, props_bl, ops_invoker, history, preferences
+    from . import gui, operators, file, props_bl, ops_invoker, history, preferences, keymap
     
     file.init()
     
@@ -88,6 +90,7 @@ def register():
     gui.register()
     operators.register()
     history.register()
+    # keymap.register()
     
     # for reloading add-on
     ops_invoker.late_refresh()
@@ -96,7 +99,7 @@ def register():
 
 
 def unregister():
-    from . import gui, operators, file, props_bl, history, preferences
+    from . import gui, operators, file, props_bl, history, preferences, keymap
     
     file.finalize()
     
@@ -105,6 +108,7 @@ def unregister():
     operators.unregister()
     props_bl.unregister()
     history.unregister()
+    # keymap.unregister()
     
     bpy.app.handlers.load_post.remove(load_handler)
     dev_reload()

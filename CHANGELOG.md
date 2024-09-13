@@ -2,13 +2,45 @@ ChangeLog
 ========
 
 
+[0.7.0] - 2024-09-08
+--------
+
+### Added
+- Shotcuts of Hot Node will be shown in the add-on's preferences if they exist.
+- In `Add Modifier` menu you can directly use a geometry nodes preset to create a modifier now.
+
+### Changed
+- Better group reuse logic.
+
+
+[0.6.4] - 2024-09-12
+--------
+
+### Fixed
+- Fall back of image setting mode `Stay Empty` can not success, instead when image setting is failed, error will be thrown.
+- `Fast Create Preset` can not push history correctly.
+- When trying to save a single node and there are "/" or "\" in it's name, error will be thrown.
+- `Repeat Zone` & `Simulation Zone` cause error.
+- Location of `Reroute` whose parent is `NodeFrame` can not be set correctly.
+
+
+[0.6.3] - 2024-09-08
+--------
+
+### Fixed
+- Cross-file undo error.
+- Sometimes add-on leaves residual history file.
+- Sometimes `Shift A` menu leaves pack that only contains other type of nodes which should not appear. Now this can be solved by re-open the add-on or the blender.
+- Incorrect panels' order in node group when using preset.
+- Changing the name of the unselected preset causes error.
+- If there is a image data in the .blend file and it's lost in the disk and your preset happen to have that image, errors will be thrown.
+
+
 [0.6.2] - 2024-09-07
 --------
 
 ### Fixed
-- Sometimes add-on leaves residual history file.
-- Changing the name of the preset which is not selected causes error.
-- Better group reuse logic.
+- `Set Texture` causes error.
 
 
 [0.6.1] - 2024-09-07

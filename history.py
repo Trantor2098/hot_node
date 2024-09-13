@@ -1,23 +1,3 @@
-# BEGIN GPL LICENSE BLOCK #####
-#
-# This file is part of Hot Node.
-#
-# Hot Node is free software: you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation, either version 3
-# of the License, or (at your option) any later version.
-#
-# Hot Node is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Hot Node. If not, see <https://www.gnu.org/licenses/>.
-#
-# END GPL LICENSE BLOCK #####
-
-
 import bpy
 
 from collections import deque
@@ -88,10 +68,11 @@ class Step():
         global last_undo_redo_excuted, step_num
         if not file.check_sync():
             discard_steps()
+        from . sync import sync
         if self.discarded:
             sync(scene.hot_node_props)
             last_undo_redo_excuted = 3
-            infos = [i18n.msg["gui_info_undo_step"].format(step_name=self.name), i18n.msg["gui_info_undo_redo_skip_reason"]]
+            infos = [i18n.msg["gui_info_undo_skip"].format(step_name=self.name), i18n.msg["gui_info_undo_redo_skip_reason"]]
             gui.set_gui_info(infos, 3.0, 'LINK_BLEND')
         else:
             # Create Undo
@@ -105,7 +86,6 @@ class Step():
             self.his_changed_paths = new_his_changed_paths
             
             if self.refresh:
-                from . sync import sync
                 sync(scene.hot_node_props)
             if self.undo_callback is not None:
                 if isinstance(self.undo_callback, tuple):
@@ -124,7 +104,7 @@ class Step():
         if self.discarded:
             sync(scene.hot_node_props)
             last_undo_redo_excuted = 3
-            infos = [i18n.msg["gui_info_redo_step"].format(step_name=self.name), i18n.msg["gui_info_undo_redo_skip_reason"]]
+            infos = [i18n.msg["gui_info_redo_skip"].format(step_name=self.name), i18n.msg["gui_info_undo_redo_skip_reason"]]
             gui.set_gui_info(infos, 3.0, 'LINK_BLEND')
         else:
             # Create Redo
@@ -173,12 +153,11 @@ def rename_pack_callback(scene: bpy.types.Scene, src_dst_names: tuple):
     file.rename_pack(props_py.gl_pack_selected.name, dst_name)
     
     
-def rename_preset_callback(scene: bpy.types.Scene, src_dst_names: tuple):
-    props = scene.hot_node_props
-    src_name, dst_name = src_dst_names
-    preset_selected_idx = props.preset_selected
+def rename_preset_callback(scene: bpy.types.Scene, presetref_srcname_dstname: tuple):
+    # props = scene.hot_node_props
+    preset, src_name, dst_name = presetref_srcname_dstname
     props_py.skip_preset_rename_callback = True
-    props.presets[preset_selected_idx].name = dst_name
+    preset.name = dst_name
     props_py.skip_preset_rename_callback = False
     file.rename_preset(src_name, dst_name)
     
