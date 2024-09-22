@@ -2,11 +2,17 @@ ChangeLog
 ========
 
 
-[0.7.0] - 2024-09-22
+[0.8.0] - 2024-09-22
 --------
 
 ### Added
 - Custom pack icon supported.
+
+
+[0.7.0] - 2024-09-22
+--------
+
+### Added
 - Now you can update & create preset to any of your pack in the `Right Click` menu in node editor.
 - `Ctrl + Shift + A` in node editor to add your custom nodes.
 - `Ctrl + Shift + Alt + A` in node editor to manage your presets.

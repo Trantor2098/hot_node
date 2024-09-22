@@ -8,7 +8,35 @@ from . import utils, file, props_py, history, i18n, gui, ops_invoker
 allow_tex_save = False
 
 
-def select_pack(props, dst_pack: props_py.Pack):
+# TODO not finished yet
+def load_packs(props):
+    '''Load packs into bl props from props_py.gl_packs'''
+    packs = props.packs # type: bpy.types.CollectionProperty
+    packs.clear()
+    for pack in props_py.gl_packs.values():
+        packs.add()
+        packs[-1].name = pack.name
+        # packs[-1].has_shader_tree = pack.has_shader_tree
+        # packs[-1].has_geometry_tree = pack.has_geometry_tree
+        # packs[-1].has_compositor_tree = pack.has_compositor_tree
+        # packs[-1].has_texture_tree = pack.has_texture_tree
+        packs[-1].icon = pack.icon
+        packs[-1].show_icon = pack.show_icon
+        
+        
+# TODO refactor
+def set_pack_selected(pack_name: str, **kwargs):
+    '''Set pack selected by pack name.'''
+    glpack = props_py.gl_packs.get(pack_name, None)
+    # blpack = None
+    # if pack is None:
+    #     return
+    
+    # select_pack(props, pack)
+    
+
+
+def select_pack(props, dst_pack: props_py.Pack, hold_idx=False):
     '''Wont push history, only for internal use.'''
     # to escaping overwrite 
     props_py.gl_pack_selected = dst_pack
@@ -18,6 +46,8 @@ def select_pack(props, dst_pack: props_py.Pack):
     props_py.skip_pack_rename_callback = False
     # load presets in the newly selected pack
     presets = props.presets
+    if hold_idx:
+        old_idx = props.preset_selected
     props.preset_selected = 0
     presets.clear()
     file.select_pack(dst_pack)
@@ -36,6 +66,8 @@ def select_pack(props, dst_pack: props_py.Pack):
             presets.add()
             presets[i].name = name
             presets[i].type = type
+        if hold_idx:
+            props.preset_selected = old_idx
         props_py.skip_preset_rename_callback = False
 
 
@@ -162,6 +194,18 @@ def _fast_create_preset_name_update(self, context):
     props_py.skip_fast_create_preset_name_callback = False
     
     
+def _preset_pack_name_update(self, context):
+    pass
+
+
+def _pack_select_update(self, context):
+    pass
+
+
+def _show_icon_update(self, context):
+    pass
+    
+    
 def _step_checker_update(self, context):
     if props_py.skip_step_checker_update:
         return
@@ -192,6 +236,41 @@ class HotNodePreset(bpy.types.PropertyGroup):
     ) # type: ignore
     
     
+class HotNodePack(bpy.types.PropertyGroup):
+    '''Info class of node preset, will be used for UI, OPS'''
+    name: StringProperty(
+        name="Preset Pack",
+        default='Pack',
+        update=_preset_pack_name_update
+    ) # type: ignore
+    
+    has_shader_tree: BoolProperty(
+        name="has_shader_tree",
+        default=False,
+    ) # type: ignore
+    
+    has_geometry_tree: BoolProperty(
+        name="has_geometry_tree",
+        default=False,
+    ) # type: ignore
+    
+    has_compositor_tree: BoolProperty(
+        name="has_compositor_tree",
+        default=False,
+    ) # type: ignore
+    
+    has_texture_tree: BoolProperty(
+        name="has_texture_tree",
+        default=False,
+    ) # type: ignore
+
+    show_icon: BoolProperty(
+        name="Show Icon",
+        default=False,
+        update=_show_icon_update,
+    ) # type: ignore
+    
+    
 class HotNodeProps(bpy.types.PropertyGroup):
     '''Singleton class! These are Hot Node's properties that will be registed to blender, used for UI, OPS.'''
     presets: CollectionProperty(
@@ -202,6 +281,16 @@ class HotNodeProps(bpy.types.PropertyGroup):
     preset_selected: IntProperty(
         name=i18n.msg["Preset"],
         update=_preset_select_update
+    ) # type: ignore
+    
+    packs: CollectionProperty(
+        name="Preset Packs",
+        type=HotNodePack
+    ) # type: ignore
+    
+    pack_selected: IntProperty(
+        name=i18n.msg["Pack"],
+        update=_pack_select_update
     ) # type: ignore
     
     # for user to change pack name.
@@ -255,6 +344,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
         subtype='DIR_PATH'
     ) # type: ignore
     
+    
     step_checker: BoolProperty(
         name="Undo Redo Checker",
         default=True,
@@ -264,6 +354,7 @@ class HotNodeProps(bpy.types.PropertyGroup):
 
 classes = (
     HotNodePreset,
+    HotNodePack,
     HotNodeProps,
 )
 

@@ -107,6 +107,13 @@ def get_pack_mtime(pack_name):
 
 
 # Get & Set Meta Data
+def set_pack_meta_kwargs(pack_name, **kwargs):
+    pack_meta = read_pack_meta(pack_name)
+    for key, value in kwargs.items():
+        pack_meta[key] = value
+    write_metas(pack_meta, pack_name)
+
+
 def get_mtime_data_and_refresh_root_meta_cache():
     global root_meta_cache
     root_meta_cache = read_root_meta()
@@ -421,7 +428,8 @@ def create_pack(pack_name):
     pack_selected_meta["order"] = []
     pack_selected_meta["tree_types"] = {}
     pack_selected_meta["pack_types"] = []
-    pack_selected_meta["icon"] = 'NONE'
+    pack_selected_meta["icon"] = 'OUTLINER_COLLECTION'
+    pack_selected_meta["use_shortcut"] = False
     pack_selected_meta["version"] = version
     os.mkdir(pack_selected_path)
     write_metas(pack_selected_meta)

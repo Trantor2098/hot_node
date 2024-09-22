@@ -15,12 +15,6 @@ class HotNodePreferences(AddonPreferences):
         default=False,
     ) # type: ignore
     
-    append_node_add_menu: BoolProperty(
-        name=i18n.msg["In One Menu"],
-        description=i18n.msg["desc_in_one_menu"],
-        default=True,
-    ) # type: ignore
-    
     in_one_menu: BoolProperty(
         name=i18n.msg["In One Menu"],
         description=i18n.msg["desc_in_one_menu"],
@@ -68,6 +62,12 @@ class HotNodePreferences(AddonPreferences):
         description=i18n.msg["desc_settings_bar"],
         default=False,
     ) # type: ignore
+    
+    more_pack_ops: BoolProperty(
+        name="More Pack Operations",
+        description="More Pack Operations",
+        default=False,
+    ) # type: ignore
 
     def draw(self, context):
         layout = self.layout
@@ -78,7 +78,7 @@ class HotNodePreferences(AddonPreferences):
         layout.prop(self, "in_one_menu")
         layout.prop(self, "focus_on_get")
         layout.prop(self, "extra_confirm")
-        layout.prop(self, "pack_icon_bar")
+        # layout.prop(self, "pack_icon_bar")
         layout.prop(self, "settings_bar")
         layout.prop(self, "utilities_bar")
         

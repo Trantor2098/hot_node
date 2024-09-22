@@ -2,9 +2,10 @@
 # TODO put presets in packs
 class Pack():
     
-    def __init__(self, name, icon='NONE'):
+    def __init__(self, name, icon='NONE', show_icon=False):
         self.name = name
         self.icon = icon
+        self.show_icon = show_icon
         
 # packs will be loaded once the blender open
 gl_packs = {}
@@ -58,8 +59,10 @@ def update_pack_with_icon_num():
 
 # ======== About Enums
 # 'NONE' is a special value, means no icon
-pack_icons = ('COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
+pack_icons = ('OUTLINER_COLLECTION',
+              'COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
               'COLLECTION_COLOR_05', 'COLLECTION_COLOR_06', 'COLLECTION_COLOR_07', 'COLLECTION_COLOR_08',
+              'SNAP_FACE',
               'SEQUENCE_COLOR_01', 'SEQUENCE_COLOR_02', 'SEQUENCE_COLOR_03', 'SEQUENCE_COLOR_04',
               'SEQUENCE_COLOR_05', 'SEQUENCE_COLOR_06', 'SEQUENCE_COLOR_07', 'SEQUENCE_COLOR_08',
               'EVENT_A', 'EVENT_B', 'EVENT_C', 'EVENT_D', 'EVENT_E', 'EVENT_F', 'EVENT_G', 'EVENT_H',
@@ -70,9 +73,11 @@ pack_icons = ('COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03
               'EVENT_SIXKEY', 'EVENT_SEVENKEY', 'EVENT_EIGHTKEY', 'EVENT_NINEKEY',
               'NODE_MATERIAL', 'GEOMETRY_NODES', 'NODE_COMPOSITING', 'NODE_TEXTURE', 'FILE_IMAGE', 'LIGHT', 'SCENE', 'FUND')
 
-pack_icons1 = ('COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
+pack_icons1 = ('OUTLINER_COLLECTION',
+               'COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
                'COLLECTION_COLOR_05', 'COLLECTION_COLOR_06', 'COLLECTION_COLOR_07', 'COLLECTION_COLOR_08')
-pack_icons2 = ('SEQUENCE_COLOR_01', 'SEQUENCE_COLOR_02', 'SEQUENCE_COLOR_03', 'SEQUENCE_COLOR_04',
+pack_icons2 = ('SNAP_FACE',
+               'SEQUENCE_COLOR_01', 'SEQUENCE_COLOR_02', 'SEQUENCE_COLOR_03', 'SEQUENCE_COLOR_04',
                'SEQUENCE_COLOR_05', 'SEQUENCE_COLOR_06', 'SEQUENCE_COLOR_07', 'SEQUENCE_COLOR_08')
 pack_icons3 = ('EVENT_A', 'EVENT_B', 'EVENT_C', 'EVENT_D', 'EVENT_E', 'EVENT_F', 'EVENT_G', 'EVENT_H',
                'EVENT_I', 'EVENT_J', 'EVENT_K', 'EVENT_L', 'EVENT_M', 'EVENT_N', 'EVENT_O', 'EVENT_P',

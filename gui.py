@@ -148,6 +148,26 @@ def draw_nodes_save_menu(self: Menu, context: bpy.types.Context):
             ops.pack_name = self.bl_label
     props_py.pack_name_of_fast_create = self.bl_label
     col.prop(props, "fast_create_preset_name", icon='BLANK1', text="", placeholder="".join(("  ", i18n.msg["Save Nodes As"], "...")))
+    
+    
+def draw_pack_icons(layout: bpy.types.UILayout, icons, separate=True, use_enter=True):
+        item_num = 0
+        if separate:
+            layout.separator(type='SPACE')
+        row = layout.row(align=True)
+        row.label(icon='BLANK1', text="")
+        row.label(icon='BLANK1', text="")
+        # row.scale_x = 1.12
+        for icon in icons:
+            if use_enter:
+                if item_num >= 9:
+                    item_num = 1
+                    layout.separator(type='SPACE')
+                    row = layout.row(align=True)
+                    # row.scale_x = 1.12
+                else:
+                    item_num += 1
+            row.operator("node.hot_node_pack_icon_set", text="", icon=icon).icon = icon
                 
             
 def create_pack_menu_class(pack_name: str):
@@ -325,6 +345,7 @@ class HOTNODE_MT_pack_specials(Menu):
         layout = self.layout
         icon = props_py.gl_pack_selected.icon if props_py.gl_pack_selected.icon != 'NONE' else 'OUTLINER_COLLECTION'
         layout.menu("HOTNODE_MT_pack_icons", icon=icon, text=i18n.msg["Set Icon"])
+        draw_pack_icons(layout, props_py.pack_icons1)
         layout.separator()
         layout.operator("node.hot_node_pack_delete", icon='PANEL_CLOSE', text=i18n.msg["Delete Pack"])
             
@@ -363,19 +384,23 @@ class HOTNODE_MT_pack_icons(Menu):
     '''A menu shows all icons that could be set to the pack'''
     bl_label = i18n.msg["Pack Icon"]
     
-    def draw_pack_icons(self, icons, separate=True, use_enter=False):
+    def draw_pack_icons(self, icons, separate=True, use_enter=True):
         layout = self.layout
         item_num = 0
         if separate:
             layout.separator(type='SPACE')
         row = layout.row(align=True)
+        row.label(icon='BLANK1', text="")
+        row.label(icon='BLANK1', text="")
         row.scale_x = 1.12
         for icon in icons:
             if use_enter:
-                if item_num >= 8:
+                if item_num >= 9:
                     item_num = 1
                     layout.separator(type='SPACE')
                     row = layout.row(align=True)
+                    row.label(icon='BLANK1', text="")
+                    row.label(icon='BLANK1', text="")
                     row.scale_x = 1.12
                 else:
                     item_num += 1
@@ -385,7 +410,7 @@ class HOTNODE_MT_pack_icons(Menu):
         layout = self.layout
         
         self.draw_pack_icons(props_py.pack_icons1, separate=False)
-        self.draw_pack_icons(props_py.pack_icons2)
+        # self.draw_pack_icons(props_py.pack_icons2)
         self.draw_pack_icons(props_py.pack_icons3, use_enter=True)
         self.draw_pack_icons(props_py.pack_icons4)
             
@@ -429,7 +454,7 @@ class HOTNODE_MT_ui_preferences(Menu):
         layout.prop(addon_prefs, "focus_on_get")
         layout.prop(addon_prefs, "extra_confirm")
         # Utilities & settings Bar
-        layout.prop(addon_prefs, "pack_icon_bar")
+        # layout.prop(addon_prefs, "pack_icon_bar")
         layout.prop(addon_prefs, "settings_bar")
         layout.prop(addon_prefs, "utilities_bar")
     
@@ -446,23 +471,32 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent):
         addon_prefs = context.preferences.addons[__package__].preferences
         props = context.scene.hot_node_props
         presets = props.presets
+        pack_selected = props_py.gl_pack_selected
         
         # Pack Select UI
+        
         row = layout.row(align=True)
         row.scale_x = 1.75
-        icon = props_py.gl_pack_selected.icon if props_py.gl_pack_selected.icon != 'NONE' else 'OUTLINER_COLLECTION'
-        row.menu("HOTNODE_MT_pack_select", icon=icon, text="")
+        icon = pack_selected.icon if pack_selected is not None and pack_selected.icon != 'NONE' else 'OUTLINER_COLLECTION'
+        # row.menu("HOTNODE_MT_pack_select", icon=icon, text="")
+        row.menu("HOTNODE_MT_pack_select", icon='OUTLINER_COLLECTION', text="")
         row.scale_x = 1.0
         row.prop(props, "pack_selected_name", text="", placeholder=i18n.msg["Select a pack"])
-        row.operator("node.hot_node_pack_create", icon='ADD', text="")
+        row.operator("node.hot_node_pack_create", icon='COLLECTION_NEW', text="")
+        # row.prop(addon_prefs, "more_pack_ops", icon='TRIA_DOWN', text="")
+        # more pack operations
+        # if addon_prefs.more_pack_ops:
+        #     row = layout.row(align=True)
+        #     row.operator("wm.call_menu", icon='PREFERENCES', text="").name = "HOTNODE_MT_pack_icons"
+        #     row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
         # row.operator("wm.call_menu", icon='COLLAPSEMENU', text="").name = "HOTNODE_MT_pack_specials"
-        row.menu("HOTNODE_MT_pack_specials", icon='DOWNARROW_HLT', text="")
+        # row.menu("HOTNODE_MT_pack_specials", icon='DOWNARROW_HLT', text="")
         # row.operator("wm.call_menu", icon='PREFERENCES', text="").name = "HOTNODE_MT_pack_icons"
-        # row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
+        row.operator("node.hot_node_pack_delete", icon='TRASH', text="")
         
         rows = 5
-        if addon_prefs.pack_icon_bar:
-            rows += props_py.pack_with_icon_num
+        # if addon_prefs.pack_icon_bar:
+        #     rows += props_py.pack_with_icon_num
         if addon_prefs.utilities_bar:
             rows += 2
         if addon_prefs.settings_bar:
@@ -489,19 +523,19 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent):
         col.operator("node.hot_node_preset_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
         
         # Pack Icon Bar
-        if addon_prefs.pack_icon_bar:
-            draw_separator = True
-            # pack_selected_name = props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else ""
-            for pack in props_py.gl_packs.values():
-                if pack.icon != 'NONE':
-                    if draw_separator:
-                        col.separator()
-                        draw_separator = False
-                    # if pack_selected_name == pack.name:
-                    #     depress = True
-                    # else:
-                    #     depress = False
-                    col.operator("node.hot_node_pack_select", icon=pack.icon, text="", depress=False).pack_name = pack.name
+        # if addon_prefs.pack_icon_bar:
+        #     draw_separator = True
+        #     # pack_selected_name = props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else ""
+        #     for pack in props_py.gl_packs.values():
+        #         if pack.icon != 'NONE':
+        #             if draw_separator:
+        #                 col.separator()
+        #                 draw_separator = False
+        #             # if pack_selected_name == pack.name:
+        #             #     depress = True
+        #             # else:
+        #             #     depress = False
+        #             col.operator("node.hot_node_pack_select", icon=pack.icon, text="", depress=False).pack_name = pack.name
             
         # Utilities & Preferences Bar
         if addon_prefs.settings_bar:

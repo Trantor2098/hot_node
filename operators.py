@@ -439,7 +439,8 @@ def pack_select(ops: Operator, context: bpy.types.Context, pack_name, push_step=
     return {'FINISHED'}
 
 
-def pack_icon_set(ops: Operator, context: bpy.types.Context, pack_name, icon):
+# show_icon is a temp solution
+def pack_icon_set(ops: Operator, context: bpy.types.Context, pack_name, icon, show_icon=False):
     if not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     if pack_name == "":
@@ -450,6 +451,10 @@ def pack_icon_set(ops: Operator, context: bpy.types.Context, pack_name, icon):
     props_py.gl_packs[pack_name].icon = icon
     file.set_pack_icon(pack_name, icon)
     props_py.update_pack_with_icon_num()
+    # this is for icon update on the gui, we should find out why:
+    # when we first enable the add-on and change the icon directly on our selected pack, the icon is not updated.
+    if props_py.gl_pack_selected is not None and props_py.gl_pack_selected.name == pack_name:
+        props_py.gl_pack_selected.icon = icon
     return {'FINISHED'}
     
     
