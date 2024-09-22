@@ -17,6 +17,7 @@ def sync(props, from_gui=False):
         ops_invoker.late_call_helper_ops('PACK_SELECT', pack_selected.name)
     else:
         props_bl.select_pack(props, pack_selected)
+    props_py.update_pack_with_icon_num()
     gui.ensure_existing_pack_menu()
     
     

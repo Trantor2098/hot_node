@@ -7,6 +7,7 @@ from . __init__ import bl_info
 version = bl_info["version"]
 blender = bl_info["blender"]
 
+# TODO Remove dependency on caches
 # Paths
 addon_dir_path = os.path.dirname(__file__)
 temp_dir_path = tempfile.gettempdir()
@@ -193,6 +194,12 @@ def update_pack_types_of_meta_deep(pack_name):
     pack_meta = read_pack_meta(pack_name)
     pack_meta["pack_types"] = get_pack_types_deep(pack_name)
     write_pack_meta(get_pack_path(pack_name), pack_meta)
+    
+    
+def set_pack_icon(pack_name, icon_name):
+    pack_meta = read_pack_meta(pack_name)
+    pack_meta["icon"] = icon_name
+    write_metas(pack_meta, pack_name)
 
 
 def get_pack_types(pack_name):
@@ -234,6 +241,7 @@ def read_json(file_path) -> dict:
     
     
 def write_metas(pack_meta, pack_name: str|None=None):
+    '''Write pack meta and root meta, WILL CHANGE EDIT TIME'''
     update_root_meta_cache_mtime()
     pack_meta_path = pack_selected_meta_path if pack_name is None else get_pack_meta_path(pack_name)
     write_json(pack_meta_path, pack_meta, 1)
@@ -241,11 +249,13 @@ def write_metas(pack_meta, pack_name: str|None=None):
     
     
 def write_pack_meta(pack_path: str, meta_data: dict):
+    '''Write pack meta, WONT CHANGE EDIT TIME'''
     meta_path = os.path.join(pack_path, ".metadata.json")
     write_json(meta_path, meta_data, 1)
     
     
 def write_root_meta(update_mtime=False):
+    '''Write root meta, WILL CHANGE EDIT TIME'''
     if update_mtime:
         update_root_meta_cache_mtime()
     write_json(root_meta_path, root_meta_cache, 1)
@@ -410,8 +420,9 @@ def create_pack(pack_name):
     pack_selected_meta = {}
     pack_selected_meta["order"] = []
     pack_selected_meta["tree_types"] = {}
-    pack_selected_meta["version"] = version
     pack_selected_meta["pack_types"] = []
+    pack_selected_meta["icon"] = 'NONE'
+    pack_selected_meta["version"] = version
     os.mkdir(pack_selected_path)
     write_metas(pack_selected_meta)
     # reload packs to get right order of packs
@@ -453,7 +464,9 @@ def load_packs():
     new_pack_num = len(pack_names)
     for i in range(new_pack_num):
         pack_name = pack_names[i]
-        pack = props_py.Pack(pack_name)
+        pack_meta = read_pack_meta(pack_names[i])
+        icon = pack_meta.get("icon", 'NONE')
+        pack = props_py.Pack(pack_name, icon)
         props_py.gl_packs[pack_name] = pack
     return pack_names
 
@@ -605,7 +618,7 @@ def clear_outdated_autosave_packs():
     
 
 def create_preset(pack_name: str, preset_name: str, cpreset: dict):
-    pack_meta = read_pack_meta()
+    pack_meta = read_pack_meta(pack_name)
     file_path = get_preset_file_path(pack_name, preset_name)
     tree_type = cpreset["HN_preset_data"]["tree_type"]
     pack_meta["order"].append(preset_name)
@@ -616,17 +629,18 @@ def create_preset(pack_name: str, preset_name: str, cpreset: dict):
     write_metas(pack_meta, pack_name)
     return file_path
     
-    
-def update_preset(preset_name: str, cpreset: dict):
-    pack_selected_meta = read_pack_meta()
-    read_pack_meta()
-    file_name = '.'.join((preset_name, 'json'))
-    file_path = os.path.join(pack_selected_path, file_name)
-    pack_selected_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
-    pack_selected_meta["version"] = version
-    pack_selected_meta = update_pack_types_of_meta(pack_selected_meta)
+
+# this is annoying for different style of each function, we should have a unified style when restructuring the code
+def update_preset(preset_name: str, cpreset: dict, pack_name: str=""):
+    if pack_name == "":
+        pack_name = props_py.gl_pack_selected.name
+    pack_meta = read_pack_meta(pack_name)
+    file_path = get_preset_file_path(pack_name, preset_name)
+    pack_meta["tree_types"][preset_name] = cpreset["HN_preset_data"]["tree_type"]
+    pack_meta["version"] = version
+    pack_meta = update_pack_types_of_meta(pack_meta)
     write_json(file_path, cpreset)
-    write_metas(pack_selected_meta)
+    write_metas(pack_meta, pack_name)
     return file_path
 
 

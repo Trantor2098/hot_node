@@ -22,7 +22,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 6, 4),
+    "version": (0, 7, 0),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
@@ -90,7 +90,7 @@ def register():
     gui.register()
     operators.register()
     history.register()
-    # keymap.register()
+    keymap.register()
     
     # for reloading add-on
     ops_invoker.late_refresh()
@@ -108,7 +108,7 @@ def unregister():
     operators.unregister()
     props_bl.unregister()
     history.unregister()
-    # keymap.unregister()
+    keymap.unregister()
     
     bpy.app.handlers.load_post.remove(load_handler)
     dev_reload()

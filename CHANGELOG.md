@@ -2,15 +2,17 @@ ChangeLog
 ========
 
 
-[0.7.0] - 2024-09-08
+[0.7.0] - 2024-09-22
 --------
 
 ### Added
-- Shotcuts of Hot Node will be shown in the add-on's preferences if they exist.
-- In `Add Modifier` menu you can directly use a geometry nodes preset to create a modifier now.
+- Custom pack icon supported.
+- Now you can update & create preset to any of your pack in the `Right Click` menu in node editor.
+- `Ctrl + Shift + A` in node editor to add your custom nodes.
+- `Ctrl + Shift + Alt + A` in node editor to manage your presets.
 
 ### Changed
-- Better group reuse logic.
+- Now `In One Menu` is opened by default.
 
 
 [0.6.4] - 2024-09-12

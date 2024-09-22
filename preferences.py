@@ -24,7 +24,7 @@ class HotNodePreferences(AddonPreferences):
     in_one_menu: BoolProperty(
         name=i18n.msg["In One Menu"],
         description=i18n.msg["desc_in_one_menu"],
-        default=False,
+        default=True,
     ) # type: ignore
     
     focus_on_get: BoolProperty(
@@ -51,6 +51,12 @@ class HotNodePreferences(AddonPreferences):
         ]
     ) # type: ignore
     
+    pack_icon_bar: BoolProperty(
+        name=i18n.msg["Pack Icon Bar"],
+        description=i18n.msg["desc_pack_icon_bar"],
+        default=True,
+    ) # type: ignore
+    
     utilities_bar: BoolProperty(
         name=i18n.msg["Utilities Bar"],
         description=i18n.msg["desc_utilities_bar"],
@@ -72,9 +78,13 @@ class HotNodePreferences(AddonPreferences):
         layout.prop(self, "in_one_menu")
         layout.prop(self, "focus_on_get")
         layout.prop(self, "extra_confirm")
+        layout.prop(self, "pack_icon_bar")
         layout.prop(self, "settings_bar")
         layout.prop(self, "utilities_bar")
         
+        layout.alignment = 'LEFT'
+        layout.separator(type='LINE')
+        layout.label(text=i18n.msg["Shortcuts"])
         keymap.draw_kmis(layout)
         
         

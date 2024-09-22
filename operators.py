@@ -1,11 +1,11 @@
 import bpy
-from bpy.types import Context, Event, Operator
-from bpy.props import StringProperty, BoolProperty
+from bpy.types import Operator
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 
 from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sync, history, i18n
             
       
-def _poll_has_pack_edtree(context):
+def _poll_has_pack_and_edtree(context):
     return props_py.gl_pack_selected is not None and context.space_data.edit_tree is not None
 
 
@@ -18,8 +18,8 @@ def _exec_pop_confirm_if_need(ops, context, event):
 
 
 # Operator Functions
-def preset_create(ops: Operator, context: bpy.types.Context, pack_name: str="", preset_name: str=""):
-    if not sync.ensure_sync(context, ops):
+def preset_create(ops: Operator|None, context: bpy.types.Context, pack_name: str="", preset_name: str=""):
+    if ops is not None and not sync.ensure_sync(context, ops):
         return {'CANCELLED'}
     if pack_name == "": 
         pack_name = props_py.gl_pack_selected.name
@@ -46,16 +46,16 @@ def preset_create(ops: Operator, context: bpy.types.Context, pack_name: str="", 
             new_full_name = i18n.msg["Preset"]
         new_full_name = utils.ensure_unique_name(preset_name, -1, preset_names)
     # for now states means single node's name, we may extend it in the future
-    # default name "Preset"
+    # use single node's name
     elif states is None:
         new_full_name = utils.ensure_unique_name_dot(i18n.msg["Preset"], -1, presets)
-    # use single node's name
+    # default name "Preset"
     else:
         new_full_name = utils.delete_slash_anti_slash_in_string(states)
         if new_full_name == "":
             new_full_name = i18n.msg["Preset"]
         new_full_name = utils.ensure_unique_name_dot(new_full_name, -1, presets)
-    cpreset = node_parser.set_preset_data(new_full_name, props_py.gl_preset_selected)
+    cpreset = node_parser.set_preset_data(new_full_name, pack_name)
     preset_path = file.create_preset(pack_name, new_full_name, cpreset)
     step.created_paths = [preset_path]
     
@@ -74,7 +74,7 @@ def preset_create(ops: Operator, context: bpy.types.Context, pack_name: str="", 
         props_py.gl_preset_selected = new_full_name
         props_py.skip_preset_rename_callback = False
         props_bl.allow_tex_save = True
-    else:
+    elif ops is not None:
         ops.report(type={'INFO'}, message=f"Saved selected nodes as \"{new_full_name}\" to pack \"{pack_name}\".")
 
     return {'FINISHED'}
@@ -198,32 +198,41 @@ def preset_move(ops: Operator, context: bpy.types.Context, direction):
     return {'FINISHED'}
 
 
-def preset_save(ops: Operator, context: bpy.types.Context):
+def preset_save(ops: Operator, context: bpy.types.Context, pack_name: str, preset_name: str):
     if not sync.ensure_sync(context, ops):
-            return {'CANCELLED'}
-    pack = props_py.gl_pack_selected
+        return {'CANCELLED'}
     props = context.scene.hot_node_props
     presets = props.presets
-    preset_selected_idx = props.preset_selected
-    preset_selected = presets[preset_selected_idx]
-    preset_name = preset_selected.name
     edit_tree = context.space_data.edit_tree
+    if pack_name == "":
+        pack_name = props_py.gl_pack_selected.name
+        preset_selected_idx = props.preset_selected
+        preset_selected = presets[preset_selected_idx]
+        preset_name = preset_selected.name
+        presets[preset_selected_idx].type = edit_tree.bl_idname
+        props_bl.allow_tex_save = True
+        undo_callback=history.select_preset_callback
+        redo_callback=history.select_preset_callback
+        undo_callback_param=preset_selected_idx
+        redo_callback_param=preset_selected_idx
+    else:
+        undo_callback = None
+        redo_callback = None
+        undo_callback_param = None
+        redo_callback_param = None
     
-    presets[preset_selected_idx].type = edit_tree.bl_idname
-    
-    pack_meta_path = file.get_pack_selected_meta_path()
-    preset_path = file.get_preset_path(preset_name)
+    pack_meta_path = file.get_pack_meta_path(pack_name)
+    preset_path = file.get_preset_file_path(pack_name, preset_name)
     history.Step(context, i18n.msg["Update Preset"], 
                  changed_paths=[pack_meta_path, preset_path],
-                 undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback,
-                 undo_callback_param=preset_selected_idx, redo_callback_param=preset_selected_idx)
+                 undo_callback=undo_callback, redo_callback=redo_callback,
+                 undo_callback_param=undo_callback_param, redo_callback_param=redo_callback_param)
     
     # in node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
     cpreset, states = node_parser.parse_node_preset(edit_tree)
-    cpreset = node_parser.set_preset_data(preset_name, pack.name)
-    file.update_preset(preset_name, cpreset)
+    cpreset = node_parser.set_preset_data(preset_name, pack_name, cpreset)
+    file.update_preset(preset_name, cpreset, pack_name=pack_name)
     
-    props_bl.allow_tex_save = True
     ops.report(type={'INFO'}, message=i18n.msg["rpt_preset_save_success"].format(preset_name=preset_name))
 
     return {'FINISHED'}
@@ -390,6 +399,7 @@ def pack_delete(ops: Operator, context: bpy.types.Context):
     del pack_names[pack_selected_idx]
     file.delete_pack(pack_name)
     file.update_mtime_data()
+    props_py.update_pack_with_icon_num()
     # note the length is the original length - 1
     length = len(packs)
 
@@ -420,10 +430,26 @@ def pack_select(ops: Operator, context: bpy.types.Context, pack_name, push_step=
         step = history.Step(context, i18n.msg["Select Pack"],
                             undo_callback=history.select_pack_callback, redo_callback=history.select_pack_callback,
                             undo_callback_param=ori_pack_name)
+        
     dst_pack = props_py.gl_packs.get(pack_name, None)
     props_bl.select_pack(context.scene.hot_node_props, dst_pack)
+    
     if push_step:
         step.redo_callback_param = dst_pack.name if dst_pack is not None else ""
+    return {'FINISHED'}
+
+
+def pack_icon_set(ops: Operator, context: bpy.types.Context, pack_name, icon):
+    if not sync.ensure_sync(context, ops):
+        return {'CANCELLED'}
+    if pack_name == "":
+        pack_name = props_py.gl_pack_selected.name
+    step = history.Step(context, i18n.msg["Set Icon"],
+                        changed_paths=[file.get_pack_meta_path(pack_name)])
+    
+    props_py.gl_packs[pack_name].icon = icon
+    file.set_pack_icon(pack_name, icon)
+    props_py.update_pack_with_icon_num()
     return {'FINISHED'}
     
     
@@ -540,7 +566,7 @@ class HOTNODE_OT_preset_create(Operator):
 
     @classmethod
     def poll(cls, context):
-        return _poll_has_pack_edtree(context)
+        return _poll_has_pack_and_edtree(context)
 
     def execute(self, context):
         return preset_create(self, context, self.pack_name, self.preset_name)
@@ -577,7 +603,7 @@ class HOTNODE_OT_preset_clear(Operator):
     
     @classmethod
     def poll(cls, context):
-        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_and_edtree(context) and len(context.scene.hot_node_props.presets) > 0
 
     def execute(self, context):
         return preset_clear(self, context)
@@ -608,12 +634,31 @@ class HOTNODE_OT_preset_save(Operator):
     bl_description = i18n.msg["desc_save_preset"]
     bl_options = {'UNDO', 'REGISTER'}
     
+    # "" means use selected one in the UI
+    preset_name: StringProperty(
+        name="preset_name",
+        default=""
+    ) # type: ignore
+    
+    # "" means use selected one in the UI
+    pack_name: StringProperty(
+        name="pack_name",
+        default=""
+    ) # type: ignore
+    
     @classmethod
     def poll(cls, context):
-        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+        # we should have a right click menu, so escape presets check... if len == 0, just create
+        # return _poll_has_pack_and_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_and_edtree(context)
 
     def execute(self, context):
-        return preset_save(self, context)
+        # from addon panel
+        if self.pack_name == "" and len(context.scene.hot_node_props.presets) == 0:
+            return preset_create(self, context, self.pack_name, self.preset_name)
+        # from right click menu
+        else:
+            return preset_save(self, context, self.pack_name, self.preset_name)
     
     def invoke(self, context, event):
         return _exec_pop_confirm_if_need(self, context, event)
@@ -661,7 +706,7 @@ class HOTNODE_OT_nodes_add(Operator):
     
     @classmethod
     def poll(cls, context):
-        return context.space_data.edit_tree is not None
+        return isinstance(context.space_data, bpy.types.SpaceProperties) or context.space_data.edit_tree is not None
     
     def execute(self, context):
         return nodes_add(self, context, self.preset_name, self.pack_name, self.tree_type, new_tree=self.new_tree)
@@ -679,7 +724,7 @@ class HOTNODE_OT_preset_apply(HOTNODE_OT_nodes_add):
     
     @classmethod
     def poll(cls, context):
-        return _poll_has_pack_edtree(context) and len(context.scene.hot_node_props.presets) > 0
+        return _poll_has_pack_and_edtree(context) and len(context.scene.hot_node_props.presets) > 0
     
     
 class HOTNODE_OT_tree_add(Operator):
@@ -833,6 +878,31 @@ class HOTNODE_OT_pack_select(Operator):
         return pack_select(self, context, self.pack_name)
     
     
+class HOTNODE_OT_pack_icon_set(Operator):
+    bl_idname = "node.hot_node_pack_icon_set"
+    bl_label = i18n.msg["Set Icon"]
+    bl_description = i18n.msg["desc_set_icon"]
+    bl_options = {'UNDO', 'REGISTER'}
+
+    pack_name: StringProperty(
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    icon: StringProperty(
+        name="icon",
+        default='NONE',
+        options={'HIDDEN'}
+    ) # type: ignore
+    
+    @classmethod
+    def poll(cls, context):
+        return props_py.gl_pack_selected is not None
+    
+    def execute(self, context):
+        return pack_icon_set(self, context, self.pack_name, self.icon)
+    
+    
 class HOTNODE_OT_pack_import(bpy.types.Operator):
     bl_idname = "import.hot_node_pack_import"
     bl_label = i18n.msg["Import Pack(s)"]
@@ -968,6 +1038,7 @@ classes = (
     HOTNODE_OT_pack_create,
     HOTNODE_OT_pack_delete,
     HOTNODE_OT_pack_select,
+    HOTNODE_OT_pack_icon_set,
     HOTNODE_OT_pack_import,
     HOTNODE_OT_pack_export,
     HOTNODE_OT_pack_export_all,

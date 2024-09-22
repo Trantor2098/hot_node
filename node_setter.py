@@ -556,6 +556,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         cname_body, cint_suffix = utils.split_name_suffix(cname)
         if cint_suffix == 0:
             # compare all the ngs that has a cname like body and blender style rename suffix, like cname.001
+            # BUG sometimes the setted ng wont be same as the ng in the preset, so the ng actually will always be created...
             found_same = False
             for full_name in node_groups.keys():
                 name, int_suffix = utils.split_name_suffix(full_name)

@@ -9,6 +9,7 @@ allow_tex_save = False
 
 
 def select_pack(props, dst_pack: props_py.Pack):
+    '''Wont push history, only for internal use.'''
     # to escaping overwrite 
     props_py.gl_pack_selected = dst_pack
     props_py.skip_pack_rename_callback = True
@@ -143,44 +144,18 @@ def _pack_selected_name_update(self, context):
         props_py.skip_pack_rename_callback = True
         props.pack_selected_name = ""
         props_py.skip_pack_rename_callback = False
-    
         
         
 def _fast_create_preset_name_update(self, context):
     if props_py.skip_fast_create_preset_name_callback:
         return
+    from . operators import preset_create
     props = context.scene.hot_node_props
-    presets = props.presets
     fast_name = props.fast_create_preset_name
-    if fast_name != "" and props_py.gl_pack_selected is not None:
-        # This is the same with what we do in operators.py
-        pack_name = props_py.gl_pack_selected.name
-        ensured_fast_name = utils.ensure_unique_name_dot(fast_name, -1, presets)
-        edit_tree = context.space_data.edit_tree
-        step = history.Step(context, i18n.msg["Create Preset"], 
-                            changed_paths=[file.pack_selected_meta_path],
-                            undo_callback=history.select_preset_callback, redo_callback=history.select_preset_callback)
-            
-        presets.add()
-        # select newly created set
-        length = len(presets)
-        step.undo_callback_param = props.preset_selected
-        preset_selected_idx = length - 1
-        props.preset_selected = preset_selected_idx
-        step.redo_callback_param = preset_selected_idx
-        # set type
-        presets[preset_selected_idx].type = edit_tree.bl_idname
-        props_py.skip_preset_rename_callback = True
-        presets[preset_selected_idx].name = ensured_fast_name
-        props_py.gl_preset_selected = ensured_fast_name
-        props_py.skip_preset_rename_callback = False
-        
-        # try to save current selected nodes. In node_parser.py we have a cpreset cache so dont need to store the return value of parse_node_preset()...
-        from . import node_parser
-        cpreset, states = node_parser.parse_node_preset(edit_tree)
-        cpreset = node_parser.set_preset_data(ensured_fast_name, props_py.gl_pack_selected.name)
-        preset_path = file.create_preset(pack_name, ensured_fast_name, cpreset)
-        step.created_paths = [preset_path]
+    pack_name = props_py.pack_name_of_fast_create
+    
+    if fast_name != "":
+        preset_create(None, context, pack_name, fast_name)
         
     props_py.skip_fast_create_preset_name_callback = True
     props.fast_create_preset_name = ""

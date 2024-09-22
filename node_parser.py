@@ -475,7 +475,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
     return cpreset_cache
 
 
-def set_preset_data(preset_name, pack_name, cpreset=None):
+def set_preset_data(preset_name, pack_name, cpreset: dict|None=None):
     from . versioning import version, blender
     # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
