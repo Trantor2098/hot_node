@@ -9,6 +9,19 @@ ChangeLog
 - Custom pack icon supported.
 
 
+[0.7.1] - 2024-10-10
+--------
+
+### Fixed
+- `Copy to Pack` can not pop-up overwrite warning if called by the button in settings bar.
+
+
+### Added
+- Now you can update & create preset to any of your pack in the `Right Click` menu in node editor.
+- `Ctrl + Shift + A` in node editor to add your custom nodes.
+- `Ctrl + Shift + Alt + A` in node editor to manage your presets.
+
+
 [0.7.0] - 2024-09-22
 --------
 
@@ -19,6 +32,7 @@ ChangeLog
 
 ### Changed
 - Now `In One Menu` is opened by default.
+- Some UI details.
 
 
 [0.6.4] - 2024-09-12

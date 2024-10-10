@@ -289,6 +289,7 @@ def preset_to_pack(ops: Operator, context: bpy.types.Context, dst_pack_name, is_
     preset_selected_idx = props.preset_selected
     preset_selected = presets[preset_selected_idx]
     preset_name = preset_selected.name
+    dst_preset_name = preset_name
     pack_name = props_py.gl_pack_selected.name
     
     if is_move:
@@ -316,9 +317,9 @@ def preset_to_pack(ops: Operator, context: bpy.types.Context, dst_pack_name, is_
                             changed_paths=changed_paths)
     
     if not is_overwrite:
-        step.created_paths = [file.get_preset_file_path(dst_pack_name, preset_name)]
+        step.created_paths = [file.get_preset_file_path(dst_pack_name, dst_preset_name)]
         
-    file.preset_to_pack(preset_name, preset_name, dst_pack_name, is_move, is_overwrite)
+    file.preset_to_pack(preset_name, dst_preset_name, dst_pack_name, is_move, is_overwrite)
     operation = i18n.msg["Moved"] if is_move else i18n.msg["Copied"]
     ops.report({'INFO'}, i18n.msg["rpt_preset_to_pack_success"].format(
         src_preset_name=preset_name, operation=operation, dst_pack_name=dst_pack_name, dst_preset_name=preset_name))

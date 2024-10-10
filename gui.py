@@ -543,8 +543,11 @@ class HOTNODE_PT_nodes(HOTNODE_PT_parent):
             col.prop(addon_prefs, "overwrite_tree_io", icon='NODETREE', text="")
         if addon_prefs.utilities_bar:
             col.separator()
-            col.operator("wm.call_menu", icon='FILE', text="").name = "HOTNODE_MT_preset_copy_to_pack"
-            col.operator("wm.call_menu", icon='FILE_HIDDEN', text="").name = "HOTNODE_MT_preset_move_to_pack"
+            col.menu("HOTNODE_MT_preset_copy_to_pack", icon='FILE', text="")
+            col.menu("HOTNODE_MT_preset_move_to_pack", icon='FILE_HIDDEN', text="")
+            # wm.call_manu has some flaws.
+            # col.operator("wm.call_menu", icon='FILE', text="").name = "HOTNODE_MT_preset_copy_to_pack"
+            # col.operator("wm.call_menu", icon='FILE_HIDDEN', text="").name = "HOTNODE_MT_preset_move_to_pack"
             
         # Preset Usage UI
         layout.separator(factor=0.1)
