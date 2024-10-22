@@ -13,13 +13,9 @@ ChangeLog
 --------
 
 ### Fixed
+- Node `Index Switch` can not be set correctly.
+- Node `Menu Switch` can not be set/get to/from preset correctly when it only have 2 sockets. And getting preset including this kind of node may ruin the whole pack.
 - `Copy to Pack` can not pop-up overwrite warning if called by the button in settings bar.
-
-
-### Added
-- Now you can update & create preset to any of your pack in the `Right Click` menu in node editor.
-- `Ctrl + Shift + A` in node editor to add your custom nodes.
-- `Ctrl + Shift + Alt + A` in node editor to manage your presets.
 
 
 [0.7.0] - 2024-09-22

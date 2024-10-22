@@ -294,6 +294,10 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
             for i in range(clength):
                 if i >= length:
                     new_element(obj, cobj[i], attr_name)
+                print("----------------")
+                print(obj)
+                print(cobj)
+                print(attr_name)
                 set_attrs(obj[i], cobj[i], attr_name=attr_name)
         # XXX This branch solves the Risk below, and it's a universal way for node that has custom sockets. 
         # but im not sure is it safe... because there are too many uncertain things in new() progress...
@@ -444,12 +448,21 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             later_setup_cnodes[cnode['name']] = (node, cnode)
             continue
         elif bl_idname == "GeometryNodeMenuSwitch":
-            cenum_items = cnode.get("enum_items", [])
-            clength = len(cenum_items)
-            max_HN_idx = cenum_items[clength - 1]["HN_idx"]
-            # inputs idx 0, 1 are enum items that is created by default, skip them
-            for i in range(2, max_HN_idx + 1):
-                node.enum_items.new("")
+            cenum_items = cnode.get("enum_items", None)
+            if cenum_items is not None:
+                clength = len(cenum_items)
+                max_HN_idx = cenum_items[clength - 1]["HN_idx"]
+                # inputs idx 0, 1 are enum items that is created by default, skip them
+                for i in range(2, max_HN_idx + 1):
+                    node.enum_items.new("")
+        elif bl_idname == "GeometryNodeIndexSwitch":
+            cindex_switch_items = cnode.get("index_switch_items", None)
+            if cindex_switch_items is not None:
+                clength = len(cindex_switch_items)
+                max_HN_idx = cindex_switch_items[clength - 1]["HN_idx"]
+                # inputs idx 0, 1 are enum items that is created by default, skip them
+                for i in range(2, max_HN_idx + 1):
+                    node.index_switch_items.new()
         elif bl_idname == "CompositorNodeOutputFile":
             cfile_slots = cnode.get("file_slots", [])
             clength = len(cfile_slots)
@@ -532,8 +545,11 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
     
     # Late Setter
-    for func, params in late_setter_func:
-        func(params)
+    try:
+        for func, params in late_setter_func:
+                func(params)
+    except:
+        print(f"Hot Node Setter Error: Late Setter Function {func} failed.")
     late_setter_func.clear()
             
 

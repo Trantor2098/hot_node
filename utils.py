@@ -322,3 +322,10 @@ def exchange_idx(list, idx1, idx2):
     temp = list[idx1]
     list[idx1] = list[idx2]
     list[idx2] = temp
+    
+    
+def change_file_indent(file_path: str, indent: int|str|None):
+    '''Change the file's indent by <indent> spaces.'''
+    from . import file
+    data = file.read_json(file_path)
+    file.write_json(file_path, data, indent)

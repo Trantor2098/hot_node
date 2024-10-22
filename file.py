@@ -237,7 +237,7 @@ def get_pack_types_deep(pack_name):
     
 # CRUD of Json
 # if test, set the indent default value as 1, else, as None
-def write_json(file_path: str, data: dict, indent: int|str|None=None):
+def write_json(file_path: str, data: dict, indent: int|str|None=1):
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=indent)
 
