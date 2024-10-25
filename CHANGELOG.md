@@ -9,7 +9,29 @@ ChangeLog
 - Custom pack icon supported.
 
 
-[0.7.1] - 2024-10-10
+[0.7.3] - 2024-10-23
+--------
+
+### Fixed
+- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menu by default) cannot be set correctly. (Who will do this?)
+- If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
+
+
+[0.7.2] - 2024-10-23
+--------
+
+### Changed
+- Some severe error informations will be more readable, instead of being thrown by a scary exception window with codes.
+- Some tiny errors of getting preset will be shown by the yellow warning.
+
+### Fixed
+- Node `Bake` cannot be set correctly.
+- Nesting a `Node Group` inside it self will throw a prompt rather than throwing a error.
+- `Node Group` with missing data-blocks cannot be saved.
+- Removed some useless console info.
+
+
+[0.7.1] - 2024-10-22
 --------
 
 ### Fixed

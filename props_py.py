@@ -26,6 +26,7 @@ helper_param = None
 report_type = ''
 report_message = ""
 gui_info = ""
+setter_bug_infos = []
 
 
 # ======== About History

@@ -3,7 +3,7 @@ import bpy
 import os
 from mathutils import Vector
 
-from . import file, utils, node_parser, versioning, constants
+from . import file, utils, node_parser, versioning, constants, i18n
 
 # NOTE 
 # In our code, you can see many "HN_ref" key, they are used to escaping get wrong ref because of blender's rename logic.
@@ -35,6 +35,10 @@ type_b_attrs_setter = (
 failed_tex_num = 0
 late_setter_func = []
 
+# bug report
+current_node_bl_idname = ""
+bug_infos = []
+
 class SpecialSetter():
     
     @staticmethod
@@ -54,6 +58,30 @@ def get_blacks_delegate(obj):
 
 
 # Tool Method
+def report(ops: bpy.types.Operator|None, type, msg: str):
+    if ops is None:
+        print("Hot Node: A report is required but the ops is None.")
+        print(msg)
+        return
+    ops.report(type, msg)
+    
+    
+def print_error(e, node_bl_idname, obj, cobj, attr_name):
+    print()
+    print("===== HOT NODE ERROR INFO =====")
+    print(e)
+    # traceback.print_exc()
+    print("------ node ------")
+    print(current_node_bl_idname)
+    print("------ obj ------")
+    print(obj)
+    # print("------ cobj ------")
+    # print(cobj)
+    print("------ attr_name ------")
+    print(attr_name)
+    print()
+
+
 def check_common(cattrs):
     '''Check if the cattrs is a dict or list containing common attributes like int, float, str, vector'''
     if isinstance(cattrs, dict):
@@ -221,7 +249,7 @@ def open_tex(cobj):
     return tex
 
 
-def new_element(obj, cobj, attr_name):
+def new_element(obj, cobj, attr_name, ops: None|bpy.types.Operator=None):
     '''New an element of bpy_prop_collection by new() function in blender
     
     - obj: bpy prop collection
@@ -241,15 +269,19 @@ def new_element(obj, cobj, attr_name):
         new(cobj["name"])
         
         
-def try_setattr(obj, attr, cvalue):
+def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
     '''setattr with try catch. When debug, use setattr directly to find out bugs, rather than try catch.'''
     try:
         setattr(obj, attr, cvalue)
     # Setting Read-only attr may cause this
-    except AttributeError:
-        print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
+    except AttributeError as e:
+        # read-only usually wont cause any problem...
+        if "read-only" not in e.args[0]:
+            report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
+            print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
     # Forgot what may cause this...
     except TypeError:
+        report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
         print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}.")
     # Set float to Vector may cause this
     except ValueError:
@@ -263,12 +295,24 @@ def try_setattr(obj, attr, cvalue):
                 cvalue = len(obj_attr) * [cvalue]
                 setattr(obj, attr, cvalue)
             else:
+                report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
                 print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
         else:
+            report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
             print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
 
 
-def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
+def set_attrs_direct(obj, cobj, *attr_names: str):
+    '''Set obj's attributes by given attr_names.
+    
+    - obj: The object to set it's attributes.
+    - cattrs: The object's mirror in hot node data json format.'''
+    for attr in attr_names:
+        try_setattr(obj, attr, cobj[attr])
+    cobj["HN_ref"] = obj
+
+
+def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None, ops: None|bpy.types.Operator=None):
     '''Set obj's attributes.
     
     - obj: The object to set it's attributes.
@@ -288,19 +332,22 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
         max_HN_idx = cobj[clength - 1]["HN_idx"]
         if length == clength:
             for i in range(clength):
-                set_attrs(obj[i], cobj[i], attr_name=attr_name)
+                set_attrs(obj[i], cobj[i], attr_name=attr_name, ops=ops)
         elif length < clength:
             # may be the new node should append list manually, like curve[i].points, simulationInputs, etc. here we do this.
             for i in range(clength):
                 if i >= length:
                     new_element(obj, cobj[i], attr_name)
-                print("----------------")
-                print(obj)
-                print(cobj)
-                print(attr_name)
-                set_attrs(obj[i], cobj[i], attr_name=attr_name)
+                try:
+                    set_attrs(obj[i], cobj[i], attr_name=attr_name, ops=ops)
+                except IndexError as e:
+                    report(ops, {'ERROR'}, i18n.msg["rpt_error_setter_universal"] + " (Index Error)")
+                    print_error(e, current_node_bl_idname, obj, cobj, attr_name)
+                except Exception as e:
+                    report(ops, {'ERROR'}, i18n.msg["rpt_error_setter_universal"])
+                    print_error(e, current_node_bl_idname, obj, cobj, attr_name)
         # XXX This branch solves the Risk below, and it's a universal way for node that has custom sockets. 
-        # but im not sure is it safe... because there are too many uncertain things in new() progress...
+        # XXX but im not sure is it safe... because there are too many uncertain things in new() progress...
         # elif length < max_HN_idx + 1:
         #     for cvalue in cobj:
         #         HN_idx = cvalue["HN_idx"]
@@ -317,37 +364,37 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None):
                 HN_idx = cobj[i]["HN_idx"]
                 # we may recorded a virtual input whose idx is bigger than the length, but we dont need to set it.
                 if HN_idx < length:
-                    set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name)
+                    set_attrs(obj[cobj[i]["HN_idx"]], cobj[i], attr_name=attr_name, ops=ops)
     elif isinstance(cobj, dict):
         for attr, cvalue in cobj.items():
             if attr in black_attrs or attr.startswith("HN_"):
                 continue
             elif isinstance(cvalue, list) and not check_common(cvalue):
                 sub_obj = getattr(obj, attr)
-                set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj)
+                set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj, ops=ops)
             elif isinstance(cvalue, dict) and not check_common(cvalue.values()):
                 sub_obj = getattr(obj, attr)
-                set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj)
+                set_attrs(sub_obj, cobj[attr], attr_name=attr, attr_owner=obj, ops=ops)
             else:
                 # BUG sometimes (often after Ctrl + G and the node group interface is autoly created) tree interface socket's subtype is "", 
                 # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
                 if attr == "subtype" and cvalue == "":
                     cvalue = 'NONE'
-                # XXX [TEMP SOLUTION] It is annoying to add special setter for each type, we should find a better way to do this.
+                # XXX [TEMP SOLUTION] To help handle socket defination order in node group interface, we set the default_value of the socket menu in late setter.
                 elif isinstance(obj, bpy.types.NodeTreeInterfaceSocketMenu) and attr == "default_value":
                     global late_setter_func
                     def socket_menu_solver(params):
                         obj, attr, cvalue = params
-                        setattr(obj, attr, cvalue)
+                        try_setattr(obj, attr, cvalue, ops=ops)
                     late_setter_func.append((socket_menu_solver, (obj, attr, cvalue)))
                     continue
-                try_setattr(obj, attr, cvalue)
+                try_setattr(obj, attr, cvalue, ops)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
 
         
-def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
+def set_interface(interface: bpy.types.NodeTreeInterface, cinterface, ops: None|bpy.types.Operator=None):
     interface.clear()
     clength = len(cinterface)
     panels_citems = []
@@ -372,7 +419,7 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
         interface.move(item, citem["position"])
             
         # set item attributes
-        set_attrs(item, citem)
+        set_attrs(item, citem, ops=ops)
         
         # get parent relations
         if citem["HN_parent_idx"] != -1:
@@ -387,12 +434,14 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface):
     for panel, citem in panels_citems:
         interface.move(panel, citem["position"])
         
-def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False):
+def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False, ops: None|bpy.types.Operator=None):
     global failed_tex_num
+    global current_node_bl_idname
     node_cnode_attr_ref2nodenames = []
     later_setup_cnodes = {}
     for cnode in cnodes.values():
         bl_idname = cnode["bl_idname"]
+        current_node_bl_idname = bl_idname
         # new node and get ref
         node = nodes.new(type=bl_idname)
         cnode["HN_ref"] = node
@@ -407,7 +456,15 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
         # Set Special Nodes. TODO Change to delegates
         # set node's sub node tree if node is ng
         if bl_idname in constants.node_group_id_names:
-            node.node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
+            if cnode.get("HN_nt_name", None) is not None:
+                ref_node_tree = cnode_trees[cnode["HN_nt_name"]]["HN_ref"]
+                if node_tree != ref_node_tree:
+                    node.node_tree = ref_node_tree
+                # nesting a node group inside of itself is not allowed
+                else:
+                    set_attrs_direct(node, cnode, "bl_idname", "name", "location")
+                    ops.report({'WARNING'}, i18n.msg["rpt_warning_setter_ng_nesting"].format(tree_name=node_tree.name))
+                    continue
         # set node's image
         elif bl_idname in ("NodeGroupInput", "NodeGroupOutput"):
             if not set_tree_io:
@@ -422,21 +479,29 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             else:
                 node.image = tex
         # TODO more beautiful...
-        # All items, especially sockets, should be newed here
+        # All items, especially sockets, should be newed here, and set later
         elif bl_idname == "GeometryNodeSimulationOutput":
+            # node.state_items.clear()
             cstate_items = cnode.get("state_items", [])
             clength = len(cstate_items)
-            max_HN_idx = cstate_items[clength - 1]["HN_idx"]
-            # idx 0 is a build-in geometry socket, skip it
+            max_HN_idx = cstate_items[clength - 1]["HN_idx"] if clength > 0 else 0
+            # HACK idx 0 is a build-in geometry socket, skip it
             for i in range(1, max_HN_idx + 1):
+            # for i in range(0, max_HN_idx + 1):
+                # if citem is not the default one, it will always be recorded by our parser logic, 
+                # so dont worry about citems dont have idx i, only idx 0 may not be recorded.
                 citem = cstate_items[i]
                 node.state_items.new(citem["socket_type"], citem["name"])
         elif bl_idname == "GeometryNodeRepeatOutput":
+            # node.repeat_items.clear()
             crepeat_items = cnode.get("repeat_items", [])
             clength = len(crepeat_items)
-            max_HN_idx = crepeat_items[clength - 1]["HN_idx"]
-            # idx 0 is a build-in geometry socket, skip it
+            max_HN_idx = crepeat_items[clength - 1]["HN_idx"] if clength > 0 else 0
+            # HACK idx 0 is a build-in geometry socket, skip it
             for i in range(1, max_HN_idx + 1):
+            # for i in range(0, max_HN_idx + 1):
+                # if citem is not the default one, it will always be recorded by our parser logic, 
+                # so dont worry about citems dont have idx i, only idx 0 may not be recorded.
                 citem = crepeat_items[i]
                 # node.repeat_items.new(citem["socket_type"], citem["name"])
                 node.repeat_items.new(citem["socket_type"], citem["name"])
@@ -444,22 +509,35 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             capture_items = cnode.get("capture_items", [])
             for citem in capture_items:
                 node.capture_items.new(citem["HN_socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeBake":
+            # node.bake_items.clear()
+            cbake_items = cnode.get("bake_items", [])
+            clength = len(cbake_items)
+            max_HN_idx = cbake_items[clength - 1]["HN_idx"] if clength > 0 else 0
+            for i in range(1, max_HN_idx + 1):
+                # node.bake_items.new(citem["socket_type"], citem["name"])
+                # citems may dont have idx i (default cull), so new the item but set it later
+                node.bake_items.new('BOOLEAN', "")
+        # set by pairring output
         elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeRepeatInput"):
             later_setup_cnodes[cnode['name']] = (node, cnode)
             continue
+        # FIXME less than default...
         elif bl_idname == "GeometryNodeMenuSwitch":
             cenum_items = cnode.get("enum_items", None)
             if cenum_items is not None:
+                node.enum_items.clear()
                 clength = len(cenum_items)
-                max_HN_idx = cenum_items[clength - 1]["HN_idx"]
+                max_HN_idx = cenum_items[clength - 1]["HN_idx"] if clength > 0 else 0
                 # inputs idx 0, 1 are enum items that is created by default, skip them
                 for i in range(2, max_HN_idx + 1):
+                # for i in range(0, max_HN_idx + 1):
                     node.enum_items.new("")
         elif bl_idname == "GeometryNodeIndexSwitch":
             cindex_switch_items = cnode.get("index_switch_items", None)
             if cindex_switch_items is not None:
                 clength = len(cindex_switch_items)
-                max_HN_idx = cindex_switch_items[clength - 1]["HN_idx"]
+                max_HN_idx = cindex_switch_items[clength - 1]["HN_idx"] if clength > 0 else 0
                 # inputs idx 0, 1 are enum items that is created by default, skip them
                 for i in range(2, max_HN_idx + 1):
                     node.index_switch_items.new()
@@ -472,13 +550,11 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
                 node.file_slots.new("")
         
         # set attributes, io sockets
-        set_attrs(node, cnode)
+        set_attrs(node, cnode, ops=ops)
             
     # Set Referenced Nodes to The Nodes refering to them
     for node, cnode, attr, ref2_node_name in node_cnode_attr_ref2nodenames:
-        # BUG if have nested frame, when first created and with auto create select, dragging will make 
-        # them dance crazily. for now the solution is click some where then select them again...
-        # I guess it's because the location and size we set for the frame complict with auto frame adjust...
+        current_node_bl_idname = node.bl_idname
         cref2_node = cnodes.get(ref2_node_name, None)
         if cref2_node is not None:
             if attr == "paired_output":
@@ -486,7 +562,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             # for parent NodeFrames, set parent location means change all sons' locations
             else:
                 node.location = Vector(cnode["location"]) + node_offset
-                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"])
+                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"], ops)
         # dont have paired output in our data, remove input in late set list
         elif attr == "paired_output":
             # node.location = Vector(cnode["location"]) + node_offset
@@ -494,7 +570,8 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
         
     # Late Attribute Set, for nodes refering to another node
     for node, cnode in later_setup_cnodes.values():
-        set_attrs(node, cnode)
+        current_node_bl_idname = node.bl_idname
+        set_attrs(node, cnode, ops=ops)
         
     # Late Set, for some attributes that should be set in last
     # set location at the end, because parent assign will destroy the location
@@ -508,7 +585,7 @@ def set_nodes(nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tr
             cnode["HN_ref"].location = Vector(cnode["location"]) + node_offset
         
         
-def set_links(links, clinks, cnodes, link_group_io=True):
+def set_links(node_tree, links, clinks, cnodes, link_group_io=True, ops: None|bpy.types.Operator=None):
     for clink in clinks:
         HN_from_socket_idx = clink['HN_from_socket_idx']
         HN_to_socket_idx = clink['HN_to_socket_idx']
@@ -523,7 +600,7 @@ def set_links(links, clinks, cnodes, link_group_io=True):
                 links.new(from_socket, to_socket)
             
 
-def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False, link_group_io=True):
+def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False, link_group_io=True, ops: None|bpy.types.Operator=None):
     global failed_tex_num
     nodes = node_tree.nodes
     links = node_tree.links
@@ -535,25 +612,25 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
         
     # Setup Tree Interface if there are group io nodes in the preset or it's a ng
     if set_tree_io:
-        set_interface(interface, cnode_tree["interface"])
+        set_interface(interface, cnode_tree["interface"], ops=ops)
             
     cnodes = cnode_tree["nodes"]
     # Generate Nodes & Set Node Attributes & Set IO Socket Value
-    set_nodes(nodes, cnodes, cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io)
+    set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io, ops=ops)
 
     # Generate Links
-    set_links(links, cnode_tree['links'], cnodes, link_group_io=link_group_io)
+    set_links(node_tree, links, cnode_tree['links'], cnodes, link_group_io=link_group_io, ops=ops)
     
     # Late Setter
-    try:
-        for func, params in late_setter_func:
-                func(params)
-    except:
-        print(f"Hot Node Setter Error: Late Setter Function {func} failed.")
+    # try:
+    for func, params in late_setter_func:
+        func(params)
+    # except:
+    #     print(f"Hot Node Setter Error: Late Setter Function {func} failed.")
     late_setter_func.clear()
             
 
-def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False, new_tree=False):
+def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False, new_tree=False, ops: None|bpy.types.Operator=None):
     '''Set nodes for the current edit tree'''
     global failed_tex_num
     failed_tex_num = 0
@@ -595,7 +672,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         # didnt find the same tree, create one
         cname = utils.ensure_unique_name(cname, -1, node_groups.keys())
         node_tree = node_groups.new(cname, cnode_tree["bl_idname"])
-        set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True)
+        set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True, ops=ops)
         cnode_tree["HN_ref"] = node_tree
         
     # Generate Main Node Tree to a new tree
@@ -644,6 +721,6 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         node_offset = cursor_location - Vector(cnode_center)
     else:
         node_offset = Vector((0.0, 0.0))
-    set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io, link_group_io=link_group_io)
+    set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io, link_group_io=link_group_io, ops=ops)
     
     return failed_tex_num

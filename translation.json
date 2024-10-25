@@ -139,6 +139,9 @@
         "rpt_pack_export_all_success": "Exported all packs to {dir_path}",
         "rpt_preset_to_pack_success": "Preset \"{src_preset_name}\" {operation} to \"{dst_pack_name}/{dst_preset_name}\"",
         "rpt_hot_node_refreshed": "Hot Node refreshed",
+        "rpt_error_setter_universal": "Sorry, Hot Node met a BUG with this preset. It's not your fault. Report please.",
+        "rpt_warning_setter_soft_error_universal": "Generally Done. but a tiny exception was thrown. Ignore this if things just go fine.",
+        "rpt_warning_setter_ng_nesting": "Nesting a node group inside of itself is not allowed. Node group \"{tree_name}\" was not set.",
         "msg_preset_to_pack_overwrite_confirm": "The preset \"{src_preset_name}\" already exists in pack \"{dst_pack_name}\". Do you want to overwrite it?"
     },
     "zh": {
@@ -281,6 +284,9 @@
         "rpt_pack_export_all_success": "成功将所有预设包导出到 {dir_path}",
         "rpt_preset_to_pack_success": "预设 \"{src_preset_name}\" 已{operation}到 \"{dst_pack_name}/{dst_preset_name}\"",
         "rpt_hot_node_refreshed": "Hot Node 已刷新",
+        "rpt_error_setter_universal": "抱歉，Hot Node 在这个预设上遇到了一个 BUG。这不是您的错。请向开发者反馈。",
+        "rpt_warning_setter_soft_error_universal": "总体完成，但捕获了一个小异常。如果效果没问题，忽略这条信息。",
+        "rpt_warning_setter_ng_nesting": "不允许将节点组嵌套在自身内部。节点组\"{tree_name}\"未设置。",
         "msg_preset_to_pack_overwrite_confirm": "\"{dst_pack_name}\" 中已存在预设\"{src_preset_name}\". 确定覆盖?"
     }
 }

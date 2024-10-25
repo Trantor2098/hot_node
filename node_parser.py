@@ -98,6 +98,24 @@ class SpecialParser():
             else:
                 ccapture_items[i]["HN_socket_type"] = data_type
                 
+    # @staticmethod
+    # def parse_bake_items(obj: bpy.types.NodeGeometryBakeItem, cobj: dict):
+    #     # Here we already parsed the cbake_items, but we should add some own params into the cobj.
+    #     # XXX socket_type is the only way to know socket_type but it is not fully capatibale with socket type enum... 
+    #     # why blender dont have a socket_type attribute in CaptureAttributeItem??
+    #     # NOTE Not only GeometryNodeCaptureAttribute have the CaptureAttributeItem, so does ShaderNodeAttribute...
+    #     bake_items = obj.bake_items
+    #     cbake_items = cobj.get("bake_items", None)
+    #     if cbake_items is None:
+    #         return
+    #     length = len(bake_items)
+    #     for i in range(length):
+    #         socket_type = bake_items[i].socket_type
+    #         if socket_type.find('VECTOR') != -1:
+    #             cbake_items[i]["HN_socket_type"] = 'VECTOR'
+    #         else:
+    #             cbake_items[i]["HN_socket_type"] = socket_type
+                
     @staticmethod
     def parse_compositor_node_color_balance(obj: bpy.types.CompositorNodeColorBalance, cobj: dict):
         # Here we already parsed the color_balance, but different correction_method need to set different rbg values.
@@ -321,9 +339,7 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
                 inode.node_tree = node.node_tree
                 cnode = parse_attrs(node, inode)
                 # this is a custom attribute
-                cnode["HN_nt_name"] = node.node_tree.name
-            # elif bl_idname == "NodeReroute":
-            #     cnode = parse_attrs_simply(node, ("bl_idname", "location", "name", "display_shape"))
+                cnode["HN_nt_name"] = node.node_tree.name if node.node_tree is not None else None
             else:
                 cnode = parse_attrs(node, inode)
                 
@@ -333,7 +349,7 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
         # Can i dont use for to get the only value?
         for cnode in cnodes.values():
             if cnode["bl_idname"] in constants.node_group_id_names:
-                states = cnode.get("label", cnode["HN_nt_name"])
+                states = cnode.get("label", cnode.get("HN_nt_name", cnode["name"]))
             else:
                 name = cnode["name"]
                 name, _ = utils.split_name_suffix(name)
@@ -426,7 +442,7 @@ def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, le
     for node in nodes:
         if level > 1 or node.select:
             bl_idname = node.bl_idname
-            if bl_idname in _node_group_id_names:
+            if bl_idname in _node_group_id_names and node.node_tree is not None:
                 required_ngs[node.node_tree.name] = level
                 record_node_group_names(node.node_tree, required_ngs=required_ngs, level=level + 1)
     sorted_ngs = sorted(required_ngs.items(), key = lambda x: x[1], reverse=True)

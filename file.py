@@ -237,7 +237,7 @@ def get_pack_types_deep(pack_name):
     
 # CRUD of Json
 # if test, set the indent default value as 1, else, as None
-def write_json(file_path: str, data: dict, indent: int|str|None=1):
+def write_json(file_path: str, data: dict, indent: int|str|None=constants.preset_json_indent):
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=indent)
 
@@ -623,6 +623,21 @@ def clear_outdated_autosave_packs():
             if day_delta > 1 or day_delta < 0:
                 file_path = os.path.join(autosave_dir_path, "".join((namebody, ".zip")))
                 os.remove(file_path)
+                
+                
+def clear_outdated_history():
+    '''Clear history files which were created 1 day before or created in the last month.'''
+    existing_json_namebodys = read_existing_file_names(history_dir_path, suffix=".json")
+    current_time = time.time()
+    for namebody in existing_json_namebodys:
+        history_time_str = utils.get_string_between_words(namebody, None, ("_", ))
+        if history_time_str is not False:
+            history_time = float(history_time_str)
+            time_delta = current_time - history_time
+            # 86400s = 1 day
+            if time_delta > 86400 * 2 or time_delta < 0:
+                file_path = os.path.join(history_dir_path, "".join((namebody, ".json")))
+                os.remove(file_path)
     
 
 def create_preset(pack_name: str, preset_name: str, cpreset: dict):
@@ -769,6 +784,7 @@ def init():
         update_pack_types_of_meta_deep(pack_name)
         
     autosave_packs()
+    clear_outdated_history()
     last_mtime = get_mtime_data_and_refresh_root_meta_cache()
     pack_selected_name = root_meta_cache["pack_selected"]
     props_py.gl_pack_selected = props_py.gl_packs.get(pack_selected_name, None)
@@ -777,3 +793,4 @@ def init():
 def finalize(remove_his_dir=True):
     autosave_packs()
     clear_outdated_autosave_packs()
+    clear_outdated_history()
