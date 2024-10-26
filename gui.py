@@ -250,11 +250,11 @@ class HOTNODE_MT_preset_copy_to_pack(Menu):
     
     def draw(self, context):
         layout = self.layout
-        # layout.label(text=i18n.msg["Copy to Pack"])
+        layout.label(text=i18n.msg["Copy to Pack"])
         layout.separator()
         for pack_name in props_py.gl_packs.keys():
             if pack_name != props_py.gl_pack_selected.name:
-                ops = layout.operator("node.hot_node_preset_to_pack", text=pack_name, translate=False)
+                ops = layout.operator("node.hot_node_preset_to_pack", icon='OUTLINER_COLLECTION', text=pack_name, translate=False)
                 ops.pack_name = pack_name
                 ops.is_move = self.is_move
             
@@ -267,11 +267,11 @@ class HOTNODE_MT_preset_move_to_pack(Menu):
     
     def draw(self, context):
         layout = self.layout
-        # layout.label(text=i18n.msg["Move to Pack"])
+        layout.label(text=i18n.msg["Move to Pack"])
         layout.separator()
         for pack_name in props_py.gl_packs.keys():
             if pack_name != props_py.gl_pack_selected.name:
-                ops = layout.operator("node.hot_node_preset_to_pack", text=pack_name, translate=False)
+                ops = layout.operator("node.hot_node_preset_to_pack", icon='OUTLINER_COLLECTION', text=pack_name, translate=False)
                 ops.pack_name = pack_name
                 ops.is_move = self.is_move
 

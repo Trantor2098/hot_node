@@ -2,7 +2,7 @@ ChangeLog
 ========
 
 
-[0.8.0] - 2024-09-22
+[0.8.0] - 2024-xx-xx
 --------
 
 ### Added
@@ -13,7 +13,7 @@ ChangeLog
 --------
 
 ### Fixed
-- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menu by default) cannot be set correctly. (Who will do this?)
+- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
 
 
@@ -26,9 +26,9 @@ ChangeLog
 
 ### Fixed
 - Node `Bake` cannot be set correctly.
-- Nesting a `Node Group` inside it self will throw a prompt rather than throwing a error.
+- Nesting a `Node Group` inside it self throws an error. Now it will throw a prompt instead.
 - `Node Group` with missing data-blocks cannot be saved.
-- Removed some useless console info.
+- Some useless console info.
 
 
 [0.7.1] - 2024-10-22
