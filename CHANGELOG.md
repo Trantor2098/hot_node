@@ -19,6 +19,9 @@ ChangeLog
 [0.7.3] - 2024-10-30
 --------
 
+### Changed
+- Allowed to install in Blender 4.4 (not fully tested, use by your own risk).
+
 ### Fixed
 - Importing illegal .zip files brings error.
 - Node `Node Reroute` throws useless warning.
