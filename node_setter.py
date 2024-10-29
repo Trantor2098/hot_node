@@ -37,6 +37,8 @@ late_setter_func = []
 
 # bug report
 current_node_bl_idname = ""
+current_node_name = ""
+current_cnode = None
 bug_infos = []
 
 class SpecialSetter():
@@ -278,12 +280,12 @@ def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
         # read-only usually wont cause any problem...
         if "read-only" not in e.args[0]:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-            print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}.")
+            print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}. Node: {current_node_bl_idname} \"{current_node_name}\".")
     # Forgot what may cause this...
     except TypeError:
         report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-        print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}.")
-    # Set float to Vector may cause this
+        print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}. Node: {current_node_bl_idname} \"{current_node_name}\".")
+    # Set float to Vector may cause this (blender record 0.0x4 as 0.0?)
     except ValueError:
         if hasattr(obj, attr):
             import mathutils
@@ -295,11 +297,13 @@ def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
                 cvalue = len(obj_attr) * [cvalue]
                 setattr(obj, attr, cvalue)
             else:
-                report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-                print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
+                # XXX for the preset saved by 0.7.2 or before, reroute's i/o default value make this warning (but everything is fine).
+                if current_node_bl_idname != "NodeReroute":
+                    report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
+                    print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node: {current_node_bl_idname} \"{current_node_name}\".")
         else:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-            print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}.")
+            print(f"Hot Node Setter ValueError: object {obj} do not have attribute \"{attr}\". Node: {current_node_bl_idname} \"{current_node_name}\".")
 
 
 def set_attrs_direct(obj, cobj, *attr_names: str):
@@ -437,11 +441,15 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface, ops: None|
 def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.0)), set_tree_io=False, ops: None|bpy.types.Operator=None):
     global failed_tex_num
     global current_node_bl_idname
+    global current_node_name
+    global current_cnode
     node_cnode_attr_ref2nodenames = []
     later_setup_cnodes = {}
     for cnode in cnodes.values():
         bl_idname = cnode["bl_idname"]
         current_node_bl_idname = bl_idname
+        current_node_name = cnode["name"]
+        current_cnode = cnode
         # new node and get ref
         node = nodes.new(type=bl_idname)
         cnode["HN_ref"] = node

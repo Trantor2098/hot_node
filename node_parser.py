@@ -48,6 +48,10 @@ _type_wb_attrs_parser = (
     ("bl_idname", "location"),
     ('select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "width", "height"),
     None),
+    (bpy.types.NodeReroute,
+    ("bl_idname", "location"),
+    ("inputs", "outputs", 'select', 'dimensions', 'is_active_output', "internal_links", "rna_type", "width", "height"),
+    None),
     # this can be moved, leave it to the setter to handle the error, but just keep it is fine.
     (bpy.types.GeometryNodeMenuSwitch,
     ("bl_idname", "location"),

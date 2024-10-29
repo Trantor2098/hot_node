@@ -296,7 +296,7 @@ def refresh_root_meta_cache():
 def check_read_pack_meta(pack_name):
     pack_meta_path = os.path.join(pack_root_dir_path, pack_name, ".metadata.json")
     if not os.path.exists(pack_meta_path):
-        return 'INEXISTENCE'
+        return 'META_LACK'
     metadata: dict = read_json(pack_meta_path)
     keys = list(metadata.keys())
     if "tree_types" not in keys:

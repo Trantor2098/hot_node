@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "hot_node"
-version = "0.7.2"
+version = "0.7.3"
 name = "Hot Node"
 tagline = "Save nodes, then add nodes like adding node, without library"
 maintainer = "Trantor2098 <trantor2098@163.com>"

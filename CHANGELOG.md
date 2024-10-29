@@ -9,12 +9,19 @@ ChangeLog
 - Custom pack icon supported.
 
 
-[0.7.3] - 2024-10-23
+[0.7.4] - 2024-10-23
+--------
+
+- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
+- If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
+
+
+[0.7.3] - 2024-10-30
 --------
 
 ### Fixed
-- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
-- If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
+- Importing illegal .zip files brings error.
+- Node `Node Reroute` throws useless warning.
 
 
 [0.7.2] - 2024-10-23
@@ -23,10 +30,11 @@ ChangeLog
 ### Changed
 - Some severe error informations will be more readable, instead of being thrown by a scary exception window with codes.
 - Some tiny errors of getting preset will be shown by the yellow warning.
+- Historical files may remain in the folder when blender crashes. Now history will be automaticlly deleted 2 days after creation.
 
 ### Fixed
 - Node `Bake` cannot be set correctly.
-- Nesting a `Node Group` inside it self throws an error. Now it will throw a prompt instead.
+- Nesting a `Node Group` inside itself throws an error. Now it will throw a prompt instead.
 - `Node Group` with missing data-blocks cannot be saved.
 - Some useless console info.
 

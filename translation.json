@@ -140,7 +140,7 @@
         "rpt_preset_to_pack_success": "Preset \"{src_preset_name}\" {operation} to \"{dst_pack_name}/{dst_preset_name}\"",
         "rpt_hot_node_refreshed": "Hot Node refreshed",
         "rpt_error_setter_universal": "Sorry, Hot Node met a BUG with this preset. It's not your fault. Report please.",
-        "rpt_warning_setter_soft_error_universal": "Generally Done. but a tiny exception was thrown. Ignore this if things just go fine.",
+        "rpt_warning_setter_soft_error_universal": "Generally Done. But a tiny exception was thrown (see console). Ignore this if things just go fine.",
         "rpt_warning_setter_ng_nesting": "Nesting a node group inside of itself is not allowed. Node group \"{tree_name}\" was not set.",
         "msg_preset_to_pack_overwrite_confirm": "The preset \"{src_preset_name}\" already exists in pack \"{dst_pack_name}\". Do you want to overwrite it?"
     },
