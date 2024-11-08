@@ -127,15 +127,15 @@ def ensure_unique_name(new_full_name: str, new_idx: int, name_list):
         name, suffix = split_name_suffix(full_name)
         if name == new_name:
             suffix_list.append(suffix)
-    if suffix_list == []:
+    if suffix_list == [] or new_suffix not in suffix_list:
         return new_full_name
     # find a available suffix number. 0 means dont need suffix
-    available_suffix = find_min_vacant_number(suffix_list)
+    min_vacant_suffix = find_min_vacant_number(suffix_list)
     max_suffix = max(suffix_list)
     # allow user to change suffix to a bigger number
-    if new_suffix <= available_suffix:
-        new_suffix = available_suffix
-    # if change Foo.001 to Foo.002 and Foo.002 already exists, go into this branch. The result is same as blender's rename logic.
+    if new_suffix <= min_vacant_suffix:
+        new_suffix = min_vacant_suffix
+    # if change Foo.001 to Foo.002 and Foo.002 already exists, autoly change it to Foo.003. The result is same as blender's rename logic.
     else:
         new_suffix = max_suffix + 1
     result = combine_name_suffix(new_name, new_suffix)

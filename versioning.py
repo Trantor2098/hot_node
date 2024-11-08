@@ -5,7 +5,7 @@ from . __init__ import bl_info
 
 
 # current version
-version = bl_info["version"]
+version = list(bl_info["version"])
 blender = bpy.app.version
 
 
@@ -14,6 +14,7 @@ def ensure_preset_version(preset_name, cpreset):
     cdata = cpreset["HN_preset_data"]
     preset_version = cdata["version"]
     if preset_version != version:
+        print(f"Hot Node: Updating preset {preset_name} from add-on version {preset_version} to {version}")
         if preset_version == [0, 1, 0]:
             cpreset = version_update_0_1_0(preset_name, cpreset)
         # we may dont have a update func between small version update, but we still update it's version data.

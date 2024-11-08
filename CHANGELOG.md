@@ -25,6 +25,7 @@ ChangeLog
 
 ### Fixed
 - If the name of a node group in the .blend file is like "NG.001", but there is no node group called "NG" in the file and the preset happend to have a node group called "NG", error will be thrown.
+- Unnecessary rewriting of file happens when getting preset, which slows down the speed.
 
 
 [0.7.3] - 2024-10-30

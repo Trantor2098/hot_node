@@ -113,12 +113,13 @@ def is_ignore_attr(ignore_attr_owners: tuple[str, str, str], attr: str, owner: s
 def compare_same(obj1, obj2, ignore_attr_owners=(), owner="", grand_owner="", great_owner=""):
     '''Compare whether a complex dict or list is totally same, but attributes with the owner in ignore_attrs_owner swill pass the compare.
     
-    - ignore_attr_owners: ((attr1, owner1, grand_owner1), (attr2, owner2, grand_owner2), ...), "" means any owner is ok. For list elements the owner will be the attr who own the list.
+    - ignore_attr_owners: ((attr1, owner1, grand_owner1), (attr2, owner2, grand_owner2), ...), "" means any owner is ok. For list elements the owner and the grand_owner will be the attr who own the list.
     - owner: Only for recursively call.
     - grand_owner: Only for recursively call.
     - great_owner: Only for recursively call, for list to get their grand owner.'''
     if isinstance(obj1, (bool, int, float, str)) and isinstance(obj2, (bool, int, float, str)):
         if not obj1 == obj2:
+            # print("obj1, obj2 not same:")
             # print(obj1, obj2)
             return False
     elif isinstance(obj1, list) and isinstance(obj2, list):
@@ -130,21 +131,35 @@ def compare_same(obj1, obj2, ignore_attr_owners=(), owner="", grand_owner="", gr
             if is_ignore_attr(ignore_attr_owners, owner, grand_owner, great_owner):
                 continue
             if not compare_same(obj1[i], obj2[i], ignore_attr_owners=ignore_attr_owners, owner=owner, grand_owner=owner, great_owner=great_owner):
-                # print(obj1[i], obj2[i])
+                # print("list elements not same:")
+                # print(obj1[i])
+                # print()
+                # print(obj2[i])
                 return False
     elif isinstance(obj1, dict) and isinstance(obj2, dict):
         keys1 = list(obj1.keys())
         keys2 = list(obj2.keys())
-        # if not compare_same(keys1, keys2):
+        # length1 = len(keys1)
+        # length2 = len(keys2)
+        # if length1 != length2:
+        #     print("dict keys length not same:")
+        #     return False
+        # for i in range(length1):
+        #     if keys1[i] != keys2[i] and not is_ignore_attr(ignore_attr_owners, keys2[i], owner, grand_owner):
+        #         print("dict keys not same:")
+        #         print(keys1[i], keys2[i])
+        #         return False
         if keys1 != keys2:
             return False
         for key in keys1:
             if is_ignore_attr(ignore_attr_owners, key, owner, grand_owner):
                 continue
             if not compare_same(obj1[key], obj2[key], ignore_attr_owners=ignore_attr_owners, owner=key, grand_owner=owner, great_owner=great_owner):
+                # print("dict values not same:")
                 # print(obj1[key], obj2[key])
                 return False
     elif not obj1 == obj2:
+        # print("obj1, obj2 not same:")
         # print(obj1, obj2)
         return False
     return True
@@ -653,30 +668,34 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     for cname, cnode_tree in cnode_trees.items():
         if cname in ("HN_edit_tree", "HN_preset_data"):
             continue
-        # commpare exist tree
-        cname_body, cint_suffix = utils.split_name_suffix(cname)
-        if cint_suffix == 0:
-            # compare all the ngs that has a cname like body and blender style rename suffix, like cname.001
-            # BUG sometimes the setted ng wont be same as the ng in the preset, so the ng actually will always be created...
-            found_same = False
-            for full_name in node_groups.keys():
-                name, int_suffix = utils.split_name_suffix(full_name)
-                if name == cname:
-                    cexist_tree, _ = node_parser.parse_node_tree(node_groups[full_name], parse_all=True)
-                    if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"),)):
-                        cnode_tree["HN_ref"] = node_groups[cname]
-                        found_same = True
-                        break
-            if found_same:
+        # XXX The ideal way is to compare all the ngs that have the same name body and reuse the same one no matter what the suffix is.
+        # XXX but, the ng name can't pass the compare. so for now, we just compare the one with the same name.
+        # # commpare exist tree with the same name body
+        # cname_body, cint_suffix = utils.split_name_suffix(cname)
+        # if cint_suffix == 0:
+        #     # compare all the ngs that has a cname like body and blender style rename suffix, like cname.001
+        #     # BUG sometimes the setted ng wont be same as the ng in the preset, so the ng actually will always be created...
+        #     # XXX the attr "identifier" of the node group socket items like "SOCKET_2" may cause this bug
+        #     found_same = False
+        #     for full_name in node_groups.keys():
+        #         name, int_suffix = utils.split_name_suffix(full_name)
+        #         if name == cname:
+        #             cexist_tree, _ = node_parser.parse_node_tree(node_groups[full_name], parse_all=True)
+        #             if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"), )):
+        #                 cnode_tree["HN_ref"] = node_groups[full_name]
+        #                 found_same = True
+        #                 break
+        #     if found_same:
+        #         continue
+        # # if preset it self has suffix, just compare the one with the same suffix
+        # else:
+        if node_groups.find(cname) != -1:
+            # BUG ngs with node "Gamma" cant pass the compare, it's a blender bug maybe, it throws a warning:
+            # WARN (bpy.rna): C:\Users\blender\git\blender-v420\blender.git\source\blender\python\intern\bpy_rna.cc:1366 pyrna_enum_to_py: current value '13' matches no enum in 'NodeTreeInterfaceSocketFloat', 'Gamma', 'subtype'
+            cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
+            if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"), )):
+                cnode_tree["HN_ref"] = node_groups[cname]
                 continue
-        # if preset it self have suffix, just compare the one with the same suffix
-        else:
-            if node_groups.find(cname) != -1:
-                cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
-                # may be just use == is ok...
-                if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"),)):
-                    cnode_tree["HN_ref"] = node_groups[cname]
-                    continue
         # didnt find the same tree, create one
         cname = utils.ensure_unique_name(cname, -1, node_groups.keys())
         node_tree = node_groups.new(cname, cnode_tree["bl_idname"])
