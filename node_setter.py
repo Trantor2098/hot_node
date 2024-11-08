@@ -662,7 +662,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
             for full_name in node_groups.keys():
                 name, int_suffix = utils.split_name_suffix(full_name)
                 if name == cname:
-                    cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
+                    cexist_tree, _ = node_parser.parse_node_tree(node_groups[full_name], parse_all=True)
                     if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"),)):
                         cnode_tree["HN_ref"] = node_groups[cname]
                         found_same = True

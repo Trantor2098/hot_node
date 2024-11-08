@@ -8,12 +8,23 @@ ChangeLog
 ### Added
 - Custom pack icon supported.
 
+### Fixed
+- Newly generated node group data cannot be cleared if cancelling `Get` action.
+- Node groups data will always be newed if their name is like "XXX.001", rather than reuse the existing groups.
 
-[0.7.4] - 2024-10-23
+
+[0.7.5] - 2024-XX-XX
 --------
 
+### Fixed
 - Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
+
+[0.7.4] - 2024-11-08
+--------
+
+### Fixed
+- If the name of a node group in the .blend file is like "NG.001", but there is no node group called "NG" in the file and the preset happend to have a node group called "NG", error will be thrown.
 
 
 [0.7.3] - 2024-10-30
