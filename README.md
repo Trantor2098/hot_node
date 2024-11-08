@@ -132,8 +132,10 @@ Aknowledgement
 --------
 
 ##### BUG Reporting & Suggestions
-Victoryluode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika
+Victoryluode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin,
 (In no particular order.)
+
+There may be oversights on the name list, sincerely appreciate all of you that helped to make Hot Node better :D
 
 
 License
