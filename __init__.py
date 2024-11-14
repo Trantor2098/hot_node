@@ -22,7 +22,7 @@
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (0, 7, 4),
+    "version": (0, 7, 5),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",

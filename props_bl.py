@@ -142,7 +142,7 @@ def _pack_selected_name_update(self, context):
     # callback when *PACK NAME CHANGED BY USER*. Switch packs will also call this.
     props = context.scene.hot_node_props
     new_name = props.pack_selected_name
-    old_name = props_py.gl_pack_selected.name
+    old_name = props_py.gl_pack_selected.name if props_py.gl_pack_selected is not None else "Pack"
     
     new_name = utils.delete_slash_anti_slash_in_string(new_name)
     

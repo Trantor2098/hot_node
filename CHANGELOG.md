@@ -13,15 +13,28 @@ ChangeLog
 - Node groups data will always be newed if their name is like "XXX.001", rather than reuse the existing groups.
 
 
-[0.7.5] - 2024-XX-XX
+[0.7.X] - 2024-XX-XX
 --------
 
 ### Fixed
 - Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
 
+
+[0.7.5] - 2024-11-14
+--------
+
+### Fixed
+- Empty name of socket in the Group Input/Output crashes blender when getting the node from add-on with `Overwrite Tree I/O` on.
+- Unnecessary warnings occur when getting a preset with `Menu` socket in it's Group Input/Output.
+- Some error infos when opening blender from the command line.
+
+
 [0.7.4] - 2024-11-08
 --------
+
+### Changed
+- Now the node groups with the same namebody and the different suffix will not be compared or reused (like "NG" and "NG.001") when getting preset. This enhances the speed.
 
 ### Fixed
 - If the name of a node group in the .blend file is like "NG.001", but there is no node group called "NG" in the file and the preset happend to have a node group called "NG", error will be thrown.

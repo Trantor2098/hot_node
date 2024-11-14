@@ -6,7 +6,7 @@ from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sy
             
       
 def _poll_has_pack_and_edtree(context):
-    return props_py.gl_pack_selected is not None and context.space_data.edit_tree is not None
+    return props_py.gl_pack_selected is not None and getattr(context.space_data, "edit_tree", None) is not None
 
 
 def _exec_pop_confirm_if_need(ops, context, event):
@@ -712,7 +712,7 @@ class HOTNODE_OT_nodes_add(Operator):
     
     @classmethod
     def poll(cls, context):
-        return isinstance(context.space_data, bpy.types.SpaceProperties) or context.space_data.edit_tree is not None
+        return isinstance(context.space_data, bpy.types.SpaceProperties) or getattr(context.space_data, "edit_tree", None) is not None
     
     def execute(self, context):
         return nodes_add(self, context, self.preset_name, self.pack_name, self.tree_type, new_tree=self.new_tree)

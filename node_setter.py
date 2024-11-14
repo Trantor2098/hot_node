@@ -33,7 +33,7 @@ type_b_attrs_setter = (
 )
 
 failed_tex_num = 0
-late_setter_func = []
+late_setter_funcs = []
 
 # bug report
 current_node_bl_idname = ""
@@ -286,7 +286,7 @@ def new_element(obj, cobj, attr_name, ops: None|bpy.types.Operator=None):
         new(cobj["name"])
         
         
-def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
+def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None, invoker: str|int|None=None):
     '''setattr with try catch. When debug, use setattr directly to find out bugs, rather than try catch.'''
     try:
         setattr(obj, attr, cvalue)
@@ -295,11 +295,19 @@ def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
         # read-only usually wont cause any problem...
         if "read-only" not in e.args[0]:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-            print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}. Node: {current_node_bl_idname} \"{current_node_name}\".")
-    # Forgot what may cause this...
-    except TypeError:
-        report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-        print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}. Node: {current_node_bl_idname} \"{current_node_name}\".")
+            print(invoker)
+            print(f"Hot Node Setter AttributeError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node type: {current_node_bl_idname}, Node name \"{current_node_name}\".")
+    # Set an unexist enum item to a enum socket may cause this
+    except TypeError as e:
+        # 1. Edge case: Menu Node linked to the group io will have a "" default_value but it's fine.
+        # 2. Group IO's menu default_value is depend on the Menu Node, but when setting the IO, the Menu Node is not be created yet.
+        if isinstance(obj, bpy.types.NodeSocketMenu) and attr == "default_value":
+            pass
+        else:
+            report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
+            print(invoker)
+            # print(e)
+            print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node type: {current_node_bl_idname}, Node name \"{current_node_name}\".")
     # Set float to Vector may cause this (blender record 0.0x4 as 0.0?)
     except ValueError:
         if hasattr(obj, attr):
@@ -315,10 +323,12 @@ def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None):
                 # XXX for the preset saved by 0.7.2 or before, reroute's i/o default value make this warning (but everything is fine).
                 if current_node_bl_idname != "NodeReroute":
                     report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-                    print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node: {current_node_bl_idname} \"{current_node_name}\".")
+                    print(invoker)
+                    print(f"Hot Node Setter ValueError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node type: {current_node_bl_idname}, Node name \"{current_node_name}\".")
         else:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
-            print(f"Hot Node Setter ValueError: object {obj} do not have attribute \"{attr}\". Node: {current_node_bl_idname} \"{current_node_name}\".")
+            print(invoker)
+            print(f"Hot Node Setter ValueError: object {obj} do not have attribute \"{attr}\". Node type: {current_node_bl_idname}, Node name: \"{current_node_name}\".")
 
 
 def set_attrs_direct(obj, cobj, *attr_names: str):
@@ -327,7 +337,7 @@ def set_attrs_direct(obj, cobj, *attr_names: str):
     - obj: The object to set it's attributes.
     - cattrs: The object's mirror in hot node data json format.'''
     for attr in attr_names:
-        try_setattr(obj, attr, cobj[attr])
+        try_setattr(obj, attr, cobj[attr], invoker=335)
     cobj["HN_ref"] = obj
 
 
@@ -401,13 +411,13 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None, ops: None|bpy.typ
                     cvalue = 'NONE'
                 # XXX [TEMP SOLUTION] To help handle socket defination order in node group interface, we set the default_value of the socket menu in late setter.
                 elif isinstance(obj, bpy.types.NodeTreeInterfaceSocketMenu) and attr == "default_value":
-                    global late_setter_func
+                    global late_setter_funcs
                     def socket_menu_solver(params):
                         obj, attr, cvalue = params
-                        try_setattr(obj, attr, cvalue, ops=ops)
-                    late_setter_func.append((socket_menu_solver, (obj, attr, cvalue)))
+                        try_setattr(obj, attr, cvalue, ops=ops, invoker=412)
+                    late_setter_funcs.append((socket_menu_solver, (obj, attr, cvalue)))
                     continue
-                try_setattr(obj, attr, cvalue, ops)
+                try_setattr(obj, attr, cvalue, ops, invoker=415)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
@@ -422,6 +432,10 @@ def set_interface(interface: bpy.types.NodeTreeInterface, cinterface, ops: None|
     for i in range(clength):
         citem = cinterface[i]
         name = citem["name"]
+        # set "" to the socket name will crash blender, so we set it to "UNNAMED"
+        if name == "":
+            citem["name"] = "UNNAMED"
+            name = "UNNAMED"
         item_type = citem["item_type"]
         # invoke new() to create item
         if item_type == 'SOCKET':
@@ -585,7 +599,7 @@ def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.
             # for parent NodeFrames, set parent location means change all sons' locations
             else:
                 node.location = Vector(cnode["location"]) + node_offset
-                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"], ops)
+                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"], ops, invoker=597)
         # dont have paired output in our data, remove input in late set list
         elif attr == "paired_output":
             # node.location = Vector(cnode["location"]) + node_offset
@@ -646,11 +660,11 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     
     # Late Setter
     # try:
-    for func, params in late_setter_func:
+    for func, params in late_setter_funcs:
         func(params)
     # except:
     #     print(f"Hot Node Setter Error: Late Setter Function {func} failed.")
-    late_setter_func.clear()
+    late_setter_funcs.clear()
             
 
 def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", apply_offset=False, new_tree=False, ops: None|bpy.types.Operator=None):
