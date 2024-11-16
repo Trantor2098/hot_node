@@ -261,7 +261,7 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
         return {'CANCELLED'}
     
     # adds the nodes
-    failed_tex_num= node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, ops=ops)
+    failed_tex_num = node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, ops=ops)
     
     if failed_tex_num > 0:
         ops.report({'INFO'}, i18n.msg["rpt_nodes_add_fail_tex"].format(failed_tex_num=failed_tex_num))

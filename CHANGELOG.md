@@ -21,6 +21,13 @@ ChangeLog
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
 
 
+[0.7.6] - 2024-11-16
+--------
+
+### Fixed
+- Getting presets with node group which exists at multiple nested levels may report error. If you have a preset with this question, set it with Hot Node again to solve.
+
+
 [0.7.5] - 2024-11-14
 --------
 

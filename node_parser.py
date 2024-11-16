@@ -16,7 +16,6 @@ _required_attr_types = (
     bpy.types.Image,
 )
 
-_node_group_id_names = ("ShaderNodeGroup", "GeometryNodeGroup", "CompositorNodeGroup", "TextureNodeGroup")
 
 # <type>, <white attrs>, <black attrs>, <special parser func> | white & black list for parsing attributes, and special later parser func for special attrs.
 # NOTE the smallest type should be in the front, if there are parent relation between two types.
@@ -339,7 +338,7 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
             # inode is used to compare default value. will be destroyed after this loop ends.
             inode = nodes.new(type=bl_idname)
             # setup the node group's node tree to fill this node tree's need
-            if bl_idname in _node_group_id_names:
+            if bl_idname in constants.node_group_id_names:
                 # assign node tree for a blank ng inode, then the node knows what sockets it have
                 inode.node_tree = node.node_tree
                 cnode = parse_attrs(node, inode)
@@ -435,26 +434,30 @@ def parse_node_preset(edit_tree: bpy.types.NodeTree):
     return cpreset_cache, states
 
 
-def record_node_group_names(edit_tree: bpy.types.NodeTree, required_ngs=None, level=1) -> list:
+def record_node_group_names(node_tree: bpy.types.NodeTree, required_ng_lvls=None, level=1) -> list:
     '''Record all node group the node tree need, and sort their name into a list by level descending order.
     
     - node_tree: The node_tree that need to record it's sub node trees.
     - required_ngs: The dict reference for recursive call, keep None if is first called and it will be automatically created.
-    - lever: Only for recursively call, for ranking ngs by their hierarchy.'''
-    if required_ngs is None:
-        required_ngs = {}
-    nodes = edit_tree.nodes
+    - lever: The number of layers of recursive calls, also means the ng level. Only for recursively call, for ranking ngs by their hierarchy.'''
+    if required_ng_lvls is None:
+        required_ng_lvls = {}
+    nodes = node_tree.nodes
     for node in nodes:
+        # level > 1 means the node is in a node group so record them all, node.select means the node is selected by user
         if level > 1 or node.select:
-            bl_idname = node.bl_idname
-            if bl_idname in _node_group_id_names and node.node_tree is not None:
-                required_ngs[node.node_tree.name] = level
-                record_node_group_names(node.node_tree, required_ngs=required_ngs, level=level + 1)
-    sorted_ngs = sorted(required_ngs.items(), key = lambda x: x[1], reverse=True)
+            if node.bl_idname in constants.node_group_id_names and node.node_tree is not None:
+                # record the deeper level
+                if required_ng_lvls.get(node.node_tree.name, 0) < level:
+                    required_ng_lvls[node.node_tree.name] = level
+                record_node_group_names(node.node_tree, required_ng_lvls=required_ng_lvls, level=level + 1)
+    if level == 1:
+        sorted_ngs = sorted(required_ng_lvls.items(), key = lambda x: x[1], reverse=True)
+        return sorted_ngs
+    else:
+        return required_ng_lvls
     
-    return sorted_ngs
-
-
+    
 def check_group_io_node(cnodes):
     for cnode in cnodes.values():
         if cnode["bl_idname"] in ("NodeGroupInput", "NodeGroupOutput"):

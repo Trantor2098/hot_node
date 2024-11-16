@@ -703,18 +703,21 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         #         continue
         # # if preset it self has suffix, just compare the one with the same suffix
         # else:
+        
+        # compare and reuse the same tree
         if node_groups.find(cname) != -1:
             # BUG ngs with node "Gamma" cant pass the compare, it's a blender bug maybe, it throws a warning:
             # WARN (bpy.rna): C:\Users\blender\git\blender-v420\blender.git\source\blender\python\intern\bpy_rna.cc:1366 pyrna_enum_to_py: current value '13' matches no enum in 'NodeTreeInterfaceSocketFloat', 'Gamma', 'subtype'
             cexist_tree, _ = node_parser.parse_node_tree(node_groups[cname], parse_all=True)
+            # reuse the same tree
             if compare_same(cexist_tree, cnode_tree, ignore_attr_owners=(("location", "", "nodes"), )):
                 cnode_tree["HN_ref"] = node_groups[cname]
                 continue
         # didnt find the same tree, create one
         cname = utils.ensure_unique_name(cname, -1, node_groups.keys())
         node_tree = node_groups.new(cname, cnode_tree["bl_idname"])
-        set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True, ops=ops)
         cnode_tree["HN_ref"] = node_tree
+        set_node_tree(node_tree, cnode_tree, cnode_trees, set_tree_io=True, ops=ops)
         
     # Generate Main Node Tree to a new tree
     if new_tree:
