@@ -25,7 +25,7 @@ ChangeLog
 --------
 
 ### Fixed
-- Getting presets with node group which exists at multiple nested levels may report error. If you have a preset with this question, set it with Hot Node again to solve.
+- Getting presets with node group which exists at multiple nested levels may report error. If you have a preset with this issue, set it with Hot Node again to solve.
 
 
 [0.7.5] - 2024-11-14
