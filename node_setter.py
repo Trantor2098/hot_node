@@ -286,7 +286,7 @@ def new_element(obj, cobj, attr_name, ops: None|bpy.types.Operator=None):
         new(cobj["name"])
         
         
-def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None, invoker: str|int|None=None):
+def try_setattr(obj, cobj, attr, cvalue, ops: None|bpy.types.Operator=None, invoker: str|int|None=None):
     '''setattr with try catch. When debug, use setattr directly to find out bugs, rather than try catch.'''
     try:
         setattr(obj, attr, cvalue)
@@ -303,6 +303,10 @@ def try_setattr(obj, attr, cvalue, ops: None|bpy.types.Operator=None, invoker: s
         # 2. Group IO's menu default_value is depend on the Menu Node, but when setting the IO, the Menu Node is not be created yet.
         if isinstance(obj, bpy.types.NodeSocketMenu) and attr == "default_value":
             pass
+        # Imgae Format Settings' color_mode and color_depth enum items is depended on file_format, so we set file_format first.
+        elif isinstance(obj, bpy.types.ImageFormatSettings) and isinstance(cvalue, str):
+            setattr(obj, "file_format", cobj.get("file_format", "PNG"))
+            setattr(obj, attr, cvalue)
         else:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
             print(invoker)
@@ -337,7 +341,7 @@ def set_attrs_direct(obj, cobj, *attr_names: str):
     - obj: The object to set it's attributes.
     - cattrs: The object's mirror in hot node data json format.'''
     for attr in attr_names:
-        try_setattr(obj, attr, cobj[attr], invoker=335)
+        try_setattr(obj, cobj, attr, cobj[attr], invoker=335)
     cobj["HN_ref"] = obj
 
 
@@ -414,10 +418,10 @@ def set_attrs(obj, cobj, attr_name: str=None, attr_owner=None, ops: None|bpy.typ
                     global late_setter_funcs
                     def socket_menu_solver(params):
                         obj, attr, cvalue = params
-                        try_setattr(obj, attr, cvalue, ops=ops, invoker=412)
+                        try_setattr(obj, cobj, attr, cvalue, ops=ops, invoker=412)
                     late_setter_funcs.append((socket_menu_solver, (obj, attr, cvalue)))
                     continue
-                try_setattr(obj, attr, cvalue, ops, invoker=415)
+                try_setattr(obj, cobj, attr, cvalue, ops, invoker=415)
         cobj["HN_ref"] = obj
     elif attr_name not in black_attrs:
         obj = cobj
@@ -581,7 +585,7 @@ def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.
         elif bl_idname == "CompositorNodeOutputFile":
             cfile_slots = cnode.get("file_slots", [])
             clength = len(cfile_slots)
-            max_HN_idx = cfile_slots[clength - 1]["HN_idx"]
+            max_HN_idx = cfile_slots[clength - 1]["HN_idx"] if clength > 0 else 0
             # idx 1 is a file slot that is created by default, skip it
             for i in range(1, max_HN_idx + 1):
                 node.file_slots.new("")
@@ -599,7 +603,7 @@ def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.
             # for parent NodeFrames, set parent location means change all sons' locations
             else:
                 node.location = Vector(cnode["location"]) + node_offset
-                try_setattr(node, attr, cnodes[ref2_node_name]["HN_ref"], ops, invoker=597)
+                try_setattr(node, cnode, attr, cnodes[ref2_node_name]["HN_ref"], ops, invoker=597)
         # dont have paired output in our data, remove input in late set list
         elif attr == "paired_output":
             # node.location = Vector(cnode["location"]) + node_offset

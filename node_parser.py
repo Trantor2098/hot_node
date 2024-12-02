@@ -14,6 +14,9 @@ _required_attr_types = (
     bpy.types.ColorRamp,
     bpy.types.CurveMapping,
     bpy.types.Image,
+    bpy.types.ImageFormatSettings,
+    bpy.types.ColorManagedViewSettings,
+    bpy.types.ColorManagedDisplaySettings,
 )
 
 
@@ -228,7 +231,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
         if result is not None and (not is_default or attr in white_attrs):
             cobj[attr] = result
         # parse bpy_prop_collection attr, it's a list of props
-        elif isinstance(value, bpy.types.bpy_prop_collection):
+        elif isinstance(value, bpy.types.bpy_prop_collection) and isinstance(ivalue, bpy.types.bpy_prop_collection):
             length = len(value)
             ilength = len(ivalue)
             celements = []
@@ -273,6 +276,7 @@ def parse_attrs(obj, iobj=None, white_only=False):
         elif isinstance(value, bpy.types.Node) and attr != "node":
             cobj["HN_ref2_node_attr"] = attr
             cobj["HN_ref2_node_name"] = value.name
+        # if a node have a class, we parse the class in the _required_attr_types only
         elif isinstance(value, _required_attr_types):
             cobj[attr] = parse_attrs(value, ivalue)
     

@@ -599,8 +599,7 @@ def autosave_packs():
    
 def auto_recover_packs():
     '''Recover all the packs which were marked as "autosave".'''
-    if not os.path.exists(autosave_dir_path):
-        os.mkdir(autosave_dir_path)
+    ensure_dir_existing(autosave_dir_path)
     existing_zips = read_existing_file_names(autosave_dir_path, suffix=".zip", cull_suffix=False)
     for file_name in existing_zips:
         pack_name = utils.get_string_between_words(file_name, None, ("_autosave_",))
@@ -611,6 +610,7 @@ def auto_recover_packs():
     
 def clear_outdated_autosave_packs():
     '''Clear packs which were autosaved 1 day before or autosaved in the last month.'''
+    ensure_dir_existing(autosave_dir_path)
     existing_zip_namebodys = read_existing_file_names(autosave_dir_path, suffix=".zip")
     current_time = utils.get_autosave_time()
     for namebody in existing_zip_namebodys:
@@ -627,6 +627,7 @@ def clear_outdated_autosave_packs():
                 
 def clear_outdated_history():
     '''Clear history files which were created 1 day before or created in the last month.'''
+    ensure_dir_existing(history_dir_path)
     existing_json_namebodys = read_existing_file_names(history_dir_path, suffix=".json")
     current_time = time.time()
     for namebody in existing_json_namebodys:

@@ -20,6 +20,20 @@ ChangeLog
 - Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
 
+[0.7.8] - 2024-12-02
+--------
+
+### Fixed
+- Some file format settings of node `File Output` can't be set correctly.
+
+
+[0.7.7] - 2024-12-02
+--------
+
+### Fixed
+- File format settings of node `File Output` can't be set correctly.
+- Node `File Output` can't be get from preset when it only have one slot.
+
 
 [0.7.6] - 2024-11-16
 --------
