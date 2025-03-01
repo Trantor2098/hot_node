@@ -107,6 +107,38 @@ def get_pack_mtime(pack_name):
 
 
 # Get & Set Meta Data
+def create_empty_pack_meta():
+    pack_meta = {}
+    pack_meta["order"] = []
+    pack_meta["tree_types"] = {}
+    pack_meta["pack_types"] = []
+    pack_meta["icon"] = 'OUTLINER_COLLECTION'
+    pack_meta["use_shortcut"] = False
+    pack_meta["version"] = version
+    return pack_meta
+
+def create_pack_meta_deep(pack_name):
+    pack_meta = create_empty_pack_meta()
+    preset_names = get_preset_names_deep(pack_name)
+    if ".metadata" in preset_names:
+        preset_names.remove(".metadata")
+    pack_meta["order"] = preset_names
+        
+    tree_types = {}
+    for preset_name in preset_names:
+        preset = load_preset(preset_name, pack_name)
+        tree_type = preset["HN_preset_data"]["tree_type"]
+        tree_types[preset_name] = tree_type
+    pack_meta["tree_types"] = tree_types
+    
+    pack_types = []
+    for tree_type in constants.tree_type_id_names:
+        if tree_type in tree_types and tree_type not in pack_types:
+            pack_types.append(tree_type)
+    pack_meta["pack_types"] = pack_types
+    return pack_meta
+        
+        
 def set_pack_meta_kwargs(pack_name, **kwargs):
     pack_meta = read_pack_meta(pack_name)
     for key, value in kwargs.items():
@@ -164,6 +196,7 @@ def update_pack_types_deep(pack_name: str, write_meta=True):
 
 
 def update_pack_types_of_meta(pack_meta: dict):
+    '''pack_types describes what kind of trees the pack contains'''
     pack_types = []
     tree_types = list(pack_meta["tree_types"].values())
     for tree_type in constants.tree_type_id_names:
@@ -185,9 +218,20 @@ def exchange_order_preset_meta(idx1, idx2):
     pack_selected_meta["order"][idx2] = pack_selected_meta["order"][idx1]
     pack_selected_meta["order"][idx1] = temp
     write_metas(pack_selected_meta)
+    
+    
+def update_tree_types_of_meta_deep(pack_name):
+    pack_meta = read_pack_meta(pack_name)
+    tree_types = []
+    preset_names = get_preset_names_deep(pack_name)
+    for preset_name in preset_names:
+        preset = load_preset(preset_name, pack_name)
+        tree_type = preset["HN_preset_data"]["tree_type"]
+    pack_meta["tree_types"][preset_name] = tree_type
+    write_pack_meta(get_pack_path(pack_name), pack_meta)
 
 
-def update_presets_of_meta_deep(pack_name):
+def update_order_of_meta_deep(pack_name):
     pack_meta = read_pack_meta(pack_name)
     order = pack_meta["order"]
     preset_names = get_preset_names_deep(pack_name)
@@ -221,7 +265,8 @@ def get_pack_types(pack_name):
 def get_preset_names_deep(pack_name):
     pack_path = get_pack_path(pack_name)
     preset_names = read_existing_file_names(pack_path, suffix=".json", cull_suffix=True)
-    preset_names.remove(".metadata")
+    if ".metadata" in preset_names:
+        preset_names.remove(".metadata")
     return preset_names
 
 
@@ -269,6 +314,7 @@ def write_root_meta(update_mtime=False):
     
     
 def read_pack_meta(pack_name: str|None=None):
+    '''Read pack meta, if the pack folder dont have a meta file, return None'''
     if pack_name is None:
         if os.path.exists(pack_selected_meta_path):
             return read_json(pack_selected_meta_path)
@@ -416,6 +462,7 @@ def try_del_paths(*pathss):
     
 
 # CRUD of Pack and Preset
+
 def create_pack(pack_name):
     global root_meta_cache
     global pack_selected_path
@@ -424,13 +471,7 @@ def create_pack(pack_name):
     pack_selected_meta_path = os.path.join(pack_selected_path, ".metadata.json")
     # create pack metadata
     root_meta_cache["pack_selected"] = pack_name
-    pack_selected_meta = {}
-    pack_selected_meta["order"] = []
-    pack_selected_meta["tree_types"] = {}
-    pack_selected_meta["pack_types"] = []
-    pack_selected_meta["icon"] = 'OUTLINER_COLLECTION'
-    pack_selected_meta["use_shortcut"] = False
-    pack_selected_meta["version"] = version
+    pack_selected_meta = create_empty_pack_meta()
     os.mkdir(pack_selected_path)
     write_metas(pack_selected_meta)
     # reload packs to get right order of packs
@@ -473,6 +514,9 @@ def load_packs():
     for i in range(new_pack_num):
         pack_name = pack_names[i]
         pack_meta = read_pack_meta(pack_names[i])
+        if pack_meta is None:
+            pack_meta = create_pack_meta_deep(pack_name)
+            write_pack_meta(get_pack_path(pack_name), pack_meta)
         icon = pack_meta.get("icon", 'NONE')
         pack = props_py.Pack(pack_name, icon)
         props_py.gl_packs[pack_name] = pack
@@ -781,7 +825,7 @@ def init():
     
     # ensure pack health
     for pack_name in pack_names:
-        update_presets_of_meta_deep(pack_name)
+        update_order_of_meta_deep(pack_name)
         update_pack_types_of_meta_deep(pack_name)
         
     autosave_packs()

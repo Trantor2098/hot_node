@@ -2,6 +2,8 @@ import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 
+import os
+
 from . import node_setter, props_bl, props_py, utils, file, node_parser, gui, sync, history, i18n
             
       
@@ -474,7 +476,7 @@ def pack_import(ops: Operator, context: bpy.types.Context, file_names, dir_path,
     for i in range(file_num):
         file_name = file_names[i].name
                 
-        file_path = "\\".join((dir_path, file_name))
+        file_path = os.path.join(dir_path, file_name)
         
         if file_name == ".zip" or file_name == "":
             ops.report({'ERROR'}, i18n.msg["rpt_pack_import_fail_empty_name"].format(file_name=file_name))

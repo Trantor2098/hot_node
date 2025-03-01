@@ -199,7 +199,7 @@ def open_tex(cobj):
                 max_match_num = match_num
         if tex_name is None:
             return 'NO_MATCHED_TEX'
-        tex_path = "\\".join((tex_dir_path, tex_name))
+        tex_path = os.path.join(tex_dir_path, tex_name)
     # Stay Empty Mode
     elif open_mode == 'STAY_EMPTY':
         return 'STAY_EMPTY'
@@ -217,7 +217,7 @@ def open_tex(cobj):
         tex_name = utils.get_similar_str(cobj["name"], tex_names, tolerance=tolerance)
         if not tex_name:
             return 'NO_MATCHED_TEX'
-        tex_path = "\\".join((tex_dir_path, tex_name))
+        tex_path = os.path.join(tex_dir_path, tex_name)
     # Auto Mode
     elif open_mode == 'AUTO':
         tex_names = file.get_tex_names_in_dir(tex_dir_path)
@@ -234,7 +234,7 @@ def open_tex(cobj):
                 if not os.path.exists(tex_path):
                     return 'STAY_EMPTY'
             else:
-                tex_path = "\\".join((tex_dir_path, tex_name))
+                tex_path = os.path.join(tex_dir_path, tex_name)
         
     images = bpy.data.images
     # if have the tex in data
@@ -310,6 +310,10 @@ def try_setattr(obj, cobj, attr, cvalue, ops: None|bpy.types.Operator=None, invo
         else:
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
             print(invoker)
+            # BUG bpy.types.ImageFormatSettings.view_settings.look's enum item name can't match the exact name in the enum_items, e.g. High Contrast v.s. AgX - High Contrast 
+            # items = obj.bl_rna.properties["look"].enum_items
+            # for item in items:
+            #     print(item.identifier)
             # print(e)
             print(f"Hot Node Setter TypeError: Attribute \"{attr}\" can't be set to the object {obj}, the cvalue is: {cvalue}. Node type: {current_node_bl_idname}, Node name \"{current_node_name}\".")
     # Set float to Vector may cause this (blender record 0.0x4 as 0.0?)
@@ -333,6 +337,10 @@ def try_setattr(obj, cobj, attr, cvalue, ops: None|bpy.types.Operator=None, invo
             report(ops, {'WARNING'}, i18n.msg["rpt_warning_setter_soft_error_universal"])
             print(invoker)
             print(f"Hot Node Setter ValueError: object {obj} do not have attribute \"{attr}\". Node type: {current_node_bl_idname}, Node name: \"{current_node_name}\".")
+    except Exception as e:
+        report(ops, {'ERROR'}, i18n.msg["rpt_error_setter_universal"])
+        print(invoker)
+        print_error(e, current_node_bl_idname, obj, cobj, attr)
 
 
 def set_attrs_direct(obj, cobj, *attr_names: str):

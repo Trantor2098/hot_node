@@ -231,9 +231,13 @@ def parse_attrs(obj, iobj=None, white_only=False):
         if result is not None and (not is_default or attr in white_attrs):
             cobj[attr] = result
         # parse bpy_prop_collection attr, it's a list of props
-        elif isinstance(value, bpy.types.bpy_prop_collection) and isinstance(ivalue, bpy.types.bpy_prop_collection):
+        elif isinstance(value, bpy.types.bpy_prop_collection):
             length = len(value)
-            ilength = len(ivalue)
+            # maybe ivalue is None, it dont have the length so dont need to compare default value, record them all
+            if not isinstance(ivalue, bpy.types.bpy_prop_collection):
+                ilength = 0
+            else:
+                ilength = len(ivalue)
             celements = []
             for i in range(length):
                 element = value[i]

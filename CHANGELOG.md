@@ -20,6 +20,16 @@ ChangeLog
 - Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
 - If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
 
+
+[0.7.9] - 2024-12-02
+--------
+
+### Fixed
+- `Curve Mapping` in node `File Output` can't be set correctly.
+- Copying pack folder which doesn't have metadata file to add-on folder directly will crash the add-on.
+- Hack importing (manually copy the folder to import the preset pack) is more rubust (for mac users, it's a temporary solution of importing pack).
+
+
 [0.7.8] - 2024-12-02
 --------
 
