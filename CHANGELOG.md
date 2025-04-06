@@ -2,26 +2,16 @@ ChangeLog
 ========
 
 
-[0.8.0] - 2024-xx-xx
---------
-
-### Added
-- Custom pack icon supported.
-
-### Fixed
-- Newly generated node group data cannot be cleared if cancelling `Get` action.
-- Node groups data will always be newed if their name is like "XXX.001", rather than reuse the existing groups.
-
-
-[0.7.X] - 2024-XX-XX
+[0.7.10] - 2024-04-02
 --------
 
 ### Fixed
-- Nodes with editable sockets whose sockets are less than their by default (e.g. `Menu Switch` gets 2 menus by default) cannot be set correctly. (Who will do this?)
-- If node `Menu Switch`'s first item called "B", it will be changed to "B.001" when getting the preset.
+- Preset lacking data crashes Hot Node. Now it won't and the preset with data issues will be reported.
+- `color_tag`, `description` of NodeGroup can't be recorded.
+- Node `For Each Element` raises exceptions.
 
 
-[0.7.9] - 2024-12-02
+[0.7.9] - 2024-03-01
 --------
 
 ### Fixed
@@ -83,7 +73,7 @@ ChangeLog
 - Node `Node Reroute` throws useless warning.
 
 
-[0.7.2] - 2024-10-23
+[0.7.2] - 2024-10-26
 --------
 
 ### Changed
@@ -222,8 +212,7 @@ ChangeLog
 - Stability significantly improved.
 
 ### Changed
-- Improved UI performance in ```Shift A``` menu.
-Now you can see all your packs in ```Shift A``` and choose whether to join them into one menu.
+- Improved UI performance in ```Shift A``` menu. Now you can see all your packs in ```Shift A``` and choose whether to join them into one menu.
 - Preset name will be auto setted to the node name when creating preset with single selected node.
 
 ### Deprecated
@@ -236,7 +225,7 @@ Now you can see all your packs in ```Shift A``` and choose whether to join them 
 - Improved stability of exporting packs.
 
 
-[0.4.2] - 2024-08-01
+[0.4.2] - 2024-08-07
 --------
 
 ### Fixed
@@ -273,7 +262,7 @@ Now you can see all your packs in ```Shift A``` and choose whether to join them 
 --------
 
 ### Fixed
-- Cannot find the path "...\hot_node_autosave"
+- Cannot find the path "...\hot_node_autosave".
 
 
 [0.3.0] - 2024-07-30

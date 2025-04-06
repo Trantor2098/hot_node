@@ -554,6 +554,23 @@ def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.
                 citem = crepeat_items[i]
                 # node.repeat_items.new(citem["socket_type"], citem["name"])
                 node.repeat_items.new(citem["socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeForeachGeometryElementOutput":
+            cgeneration_items = cnode.get("generation_items", [])
+            clength = len(cgeneration_items)
+            max_HN_idx = cgeneration_items[clength - 1]["HN_idx"] if clength > 0 else 0
+            # we will have one socket by default, so dont create it again, use max_HN_idx and dont plus 1
+            for i in range(0, max_HN_idx):
+                citem = cgeneration_items[i]
+                node.generation_items.new(citem["socket_type"], citem["name"])
+        elif bl_idname == "GeometryNodeForeachGeometryElementInput":
+            cinputs = cnode.get("inputs", [])
+            clength = len(cinputs)
+            max_HN_idx = cinputs[clength - 1]["HN_idx"] if clength > 0 else 0
+            # we will have 2 socket by default, so dont create it again, use max_HN_idx - 1
+            for i in range(0, max_HN_idx - 1):
+                node.inputs.new()
+            later_setup_cnodes[cnode['name']] = (node, cnode)
+            continue
         elif bl_idname == "GeometryNodeCaptureAttribute":
             capture_items = cnode.get("capture_items", [])
             for citem in capture_items:
@@ -568,7 +585,9 @@ def set_nodes(node_tree, nodes, cnodes, cnode_trees, node_offset=Vector((0.0, 0.
                 # citems may dont have idx i (default cull), so new the item but set it later
                 node.bake_items.new('BOOLEAN', "")
         # set by pairring output
-        elif bl_idname in ("GeometryNodeSimulationInput", "GeometryNodeRepeatInput"):
+        elif bl_idname in ("GeometryNodeSimulationInput", 
+                           "GeometryNodeRepeatInput",
+                           "GeometryNodeForeachGeometryElementInput"):
             later_setup_cnodes[cnode['name']] = (node, cnode)
             continue
         # FIXME less than default...
@@ -655,6 +674,17 @@ def set_node_tree(node_tree: bpy.types.NodeTree, cnode_tree, cnode_trees, node_o
     links = node_tree.links
     interface = node_tree.interface
     
+    cdescription = cnode_tree.get("description", None)
+    ccolor_tag = cnode_tree.get("color_tag", None)
+    cdefault_group_node_width = cnode_tree.get("default_group_node_width", None)
+    
+    if cdescription is not None:
+        node_tree.description = cdescription
+    if ccolor_tag is not None:
+        node_tree.color_tag = ccolor_tag
+    if cdefault_group_node_width is not None:
+        node_tree.default_group_node_width = cdefault_group_node_width
+    
     # Deselect Nodes
     for node in nodes:
         node.select = False
@@ -689,6 +719,7 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
     cnode_trees = file.load_preset(preset_name, pack_name=pack_name)
     cnode_trees = versioning.ensure_preset_version(preset_name, cnode_trees)
     cdata = cnode_trees["HN_preset_data"]
+    error_type = cdata.get("error_type", None)
     
     # Generate Node Groups
     for cname, cnode_tree in cnode_trees.items():
@@ -779,4 +810,4 @@ def apply_preset(context: bpy.types.Context, preset_name: str, pack_name="", app
         node_offset = Vector((0.0, 0.0))
     set_node_tree(edit_tree, cnode_trees["HN_edit_tree"], cnode_trees, node_offset=node_offset, set_tree_io=set_tree_io, link_group_io=link_group_io, ops=ops)
     
-    return failed_tex_num
+    return failed_tex_num, error_type

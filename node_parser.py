@@ -25,6 +25,7 @@ _required_attr_types = (
 # NOTE attrs in the white list will be parsed first, and will appear earlier in the json order. It's a feature can be used somehow...
 # TODO specify the node tree type (or the super type) then specify the node to improve the parsing speed.
 # NOTE This helps escaping some errors, and the other errors were solved by setter's try-except.
+# TODO Some new types are not exist in the old blender, escape the error of inexistent type
 _type_wb_attrs_parser = (
     # (bpy.types.NodeTreeInterfaceSocketMenu,
     # ("item_type", "socket_type", "in_out", "index", "position", "identifier"),
@@ -32,7 +33,6 @@ _type_wb_attrs_parser = (
     # None),
     ((bpy.types.NodeTreeInterfaceItem, bpy.types.NodeTreeInterfacePanel),
     ("item_type", "socket_type", "in_out", "index", "position"), 
-    # ("interface_items", ),
     ("interface_items", "identifier"),
     None),
     (bpy.types.NodeSocket,
@@ -336,6 +336,7 @@ def parse_nodes(nodes: bpy.types.Nodes, parse_all=False):
     cnodes = {}
     states = None
     for node in nodes:
+        print(dir(node.bl_rna))
         # note that in a node group every nodes are un-selected, we should consider it.
         if parse_all or node.select:
             # node.bl_idname: like ShaderNodeColor, will be used in nodes.new()
@@ -407,6 +408,9 @@ def parse_node_tree(node_tree: bpy.types.NodeTree, parse_all=False):
     cnode_tree = {}
     cnode_tree["name"] = node_tree.name
     cnode_tree["bl_idname"] = node_tree.bl_idname
+    cnode_tree["color_tag"] = node_tree.color_tag if hasattr(node_tree, "color_tag") else None
+    cnode_tree["description"] = node_tree.description if hasattr(node_tree, "description") else None
+    cnode_tree["default_group_node_width"] = node_tree.default_group_node_width if hasattr(node_tree, "default_group_node_width") else None
     nodes = node_tree.nodes
     links = node_tree.links
     states = None
@@ -507,7 +511,7 @@ def set_texture_rule(edit_tree: bpy.types.NodeTree, selected_preset, selected_pa
     return cpreset_cache
 
 
-def set_preset_data(preset_name, pack_name, cpreset: dict|None=None):
+def set_preset_data(preset_name, pack_name, cpreset: dict|None=None, error_type=None):
     from . versioning import version, blender
     # when in parsing node process, cpreset is stored in global cpreset_cache
     if cpreset is None:
@@ -537,6 +541,7 @@ def set_preset_data(preset_name, pack_name, cpreset: dict|None=None):
     cdata["pack_name"] = pack_name
     cdata["tree_type"] = cedit_tree["bl_idname"]
     cdata["node_center"] = node_center
+    cdata["error_type"] = error_type
     # NOTE version can be set only when: save preset / set by version_control.py
     cdata["version"] = version
     cdata["blender"] = blender

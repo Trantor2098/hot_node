@@ -3,7 +3,7 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "hot_node"
-version = "0.7.9"
+version = "0.7.10"
 name = "Hot Node"
 tagline = "Save nodes, then add nodes like adding node, without library"
 maintainer = "Trantor2098 <trantor2098@163.com>"
@@ -20,7 +20,7 @@ tags = ["Node", "Geometry Nodes", "Material"]
 blender_version_min = "4.2.0"
 # # Optional: Blender version that the extension does not support, earlier versions are supported.
 # # This can be omitted and defined later on the extensions platform if an issue is found.
-blender_version_max = "4.5.0"
+blender_version_max = "5.0.0"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html

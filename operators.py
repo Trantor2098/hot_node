@@ -253,7 +253,7 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
         tree_type = preset.type
     
     if new_tree:
-        failed_tex_num= node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, new_tree=True, ops=ops)
+        failed_tex_num, error_type = node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, new_tree=True, ops=ops)
         return {'FINISHED'}
         
     edit_tree = context.space_data.edit_tree
@@ -263,10 +263,12 @@ def nodes_add(ops: Operator, context: bpy.types.Context, preset_name, pack_name,
         return {'CANCELLED'}
     
     # adds the nodes
-    failed_tex_num = node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, ops=ops)
+    failed_tex_num, error_type = node_setter.apply_preset(context, preset_name, pack_name=pack_name, apply_offset=True, ops=ops)
     
     if failed_tex_num > 0:
         ops.report({'INFO'}, i18n.msg["rpt_nodes_add_fail_tex"].format(failed_tex_num=failed_tex_num))
+    if error_type is not None:
+        ops.report({'WARNING'}, i18n.msg[error_type])
         
     # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
     selected_node_frames = []

@@ -275,13 +275,40 @@ def get_pack_types_deep(pack_name):
     pack_types = []
     for preset_name in preset_names:
         preset = load_preset(preset_name, pack_name)
-        tree_type = preset["HN_preset_data"]["tree_type"]
-        if tree_type not in pack_types:
-            pack_types.append(tree_type)
+        preset_data = preset.get("HN_preset_data")
+        if preset_data is not None:
+            tree_type = preset_data["tree_type"]
+            if tree_type not in pack_types:
+                pack_types.append(tree_type)
+        else:
+            preset_data = set_empty_preset_data(preset_name, pack_name, error_type="error_lack_of_preset_data")
+            tree_type = preset_data["tree_type"]
+            preset["HN_preset_data"] = preset_data
+            write_json(get_preset_file_path(pack_name, preset_name), preset)
+            print("Hot Node: HN_preset_data not found in preset: ", preset_name)
+            
+            
+def set_empty_preset_data(preset_name, pack_name, error_type=None):
+    from . versioning import version, blender
+    cdata = {}
+    
+    node_center = [0.0, 0.0]
+    
+    cdata["preset_name"] = preset_name
+    cdata["pack_name"] = pack_name
+    # cdata["tree_type"] = constants.tree_type_id_names[0]
+    cdata["tree_type"] = "ShaderNodeTree"
+    cdata["node_center"] = node_center
+    cdata["error_type"] = error_type
+    # NOTE version can be set only when: save preset / set by version_control.py
+    cdata["version"] = version
+    cdata["blender"] = blender
+    
+    return cdata
     
     
 # CRUD of Json
-# if test, set the indent default value as 1, else, as None
+# if test, set the indent default value as 1, else, as <indent>
 def write_json(file_path: str, data: dict, indent: int|str|None=constants.preset_json_indent):
     with open(file_path, 'w', encoding='utf-8') as file:
         json.dump(data, file, indent=indent)

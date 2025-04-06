@@ -16,7 +16,7 @@ Features
 Requirement
 --------
 
-- Blender 4.2, 4.3 compatible.
+- Blender 4.2+ compatible.
 
 
 Installation
