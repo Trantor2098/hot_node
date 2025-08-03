@@ -856,9 +856,9 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
     is_recovering: BoolProperty(default=False, options = {'HIDDEN'}) # type: ignore
     
     @staticmethod
-    def undo(uic: UIContext, new_pack_names, prev_pack_selected_name, idx_before):
+    def undo(uic: UIContext, new_pack_names, pack_name_before, idx_before):
         if Context.get_pack_selected_name() in new_pack_names:
-            pack = Context.select_pack(prev_pack_selected_name)
+            pack = Context.select_pack(pack_name_before)
             uic.select_pack(uic, pack)
             if pack:
                 Context.select_preset(idx_before)
@@ -877,7 +877,7 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
     def execute(self, context):
         Reporter.set_active_ops(self)
         uic: UIContext = context.window_manager.hot_node_ui_context
-        prev_pack_selected = Context.get_pack_selected()
+        pack_before = Context.get_pack_selected()
         idx_before = uic.preset_selected_idx
         
         src_dir = Context.fm.str_to_path(self.directory)
@@ -947,7 +947,7 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
         
         step = HS.step(self.bl_label, self)
         HS.set_created_paths(step, *[pack.pack_dir for pack in imported_packs])
-        HS.set_undo(step, self.undo, [pack.name for pack in imported_packs], prev_pack_selected.name, idx_before)
+        HS.set_undo(step, self.undo, [pack.name for pack in imported_packs], pack_before.name if pack_before else None, idx_before)
         HS.set_redo(step, self.redo, import_pack_names)
         
         HS.save_step(step)
