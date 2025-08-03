@@ -1,0 +1,95 @@
+"""This script extracts text items from Python files in the Hot Node add-on directory for translation purposes."""
+
+import os
+import re
+import csv
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+MODULE_DIR = BASE_DIR
+
+# translations.csv path
+CSV_PATH = os.path.join(BASE_DIR, 'services', 'translations.csv')
+TEMP_CSV_PATH = os.path.join(BASE_DIR, "dev", "tools", "extracted_texts.csv")
+
+def find_text_strings(root_dir):
+    text_strings = set()
+    patterns = [
+        r'text\s*=\s*[\'"](.*?)[\'"]',
+        r'report_error\s*\(\s*[\'"](.*?)[\'"]',
+        r'report_warning\s*\(\s*[\'"](.*?)[\'"]',
+        r'report_finish\s*\(\s*[\'"](.*?)[\'"]',
+        r'iface_\s*\(\s*[\'"](.*?)[\'"]',
+        r'bl_label\s*=\s*[\'"](.*?)[\'"]',
+        r'bl_description\s*=\s*[\'"](.*?)[\'"]',
+        r'placeholder\s*=\s*[\'"](.*?)[\'"]',
+        r'description\s*=\s*[\'"](.*?)[\'"]',
+        r'heading\s*=\s*[\'"](.*?)[\'"]',
+    ]
+    exclude_dirs = {os.path.join(root_dir, 'dev'), os.path.join(root_dir, 'utils')}
+    for folder, _, files in os.walk(root_dir):
+        # exclude dev, utils
+        if any(os.path.abspath(folder).startswith(os.path.abspath(ex)) for ex in exclude_dirs):
+            continue
+        for file in files:
+            if file.endswith('.py'):
+                file_path = os.path.join(folder, file)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    # Special pattern for user_pref.py
+                    if os.path.basename(file_path) in ('user_pref.py', 'ui_context.py'):
+                        name_matches = re.findall(r'name\s*=\s*[\'"](.*?)[\'"]', content)
+                        filtered_name = [m for m in name_matches if m.strip()]
+                        if filtered_name:
+                            text_strings.update(filtered_name)
+                        for text in filtered_name:
+                            print(f"{file} (name): {text}")
+                    for pat in patterns:
+                        matches = re.findall(pat, content)
+                        filtered = [m for m in matches if m.strip()]
+                        if filtered:
+                            text_strings.update(filtered)
+                        for text in filtered:
+                            print(f"{file}: {text}")
+                except Exception:
+                    pass
+    return text_strings
+
+def read_existing_msgids(csv_path):
+    msgids = set()
+    with open(csv_path, 'r', encoding='utf-8') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            msgids.add(row['msgid'])
+    return msgids
+
+def append_new_msgids(csv_path, new_msgids):
+    # check enter
+    with open(csv_path, 'rb+') as f:
+        f.seek(0, os.SEEK_END)
+        if f.tell() > 0:
+            f.seek(-1, os.SEEK_END)
+            last_char = f.read(1)
+            if last_char != b'\n':
+                f.write(b'\n')
+    with open(csv_path, 'a', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        for msgid in new_msgids:
+            writer.writerow(['*', msgid])
+
+def main():
+    text_strings = find_text_strings(MODULE_DIR)
+    existing_msgids = read_existing_msgids(CSV_PATH)
+    new_msgids = [s for s in text_strings if s and s not in existing_msgids]
+    print()
+    print("============ FINISHED =============")
+    print()
+    if new_msgids:
+        append_new_msgids(TEMP_CSV_PATH, new_msgids)
+        print(f"Added {len(new_msgids)} text items to translations.csv")
+    else:
+        print("No new text items found to add.")
+
+if __name__ == '__main__':
+    main()

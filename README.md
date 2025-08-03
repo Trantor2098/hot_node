@@ -99,35 +99,6 @@ When apply node presset:
 For the other settings in the add-on panel, they can be understood by a glance, just discover!
 
 
-Notifications of Publishing
---------
-##### Testing Process
-- `Get` & `Set` of all kinds of nodes.
-- `Get` & `Set` of modified nodes, like `RGB Curve`.
-- `Get` & `Set` of nodes that can be added items, like `GeometryNodeSimulationInput`.
-- `Get` & `Set` of trees, like `NodeGroup`. Check their interface.
-- CRUD packs, presets.
-- Move preset position.
-- Move / Copy preset to another pack.
-- Renaming.
-- Select packs.
-- `Shift A` performance.
-- `Get` & `Set` of textures.
-- Sync.
-- History.
-- Autosave.
-- Update recover.
-- Import & Export.
-- Switch language.
-- Polls of operators
-- Redundant print().
-- Console infos.
-
-##### Check These
-- File indent.
-- Add-on version in manifest and bl_info.
-
-
 Aknowledgement
 --------
 

@@ -1,0 +1,85 @@
+import bpy
+
+from pathlib import Path
+# NOTE Importing any modules from hot_node is forbidden in this file.
+
+
+############# Config #############
+
+IS_DEV = False
+FILE_INDENT = 1 # release None, dev 1
+HOT_NODE_APP_DATA_DIR_NAME = "HotNodeAddonDev" # release "HotNodeAddon"
+HOT_NODE_VERSION = [1, 0, 0] # e.g. [1, 0, 0]
+
+############# Config #############
+
+HOT_NODE_VERSION_STR = ".".join(map(str, HOT_NODE_VERSION)) # e.g. "1.0.0"
+BLENDER_VERSION = list(bpy.app.version) # e.g. [4, 2, 0]
+BLENDER_VERSION_STR = bpy.app.version_string # e.g. "4.2.0"
+HOT_NODE_PKG = __package__.rpartition('.')[0] # = bl_ext.blender_org.hot_node (if dev, = bl_ext.user_default.hot_node)
+HOT_NODE_ADDON_PATH = Path(__file__).parent.parent
+
+UNIVERSAL_NODE_TREE_IDNAME = "UniversalNodeTree" # not existing in blender, used to access preset in all node trees
+SHADER_NODE_TREE_IDNAME = "ShaderNodeTree"
+GEOMETRY_NODE_TREE_IDNAME = "GeometryNodeTree"
+TEXTURE_NODE_TREE_IDNAME = "TextureNodeTree"
+COMPOSITOR_NODE_TREE_IDNAME = "CompositorNodeTree"
+NODE_TREE_IDNAMES = (SHADER_NODE_TREE_IDNAME, GEOMETRY_NODE_TREE_IDNAME, TEXTURE_NODE_TREE_IDNAME, COMPOSITOR_NODE_TREE_IDNAME)
+
+SHADER_NODE_IDNAME = "ShaderNode"
+GEOMETRY_NODE_IDNAME = "GeometryNode"
+TEXTURE_NODE_IDNAME = "TextureNode"
+COMPOSITOR_NODE_IDNAME = "CompositorNode"
+TREE_NODE_IDNAMES = (SHADER_NODE_IDNAME, GEOMETRY_NODE_IDNAME, TEXTURE_NODE_IDNAME, COMPOSITOR_NODE_IDNAME)
+
+SHADER_NODE_GROUP_IDNAME = "ShaderNodeGroup"
+GEOMETRY_NODE_GROUP_IDNAME = "GeometryNodeGroup"
+COMPOSITOR_NODE_GROUP_IDNAME = "CompositorNodeGroup"
+TEXTURE_NODE_GROUP_IDNAME = "TextureNodeGroup"
+NODE_GROUP_IDNAMES = (SHADER_NODE_GROUP_IDNAME, GEOMETRY_NODE_GROUP_IDNAME, COMPOSITOR_NODE_GROUP_IDNAME, TEXTURE_NODE_GROUP_IDNAME)
+
+ICON_BY_TREE_TYPE_IDNAME = {
+    "ShaderNodeTree": 'NODE_MATERIAL',
+    "GeometryNodeTree": 'GEOMETRY_NODES',
+    "CompositorNodeTree": 'NODE_COMPOSITING',
+    "TextureNodeTree": 'NODE_TEXTURE',
+    "UniversalNodeTree": 'NODETREE',
+}
+
+IMAGE_FILE_SUFFIXES = (
+    ".bmp", ".sgi", ".rgb", ".bw", 
+    ".png", ".jpg", ".jpeg", ".jp2",
+    ".j2c", ".tga", ".cin", ".dpx",
+    ".exr", ".hdr", ".tif", ".tiff",
+    ".webp",
+)
+
+PACK_ICONS_1 = (
+    'OUTLINER_COLLECTION',
+    'COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
+    'COLLECTION_COLOR_05', 'COLLECTION_COLOR_06', 'COLLECTION_COLOR_07', 'COLLECTION_COLOR_08',
+    'SNAP_FACE',
+    'SEQUENCE_COLOR_01', 'SEQUENCE_COLOR_02', 'SEQUENCE_COLOR_03', 'SEQUENCE_COLOR_04',
+    'SEQUENCE_COLOR_05', 'SEQUENCE_COLOR_06', 'SEQUENCE_COLOR_07', 'SEQUENCE_COLOR_08',
+    'EVENT_A', 'EVENT_B', 'EVENT_C', 'EVENT_D', 'EVENT_E', 'EVENT_F', 'EVENT_G', 'EVENT_H',
+    'EVENT_I', 'EVENT_J', 'EVENT_K', 'EVENT_L', 'EVENT_M', 'EVENT_N', 'EVENT_O', 'EVENT_P',
+    'EVENT_Q', 'EVENT_R', 'EVENT_S', 'EVENT_T', 'EVENT_U', 'EVENT_V', 'EVENT_W', 'EVENT_X',
+    'EVENT_Y', 'EVENT_Z',
+    'EVENT_ZEROKEY', 'EVENT_ONEKEY', 'EVENT_TWOKEY', 'EVENT_THREEKEY', 'EVENT_FOURKEY', 'EVENT_FIVEKEY',
+    'EVENT_SIXKEY', 'EVENT_SEVENKEY', 'EVENT_EIGHTKEY', 'EVENT_NINEKEY',
+    'NODE_MATERIAL', 'GEOMETRY_NODES', 'NODE_COMPOSITING', 'NODE_TEXTURE', 'FILE_IMAGE', 'LIGHT', 'SCENE', 'HEART', 'FUND',
+)
+
+PACK_ICONS_2 = ('OUTLINER_COLLECTION',
+               'COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
+               'COLLECTION_COLOR_05', 'COLLECTION_COLOR_06', 'COLLECTION_COLOR_07', 'COLLECTION_COLOR_08')
+PACK_ICONS_3 = ('SNAP_FACE',
+               'SEQUENCE_COLOR_01', 'SEQUENCE_COLOR_02', 'SEQUENCE_COLOR_03', 'SEQUENCE_COLOR_04',
+               'SEQUENCE_COLOR_05', 'SEQUENCE_COLOR_06', 'SEQUENCE_COLOR_07', 'SEQUENCE_COLOR_08')
+PACK_ICONS_4 = ('EVENT_A', 'EVENT_B', 'EVENT_C', 'EVENT_D', 'EVENT_E', 'EVENT_F', 'EVENT_G', 'EVENT_H',
+               'EVENT_I', 'EVENT_J', 'EVENT_K', 'EVENT_L', 'EVENT_M', 'EVENT_N', 'EVENT_O', 'EVENT_P',
+               'EVENT_Q', 'EVENT_R', 'EVENT_S', 'EVENT_T', 'EVENT_U', 'EVENT_V', 'EVENT_W', 'EVENT_X',
+               'EVENT_Y', 'EVENT_Z', 
+               'EVENT_ZEROKEY', 'EVENT_ONEKEY', 'EVENT_TWOKEY', 'EVENT_THREEKEY', 'EVENT_FOURKEY', 'EVENT_FIVEKEY',
+               'EVENT_SIXKEY', 'EVENT_SEVENKEY', 'EVENT_EIGHTKEY', 'EVENT_NINEKEY')
+PACK_ICONS_5 = ('NODE_MATERIAL', 'GEOMETRY_NODES', 'NODE_COMPOSITING', 'NODE_TEXTURE', 'FILE_IMAGE', 'LIGHT', 'SCENE', 'FUND')

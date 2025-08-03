@@ -1,0 +1,164 @@
+msgctxt,msgid,zh_HANS
+*,Add Nodes Preset,添加节点预设
+*,Remove Nodes Preset,删除节点预设
+*,Remove All Presets,删除全部预设
+*,Preset,预设
+*,Pack,预设包
+*,Undo Steps,撤销步数
+*,Overwrite the selected preset with the currently selected nodes.,用当前选中的节点覆盖选定的预设.
+*,Extend the node add menu (Shift + A menu) to access and add your custom nodes.,扩展节点添加菜单 (Shift + A 菜单) 以访问和添加自定义节点.
+*,Export Packs...,导出预设包...
+*,Enable development mode for Hot Node.,启用开发模式.
+*,Failed to update presets: [,更新预设失败: [
+*,Set Pack Icon,设置预设包图标
+*,  Save Nodes As...,  另存节点为...
+*,Experimental,实验性
+*,Use Custom Undo Steps,使用自定义撤销步数
+*,Default Preset Name,默认预设名称
+*,Select packs to export,选择要导出的预设包
+*,Sidebar Items,侧边栏项目
+*,Root directory to store Hot Node data,存储Hot Node数据的根目录
+*,Move to Top,移动到顶部
+*,Data,数据
+*,Default Pack Name,默认预设包名称
+*,Directory to match and load images from when getting nodes from preset.,从预设获取节点时匹配和加载图像的目录.
+*,Add Nodes,添加节点
+*,Move,移动
+*,Export the selected pack.,导出选定的预设包.
+*,Filter Pack by Tree Type,按树类型过滤预设包
+*,Items to show in the add-on panel,在插件面板中显示的项目
+*,Image,图像
+*,Merged Save Nodes Menu Label,合并保存节点菜单标签
+*,Name of the extended menu for saving custom nodes.,保存自定义节点的扩展菜单名称.
+*,Directory to Match Images,匹配图像目录
+*,Create a new preset with selected nodes.,用选定的节点创建新预设.
+*,Refresh and load all packs and presets.,刷新并加载所有预设包和预设.
+*,Autosave Retention Days,自动保存保留天数
+*,Node Tree Reuse,节点树重用
+*,to,到
+*,The directory path for textures.,纹理的目录路径.
+*,Sidebar Category,侧边栏名称
+*,Hot Node Refreshed.,Hot Node 已刷新.
+*,The preset tree type does not match the current node tree type.,预设树类型与当前节点树类型不匹配.
+*,Extend the context menu (Right-click menu) to save custom nodes.,扩展上下文菜单(右键菜单)以保存自定义节点.
+*,Remove Pack,删除预设包
+*,Pack Options,预设包选项
+*,Move preset to another pack.,将预设移动到另一个预设包.
+*,"Overwrite existing files if they exist. If not checked, the re-named pack will get an unique name.","如果文件存在则覆盖现有文件, 如果关闭则重命名的预设包将获得唯一名称."
+*,The preset file does not exist. Hot Node refreshed.,预设文件不存在. Hot Node 已刷新.
+*,Get nodes from preset and add to the node tree.,从预设获取节点并添加到节点树.
+*,History data un-matched. History cleared.,历史数据不匹配. 已清空历史记录.
+*,Import Packs...,导入预设包...
+*,"Pack name for creation, will be used when creating a new preset",新预设所属的预设包
+*,Export Pack,导出预设包
+*,Preferences,首选项
+*,Move to Bottom,移动到底部
+*,Redo,重做
+*,Save Nodes Menu,保存节点菜单
+*,Update Legacy Packs,更新旧版预设包
+*,Create a new pack,创建新预设包
+*,Preset Options,预设选项
+*,Get Nodes,获取节点
+*,Load and update all packs saved with previous versions of Hot Node.,加载并更新旧版 Hot Node 遗留的预设包.
+*,Select a pack for editing.,选择要编辑的预设包.
+*,NodesPack,节点预设包
+*,Get,获取
+*,"Preset name for creation, will be used when creating a new preset",新预设名称
+*,Move the selected preset up or down in the list.,在列表中上下移动选定的预设.
+*,Packs,预设包
+*,Edit,编辑
+*,⚠ Maximize Compatibility,⚠ 最大兼容性
+*,Decide what to do when a node tree with the same name already exists.,决定当同名节点树已存在时的处理方式.
+*,Create Pack,创建预设包
+*,(Will significantly increase file size and slow down the add-on) Maximize compatibility for presets to work fine with future versions of Blender.,(将显著增加文件大小) 最大化预设兼容性以确保其能在未来版本的 Blender 中正常工作.
+*,Only match images having this key,仅匹配具有此关键字的图像
+*,No node data found in the preset.,在预设中未找到节点数据.
+*,Choose an Icon...,选择图标...
+*,Addon Data Directory,插件数据目录
+*,Save Nodes,保存节点
+*,Import preset pack(s) from zip file.,从zip文件导入预设包.
+*,Minimum length of the list to show in UI,在 UI 中显示列表的最小长度
+*,Filter for image names when loading images.,加载图像时的图像名称过滤器.
+*,Copy to Pack,复制到预设包
+*,⚠ Development,⚠ 开发
+*,Import Pack,导入预设包
+*,Delete selected preset from the pack.,从预设包中删除选定的预设.
+*,Refresh,刷新
+*,Overwrite Preset,覆盖预设
+*,Number of undo steps to keep,保留的撤销步数
+*,Min UI List Length,最小UI列表长度
+*,Packs to Export,要导出的预设包
+*,Duplicate,复制
+*,Move Preset,移动预设
+*,No legacy packs found to update.,未找到要更新的旧版预设包.
+*,Addon panel category to show in the UI sidebar.,在 UI 侧边栏中显示的插件面板类别.
+*,Directory to match images,从此目录匹配图像
+*,Overwrite Tree I/O,覆盖树输入/输出
+*,Undo: ,撤销: 
+*,Enable custom undo steps for the add-on instead of using the default Blender undo steps.,为插件启用自定义撤销步数而不是保持与 Blender 默认撤销步数一致.
+*,Copy or move a preset to another pack.,复制或移动预设到另一个预设包.
+*,Set the icon for the selected pack.,为选定的预设包设置图标.
+*,Number of days to keep autosave files,保留自动保存文件的天数
+*,Allow overwriting of current edit tree interface if there,如果存在则允许覆盖当前编辑树界面
+*,Move to Pack,移动到预设包
+*,Open Blender,打开Blender
+*,Nodes Adding,节点添加
+*,Undo,撤销
+*,Redo the last undone action. Hot Node history is isolated from Blender,重做上次撤销的操作. 提示：Hot Node 与 Blender 的历史记录是相互独立的.
+*,Delete the selected pack.,删除选定的预设包.
+*,Name of the extended menu for adding custom nodes.,添加自定义节点的扩展菜单名称.
+*,Overwrite,覆盖
+*,Redo: ,重做: 
+*,The name of the currently selected pack.,当前选定预设包的名称.
+*,Merged Add Nodes Menu Label,合并添加节点菜单标签
+*,Delete all presets in the current selected pack.,删除当前选定预设包中的所有预设.
+*,Recover...,恢复...
+*,Copy,复制
+*,Node Tree,节点树
+*,Undo the last action. Hot Node history is isolated from Blender,撤销上次操作. 提示: Hot Node 与 Blender 的历史记录是相互独立的.
+*,Failed to import because the pack name is empty: ,"导入失败, 因为预设包名称为空: "
+*,Hot Node Preferences,Hot Node 首选项
+*,Filter packs in the add-on panel by the current node tree type in the node editor,在插件面板中按节点编辑器中的当前节点树类型过滤预设包
+*,Image Name Filter,筛选关键词
+*,Name of the default preset for creating nodes preset.,创建节点预设的默认预设名称.
+*,Pack Icon,预设包图标
+*,Add Nodes Menu,添加节点菜单
+*,Select a pack...,选择预设包...
+*,Copy preset to another pack.,将预设复制到另一个预设包.
+*,Maximize Compatibility,最大兼容性
+*,Transfer Preset to Pack,传输预设到预设包
+*,Name of the default pack for creating pack.,创建预设包的默认预设包名称.
+*,Select Pack,选择预设包
+*,Nodes,节点
+*,Merged Menu Label,合并菜单标签
+*,UI & Custom,UI & 个性化
+*,Overwrite Tree I/O,覆盖节点树接口
+*,Show overwrite tree I/O toggle in the side bar.,在插件侧栏显示覆盖节点树接口选项.
+*,Packs,预设包
+*,Show packs in the side bar to select.,在插件侧栏显示预设包以供选择.
+*,Duplicate / Copy / Move Preset,复制 / 拷贝 / 移动预设
+*,Show duplicate / copy / move preset button in the side bar.,在插件侧栏显示复制 / 拷贝 / 移动预设按钮.
+*,Undo / Redo,撤销 / 重做
+*,Show undo / redo button in the side bar.,在插件侧栏显示撤销 / 重做按钮.
+*,Show refresh button in the side bar.,在插件侧栏显示刷新按钮.
+*,Show preferences button in the side bar.,在插件侧栏显示偏好设置呼出按钮.
+*,Try to Reuse,尝试复用
+*,Always New,总是新建
+*,List,列表
+*,Disable the save nodes menu.,禁用存储节点菜单
+*,Extend the context menu with a menu containing custom packs for saving nodes.,向右键菜单添加一个能够访问所有自定义预设包的菜单以供保存节点.
+*,Extend the context menu with a list of custom pack menu.,向右键菜单添加一列自定义预设包以供保存节点.
+*,Extend the add nodes menu with a list of custom pack menu.,向节点添加菜单添加一列自定义预设包以供添加节点
+*,Extend the add nodes menu with a menu containing custom packs.,向节点添加菜单添加一个能够访问所有自定义预设包的菜单以供添加节点
+*,Only create new node tree if the node tree interface is different.,仅当节点组接口面板不同时才新建节点组
+*,"Always create a new node tree, even if the two trees are the same.",总是新建节点组，即使两个节点组的接口面板相同
+*,Rename Pack,重命名预设包
+*,Preset Name for Creation,创建的预设名称
+*,Presets,预设
+*,Pack Selected Name,选定的预设包名称
+*,Node Preset,节点预设
+*,Preset Selected Index,选定的预设索引
+*,Pack Name for Creation,创建的预设包名称
+*,Hot Node UI Context,Hot Node UI 上下文
+*,Create Preset,创建预设
+*,Custom Undo Steps,自定义撤销步数

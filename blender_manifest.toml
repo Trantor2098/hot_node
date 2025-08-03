@@ -3,10 +3,10 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "hot_node"
-version = "0.7.10"
+version = "1.0.0-beta"
 name = "Hot Node"
 tagline = "Save nodes, then add nodes like adding node, without library"
-maintainer = "Trantor2098 <trantor2098@163.com>"
+maintainer = "Trantor2098 <trantor2098@gmail.com>"
 # Supported types: "add-on", "theme"
 type = "add-on"
 
@@ -18,9 +18,9 @@ website = "https://github.com/Trantor2098/hot_node"
 tags = ["Node", "Geometry Nodes", "Material"]
 
 blender_version_min = "4.2.0"
-# # Optional: Blender version that the extension does not support, earlier versions are supported.
-# # This can be omitted and defined later on the extensions platform if an issue is found.
-blender_version_max = "5.0.0"
+# Optional: Blender version that the extension does not support, earlier versions are supported.
+# This can be omitted and defined later on the extensions platform if an issue is found.
+# blender_version_max = "5.0.0"
 
 # License conforming to https://spdx.org/licenses/ (use "SPDX: prefix)
 # https://docs.blender.org/manual/en/dev/advanced/extensions/licenses.html
@@ -60,14 +60,16 @@ license = [
 #
 [permissions]
 # network = "Need to sync motion-capture data to server"
-files = "Import/export ZIP from/to disk, CRUD JSON at add-on path"
+files = "Access filesystem for storing custom nodes"
 # clipboard = "Copy and paste bone transforms"
 
 # Optional: build settings.
 # https://docs.blender.org/manual/en/dev/advanced/extensions/command_line_arguments.html#command-line-args-extension-build
-# [build]
-# paths_exclude_pattern = [
-#   "__pycache__/",
-#   "/.git/",
-#   "/*.zip",
-# ]
+[build]
+paths_exclude_pattern = [
+  "__pycache__/",
+  "/.git/",
+  "/*.zip",
+  "dev/",
+  "README.md",
+]
