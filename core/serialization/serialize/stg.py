@@ -91,6 +91,7 @@ class FallbackStg(Stg):
         return None, False
 
 
+# TODO generate a default value map of old blender versions for higher blender version which changed the default value of some properties to help the backward compatibility.
 class PresetStg(Stg):
     def __init__(self):
         super().__init__()

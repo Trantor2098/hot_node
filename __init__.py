@@ -21,7 +21,6 @@
 
 from . import core
 from . import services
-from .utils import constants
 
 
 bl_info = {
@@ -40,22 +39,13 @@ bl_info = {
 
 def register():
 
-    services.enable_i18n() # we need you!
     core.startup()
     services.enable_all()
-    
-    if constants.IS_DEV:
-        from . import dev
-        dev.startup()
 
 
 def unregister():
 
     services.disable_all()
     core.shutdown()
-    
-    if constants.IS_DEV:
-        from . import dev
-        dev.shutdown()
         
     

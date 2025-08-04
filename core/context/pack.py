@@ -1,5 +1,6 @@
 from .preset import Preset
 from ...services.sync import SyncService
+from ...utils import constants
 from ...utils.file_manager import FileManager
 from ...utils import utils
 from ...utils.reporter import Reporter
@@ -70,8 +71,11 @@ class Pack:
         self.fm.write_json(self.meta_path, self.meta.serialize())
         
     def load_pack_meta(self):
-        meta_dict = self.fm.read_json(self.meta_path)
-        self.meta.deserialize(meta_dict)
+        jmeta = self.fm.read_json(self.meta_path)
+        jicon = jmeta.get("icon")
+        if jicon is not None and jicon not in constants.BLENDER_ICONS:
+            jmeta['icon'] = 'OUTLINER_COLLECTION'
+        self.meta.deserialize(jmeta)
         
     def save_sync_meta(self):
         SyncService.save_sync_meta(self)

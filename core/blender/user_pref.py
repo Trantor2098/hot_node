@@ -18,13 +18,14 @@ from ...services.sync import SyncService as SS
 from ...services.history import HistoryService as HS
 from ...services.i18n import I18nService as IS
 
-# def is_dev_update(self, context):
-#     from ... import dev
-#     if self.is_dev:
-#         dev.startup()
-#     else:
-#         dev.shutdown()
-#     return True
+
+def is_dev_update(self, context):
+    if FileManager().is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+        from ... import dev
+        if self.is_dev:
+            dev.register()
+        else:
+            dev.unregister()
 
 def sidebar_category_update(self: 'HotNodeUserPrefs', context):
     panel_classes = [
@@ -145,7 +146,7 @@ class HotNodeUserPrefs(AddonPreferences):
     default_pack_name: StringProperty(
         name="Default Pack Name",
         description="Name of the default pack for creating pack.",
-        default="Pack",
+        default="NodesPack",
     ) # type: ignore
     
     is_filter_pack_by_tree_type: BoolProperty(
@@ -180,7 +181,7 @@ class HotNodeUserPrefs(AddonPreferences):
     merged_add_nodes_menu_label: StringProperty(
         name="Merged Add Nodes Menu Label",
         description="Name of the extended menu for adding custom nodes.",
-        default=iface_("Add Nodes"),
+        default="Add Nodes",
         update=add_nodes_menu_mode_update,
     ) # type: ignore
 
@@ -208,9 +209,9 @@ class HotNodeUserPrefs(AddonPreferences):
     min_ui_list_length: IntProperty(
         name="Min UI List Length",
         description="Minimum length of the list to show in UI",
-        default=5,
+        default=3,
         min=3,
-        soft_max=100,
+        soft_max=50,
     ) # type: ignore
     
     # Data
@@ -242,12 +243,13 @@ class HotNodeUserPrefs(AddonPreferences):
         update=data_dir_update,
     ) # type: ignore
     
-    # # Development
-    # is_dev: BoolProperty(
-    #     name="⚠ Development",
-    #     description="Enable development mode for Hot Node.",
-    #     default=False,
-    # ) # type: ignore
+    # Development Mode
+    is_dev: BoolProperty(
+        name="Development Mode",
+        description="Enable development mode for Hot Node (Wont having any effect in the release version).",
+        default=False,
+        update=is_dev_update,
+    ) # type: ignore
 
     def draw(self, context):
         layout = self.layout
@@ -271,7 +273,7 @@ class HotNodeUserPrefs(AddonPreferences):
         # UI & Custom
         col.separator()
         col.separator(type='LINE')
-        col.label(text="UI & Custom")
+        col.label(text="Customize")
         col.prop(self, "sidebar_category")
         
         col.separator()
@@ -321,6 +323,7 @@ class HotNodeUserPrefs(AddonPreferences):
         col.separator(type='LINE')
         col.label(text="Experimental")
         col.prop(self, "is_maximize_compatibility", text="⚠ Maximize Compatibility")
+        col.prop(self, "is_dev", text="⚠ Development Mode")
 
 
 def register():
@@ -335,6 +338,10 @@ def register():
     sidebar_category_update(user_prefs, bpy.context)
     fm.define_app_data_dir_structure(user_prefs.data_dir)
     fm.ensure_app_dir_structure()
+    
+    if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+        from ... import dev
+        dev.register()
 
 
 def unregister():
@@ -342,3 +349,9 @@ def unregister():
         bpy.utils.unregister_class(HotNodeUserPrefs)
     except:
         pass
+    
+    fm = FileManager()
+    user_prefs = utils.get_user_prefs()
+    if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+        from ... import dev
+        dev.unregister()

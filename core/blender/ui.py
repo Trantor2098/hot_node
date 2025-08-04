@@ -4,10 +4,11 @@ import bpy
 from bpy.types import Menu, Panel, UIList, UILayout
 from bpy.app.translations import (
     pgettext_iface as iface_,
+    contexts as i18n_contexts,
 )
 
 from ..context.context import Context
-from ...services.sync import SyncService
+from ...services.sync import SyncService as SS
 from ...utils import constants
 from ...utils import utils
 from .ui_context import UIContext, UIPreset
@@ -21,6 +22,7 @@ class HOTNODE_MT_merged_add_nodes_packs(Menu):
         edit_tree = context.space_data.edit_tree
         if edit_tree is None:
             return
+        SS.ensure_sync_on_interval()
         for pack in Context.ordered_packs:
             if edit_tree.bl_idname in pack.meta.tree_types:
                 pack_menu_cls = PackMenuManager.get_pack_menu_cls(pack.name)
@@ -36,6 +38,7 @@ class HOTNODE_MT_merged_save_nodes_packs(Menu):
         edit_tree = context.space_data.edit_tree
         if edit_tree is None:
             return
+        SS.ensure_sync_on_interval()
         for pack in Context.ordered_packs:
             pack_menu_cls = PackMenuManager.get_pack_menu_cls(pack.name)
             pack_menu_cls.mode = 'SAVE_NODES'
@@ -103,6 +106,7 @@ class PackMenuManager:
     def draw_list_add_nodes_pack_menu(self: Menu, context):
         user_prefs = utils.get_user_prefs(context)
         if user_prefs.add_nodes_menu_mode == 'LIST':
+            SS.ensure_sync_on_interval()
             self.layout.separator()
             for pack_name, pack_menu_cls in PackMenuManager.pack_menu_clses.items():
                 pack_menu_cls.mode = 'ADD_NODES'
@@ -112,6 +116,7 @@ class PackMenuManager:
     def draw_list_save_nodes_pack_menu(self: Menu, context):
         user_prefs = utils.get_user_prefs(context)
         if user_prefs.add_nodes_menu_mode == 'LIST':
+            SS.ensure_sync_on_interval()
             self.layout.separator()
             for pack_name, pack_menu_cls in PackMenuManager.pack_menu_clses.items():
                 pack_menu_cls.mode = 'SAVE_NODES'
@@ -332,7 +337,7 @@ class HOTNODE_MT_pack_options(Menu):
         
         row = layout.row(align=True)
         col = row.column(align=True)
-        col.operator("hotnode.create_pack", icon='ADD').pack_name = user_prefs.default_pack_name
+        col.operator("hotnode.create_pack", icon='ADD').pack_name = iface_(user_prefs.default_pack_name)
         col.operator("hotnode.remove_pack", icon='REMOVE').pack_name = Context.get_pack_selected_name()
         
         if Context.get_pack_selected():
@@ -407,6 +412,8 @@ class HOTNODE_MT_pack_icons(Menu):
                     row.scale_x = 1.12
                 else:
                     item_num += 1
+            if constants.BLENDER_ICONS.get(icon) is None:
+                icon = 'BLANK1'
             ops = row.operator("hotnode.set_pack_icon", text="", icon=icon)
             ops.icon = icon
             ops.pack_name = Context.pack_selected.name
@@ -414,7 +421,7 @@ class HOTNODE_MT_pack_icons(Menu):
     def draw(self, context):
         layout = self.layout
         
-        self.draw_pack_icons(constants.PACK_ICONS_1, separate=False)
+        self.draw_pack_icons(constants.PACK_ICONS, separate=False)
 
 
 class HOTNODE_UL_presets(UIList):
@@ -437,7 +444,8 @@ class HOTNODE_PT_main(Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
     bl_category = "Hot Node"
-    
+    bl_translation_context = i18n_contexts.default
+
     # dy_info: str|None = None
     # dy_info_icon: str|None = None
     # dy_sub_infos: tuple[str]|None = None
@@ -464,7 +472,7 @@ class HOTNODE_PT_main(Panel):
     #     return cls.dy_info, cls.dy_info_icon, cls.dy_sub_infos
 
     def draw(self, context):
-        SyncService.ensure_sync_on_interval()
+        SS.ensure_sync_on_interval()
         layout = self.layout
         uic = context.window_manager.hot_node_ui_context
         user_prefs = utils.get_user_prefs(context)
@@ -495,7 +503,7 @@ class HOTNODE_PT_main(Panel):
                 packs_in_type = Context.get_ordered_packs_by_tree_type(context.space_data.tree_type)
                 utils.late_select_pack(packs_in_type[0].name if packs_in_type else "")
         else:
-            row.operator("hotnode.create_pack", icon='ADD').pack_name = user_prefs.default_pack_name
+            row.operator("hotnode.create_pack", icon='ADD').pack_name = iface_(user_prefs.default_pack_name)
             row.menu("HOTNODE_MT_pack_options", icon='DOWNARROW_HLT', text="")
             row.separator(factor=1.5)
             row.popover("HOTNODE_PT_edit", icon='COLLAPSEMENU', text="")
@@ -509,11 +517,11 @@ class HOTNODE_PT_main(Panel):
         lcol = row.column(align=True)
         rows = 3 if len(pack.presets) < 2 else 5
         
-        # Side Bar
+        # Add / Remove Preset
         rcol = row.column(align=True)
         ops = rcol.operator("hotnode.add_preset", icon='ADD', text="")
         ops.pack_name = pack_name
-        ops.preset_name = user_prefs.default_preset_name
+        ops.preset_name = iface_(user_prefs.default_preset_name)
         ops.is_duplicate = False
         ops = rcol.operator("hotnode.remove_preset", icon='REMOVE', text="")
         ops.pack_name = pack_name

@@ -1,4 +1,4 @@
-def startup():
+def register():
     from . import dev_ops, dev_ui
     try:
         dev_ops.register()
@@ -10,7 +10,7 @@ def startup():
         print(f"Error during dev_ui startup: {e}")
 
 
-def shutdown():
+def unregister():
     from . import dev_ops, dev_ui
     try:
         dev_ops.unregister()
