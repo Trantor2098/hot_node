@@ -44,6 +44,38 @@ def write_version_to_files(version_str: str):
             break
     with manifest_path.open("w", encoding="utf-8") as f:
         f.writelines(lines)
+        
+        
+def check_code():
+    import ast
+    constants_path = Path(__file__).parent.parent.parent / "utils" / "constants.py"
+    with constants_path.open("r", encoding="utf-8") as f:
+        content = f.read()
+    file_indent = None
+    app_data_dir_name = None
+    for line in content.splitlines():
+        if line.strip().startswith("FILE_INDENT"):
+            try:
+                file_indent = ast.literal_eval(line.split("=", 1)[1].strip())
+            except Exception:
+                file_indent = line.split("=", 1)[1].strip()
+        if line.strip().startswith("HOT_NODE_APP_DATA_DIR_NAME"):
+            try:
+                app_data_dir_name = ast.literal_eval(line.split("=", 1)[1].strip())
+            except Exception:
+                app_data_dir_name = line.split("=", 1)[1].strip()
+    
+    print()
+    print("---------------- Code Checking Results ----------------")
+    if file_indent is None:
+        print("[FINE] FILE_INDENT")
+    else:
+        print(f"[WARN] FILE_INDENT: {file_indent} (should be None in release)")
+    if app_data_dir_name == "HotNodeAddon":
+        print("✔ HOT_NODE_APP_DATA_DIR_NAME")
+    else:
+        print(f"⚠ HOT_NODE_APP_DATA_DIR_NAME: {app_data_dir_name} (should be HotNodeAddon in release)")
+    print("-------------------------------------------------------")
 
 
 def build(
@@ -86,6 +118,8 @@ def main():
         source_dir=str(Path(__file__).parent.parent.parent),
         output_dir=r"E:\.temp",
     )
+    
+    check_code()
     
 if __name__ == "__main__":
     main()
