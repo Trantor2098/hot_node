@@ -56,21 +56,13 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
         user_prefs.merged_save_nodes_menu_label = default_translated_names.get(locale, "Save Nodes")
 
 
-def is_dev_update(self, context):
-    if FileManager().is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
-        from ... import dev
-        if self.is_dev:
-            dev.register()
-        else:
-            dev.unregister()
-
 def sidebar_category_update(self: 'HotNodeUserPrefs', context):
     panel_classes = [
         ui.HOTNODE_PT_main,
         ui.HOTNODE_PT_edit,
     ]
     
-    if constants.IS_DEV:
+    if self.is_dev and FileManager().is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
         from ...dev import dev_ui
         panel_classes.append(dev_ui.HOTNODE_PT_dev_run)
 
@@ -125,6 +117,15 @@ def data_dir_update(self: 'HotNodeUserPrefs', context):
     fm.ensure_app_dir_structure()
     SS.sync()
     HS.load_history()
+
+
+def is_dev_update(self, context):
+    if FileManager().is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+        from ... import dev
+        if self.is_dev:
+            dev.register()
+        else:
+            dev.unregister()
 
 
 class HotNodeUserPrefs(AddonPreferences):
@@ -251,6 +252,12 @@ class HotNodeUserPrefs(AddonPreferences):
         soft_max=100,
     ) # type: ignore
     
+    is_show_load_legacy_packs_button: BoolProperty(
+        name="Show Load Legacy Packs Button",
+        description="Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.",
+        default=True,
+    ) # type: ignore
+
     # Data
     is_use_custom_undo_steps: BoolProperty(
         name="Use Custom Undo Steps",
@@ -355,6 +362,12 @@ class HotNodeUserPrefs(AddonPreferences):
         sub.prop(self, "undo_steps", text="")
         col.prop(self, "data_dir", icon='ASSET_MANAGER')
         
+        # Others
+        col.separator()
+        col.separator(type='LINE')
+        col.label(text="Others")
+        col.prop(self, "is_show_load_legacy_packs_button")
+
         # Experimental
         col.separator()
         col.separator(type='LINE')
@@ -364,7 +377,6 @@ class HotNodeUserPrefs(AddonPreferences):
 
 
 def register():
-    print(IS.msg("Add Nodes", constants.LOCALE))
     try:
         bpy.utils.register_class(HotNodeUserPrefs)
     except:

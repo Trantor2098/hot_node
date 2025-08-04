@@ -1029,7 +1029,7 @@ class HOTNODE_OT_export_pack(bpy.types.Operator):
 class HOTNODE_OT_update_legacy_packs(Operator):
     bl_idname = "hotnode.update_legacy_packs"
     bl_label = "Update Legacy Packs"
-    bl_description = "Load and update all packs saved with previous versions of Hot Node."
+    bl_description = "Load and update all packs saved with previous versions of Hot Node after add-on got a big update."
     bl_translation_context = i18n_contexts.default
     bl_options = {'REGISTER'}
     
@@ -1056,6 +1056,12 @@ class HOTNODE_OT_update_legacy_packs(Operator):
         idx_before = uic.preset_selected_idx
         
         autosave_packs_dir = Context.fm.autosave_dir
+        
+        if not autosave_packs_dir.exists():
+            Reporter.report_finish("No legacy packs found to update.")
+            Reporter.set_active_ops(None)
+            return {'CANCELLED'}
+        
         zip_names = Context.fm.read_dir_file_names(autosave_packs_dir, ".zip", cull_suffix=False)
         legacy_autosave_zip_names = [name for name in zip_names if "_autosave_" in name]
 
@@ -1074,7 +1080,7 @@ class HOTNODE_OT_update_legacy_packs(Operator):
                 pack = Context.create_pack(pack_name)
                 failed_preset_names, legacy_meta = VS.convert_pack_of_0_X_X(context, pack)
                 if failed_preset_names:
-                    Reporter.report_warning("Failed to update presets: [" + pack_name + "] " + ", ".join(failed_preset_names))
+                    Reporter.report_warning(iface_("Failed to update presets: [") + pack_name + "] " + ", ".join(failed_preset_names))
                 legacy_ordered_preset_names = legacy_meta.get("order", [])
                 pack.try_match_order(legacy_ordered_preset_names)
                 Context.add_pack(pack)

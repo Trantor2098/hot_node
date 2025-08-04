@@ -165,3 +165,11 @@ msgctxt,msgid,zh_HANS
 *,Hot Node UI Context,Hot Node UI 上下文
 *,Create Preset,创建预设
 *,Custom Undo Steps,自定义撤销步数
+*,Load and update all packs saved with previous versions of Hot Node after add-on got a big update.,加载并更新旧版 Hot Node 保存的所有节点包.
+*,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.,当数据中没有节点包时，在 UI 中显示加载旧版 Hot Node 节点包的按钮.
+*,Show Load Legacy Packs Button,显示加载旧版节点包按钮
+*,Load & Update Legacy Packs,加载并更新旧版节点包
+*,Show this button,显示此按钮
+*,"Packs are partially updated, please check the previous reports for details.","节点包仅部分加载并更新, 请查看之前的报告以获取详细信息."
+*,No legacy packs found to update.,未找到要加载的旧版节点包.
+*,All packs are updated.,所有旧版节点包已更新.

@@ -527,6 +527,7 @@ class HOTNODE_PT_main(Panel):
             row.separator(factor=1.5)
             row.popover("HOTNODE_PT_edit", icon='COLLAPSEMENU', text="")
             
+            # Filter pack by tree type
             if (
                 user_prefs.is_filter_pack_by_tree_type 
                 and pack 
@@ -541,6 +542,13 @@ class HOTNODE_PT_main(Panel):
             row.menu("HOTNODE_MT_pack_options", icon='DOWNARROW_HLT', text="")
             row.separator(factor=1.5)
             row.popover("HOTNODE_PT_edit", icon='COLLAPSEMENU', text="")
+            
+            if user_prefs.is_show_load_legacy_packs_button:
+                layout.separator()
+                row = layout.row(align=True)
+                row.operator("hotnode.update_legacy_packs", text="Load & Update Legacy Packs")
+                row = layout.row(align=True)
+                row.prop(user_prefs, "is_show_load_legacy_packs_button", text="Show this button")
             return
         
         # Presets List

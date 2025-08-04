@@ -22,15 +22,6 @@ class FileManager:
     def __init__(self):
         if not self._initialized:
             self._initialized = True
-            
-            # set flags
-            self.is_init_run = False # is the addon firstly installed (by detecting default app data dir)
-            self.is_init_autosave_dir_exists = False # is the autosave dir exists, used to decide whether to auto update the legacy packs from 0.X
-            
-            if not self.get_default_app_data_dir().exists():
-                self.is_init_run = True
-            if self.autosave_dir.exists():
-                self.is_init_autosave_dir_exists = True
 
             # NOTE the structure is build in ..core.blender.user_pref
             

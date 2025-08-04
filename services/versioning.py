@@ -39,17 +39,9 @@ class VersioningService(ServiceBase):
         Updater_0_X_X,
     ]
     
-    is_legacy_packs_converted = False
-    
-    @staticmethod
-    def convert_packs_of_0_X_X_on_first_run():
-        bpy.ops.hotnode.update_legacy_packs('INVOKE_DEFAULT')
-    
     @classmethod
     def on_enable(cls):
-        if not cls.is_legacy_packs_converted and cls.fm.is_init_run and cls.fm.is_init_autosave_dir_exists:
-            bpy.app.timers.register(cls.convert_packs_of_0_X_X_on_first_run, first_interval=0.1)
-            cls.is_legacy_packs_converted = True
+        pass
 
     @classmethod
     def on_disable(cls):
@@ -116,7 +108,6 @@ class VersioningService(ServiceBase):
             dst_tree.interface.clear()
             
             is_success = True
-            # node_setter.apply_preset(bl_context, preset_name, jpreset, dst_tree)
             try:
                 node_setter.apply_preset(bl_context, preset_name, jpreset, dst_tree)
             except Exception as e:
