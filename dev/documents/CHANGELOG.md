@@ -11,10 +11,13 @@ ChangeLog
 - Brand new isolated history system, now undo/redo can be shared across blender sessions, and wont be pushed into blender's history.
 - Brand new node parsing and setting system with strong **stability** and **flexibility** for handling issues in the future.
 - Finetuned interaction design.
+- Changed translation system to blender's.
 - Keywords mode of setting images are removed. Instead, a image name filter is avaliable for matching images by name similarity when the image directory was given.
+- Data is saved in the appdata directory by default, and we add a button to load & update your packs in the old Hot Node version.
 
 ### Fixed
 - Significant stability improvement.
+- `NodeZone` stability improvement.
 
 ## [0.7.11] - 2024-06-23
 
