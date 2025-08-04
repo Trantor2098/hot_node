@@ -2,6 +2,7 @@ import os
 import time
 
 import bpy
+from bpy.app.handlers import persistent
 
 from . import ServiceBase
 
@@ -9,6 +10,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..core.blender.ui_context import UIContext
     from ..core.context.context import Context
+
+@persistent
+def sync_persistent(_):
+    if SyncService.is_enabled:
+        SyncService.sync()
+
 
 class SyncService(ServiceBase):
     last_check_time = 0.0
@@ -18,13 +25,15 @@ class SyncService(ServiceBase):
     
     @classmethod
     def on_enable(cls):
+        if sync_persistent not in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.append(sync_persistent)
         cls.read_sync_meta()
-        pass
         
     @classmethod
     def on_disable(cls):
-        pass
-    
+        if sync_persistent in bpy.app.handlers.load_post:
+            bpy.app.handlers.load_post.remove(sync_persistent)
+
     @classmethod
     def inject_dependencies(cls, context_cls: 'Context', uic_cls: 'UIContext'):
         cls.context_cls = context_cls
