@@ -102,6 +102,11 @@ class PackMenuManager:
     new_pack_menu_clses = []
     pack_menu_num = 0
     
+    is_list_add_nodes_pack_menu_appended = False
+    is_list_save_nodes_pack_menu_appended = False
+    is_merged_add_nodes_packs_menu_appended = False
+    is_merged_save_nodes_packs_menu_appended = False
+
     @staticmethod
     def draw_list_add_nodes_pack_menu(self: Menu, context):
         user_prefs = utils.get_user_prefs(context)
@@ -159,63 +164,6 @@ class PackMenuManager:
         cls.remove_merged_save_nodes_packs_menu()
         
     @classmethod
-    def append_list_add_nodes_pack_menu(cls):
-        try:
-            bpy.types.NODE_MT_add.append(cls.draw_list_add_nodes_pack_menu)
-        except ValueError:
-            pass
-        
-    @classmethod
-    def append_list_save_nodes_pack_menu(cls):
-        try:
-            bpy.types.NODE_MT_context_menu.append(cls.draw_list_save_nodes_pack_menu)
-        except ValueError:
-            pass
-
-    @classmethod
-    def append_merged_add_nodes_packs_menu(cls):
-        try:
-            bpy.types.NODE_MT_add.append(cls.draw_merged_add_nodes_packs_menu)
-        except ValueError:
-            pass
-        
-    @classmethod
-    def append_merged_save_nodes_packs_menu(cls):
-        try:
-            bpy.types.NODE_MT_context_menu.append(cls.draw_merged_save_nodes_packs_menu)
-        except ValueError:
-            pass
-        
-    @classmethod
-    def remove_list_add_nodes_pack_menu(cls):
-        try:
-            bpy.types.NODE_MT_add.remove(cls.draw_list_add_nodes_pack_menu)
-        except ValueError:
-            pass
-        
-    @classmethod
-    def remove_list_save_nodes_pack_menu(cls):
-        try:
-            bpy.types.NODE_MT_context_menu.remove(cls.draw_list_save_nodes_pack_menu)
-        except ValueError:
-            pass
-    
-    @classmethod
-    def remove_merged_add_nodes_packs_menu(cls):
-        try:
-            bpy.types.NODE_MT_add.remove(cls.draw_merged_add_nodes_packs_menu)
-        except ValueError:
-            pass
-    
-    @classmethod
-    def remove_merged_save_nodes_packs_menu(cls):
-        try:
-            bpy.types.NODE_MT_context_menu.remove(cls.draw_merged_save_nodes_packs_menu)
-        except ValueError:
-            pass
-        # bpy.types.OBJECT_MT_modifier_add.remove(draw_ex_geo_add_menu)
-    
-    @classmethod
     def register_new_pack_menus(cls):
         for menu_cls in cls.new_pack_menu_clses:
             if not hasattr(bpy.types, menu_cls.__name__):
@@ -271,6 +219,87 @@ class PackMenuManager:
     def get_pack_menu_cls(cls, pack_name: str) -> type[Menu]|None:
         """Get the menu class name for a given pack."""
         return cls.pack_menu_clses.get(pack_name, None)
+    
+    @classmethod
+    def append_list_add_nodes_pack_menu(cls):
+        if cls.is_list_add_nodes_pack_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_add.append(cls.draw_list_add_nodes_pack_menu)
+            cls.is_list_add_nodes_pack_menu_appended = True
+        except ValueError:
+            pass
+        
+    @classmethod
+    def append_list_save_nodes_pack_menu(cls):
+        if cls.is_list_save_nodes_pack_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_context_menu.append(cls.draw_list_save_nodes_pack_menu)
+            cls.is_list_save_nodes_pack_menu_appended = True
+        except ValueError:
+            pass
+
+    @classmethod
+    def append_merged_add_nodes_packs_menu(cls):
+        if cls.is_merged_add_nodes_packs_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_add.append(cls.draw_merged_add_nodes_packs_menu)
+            cls.is_merged_add_nodes_packs_menu_appended = True
+        except ValueError:
+            pass
+        
+    @classmethod
+    def append_merged_save_nodes_packs_menu(cls):
+        if cls.is_merged_save_nodes_packs_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_context_menu.append(cls.draw_merged_save_nodes_packs_menu)
+            cls.is_merged_save_nodes_packs_menu_appended = True
+        except ValueError:
+            pass
+        
+    @classmethod
+    def remove_list_add_nodes_pack_menu(cls):
+        if not cls.is_list_add_nodes_pack_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_add.remove(cls.draw_list_add_nodes_pack_menu)
+            cls.is_list_add_nodes_pack_menu_appended = False
+        except ValueError:
+            pass
+        
+    @classmethod
+    def remove_list_save_nodes_pack_menu(cls):
+        if not cls.is_list_save_nodes_pack_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_context_menu.remove(cls.draw_list_save_nodes_pack_menu)
+            cls.is_list_save_nodes_pack_menu_appended = False
+        except ValueError:
+            pass
+    
+    @classmethod
+    def remove_merged_add_nodes_packs_menu(cls):
+        if not cls.is_merged_add_nodes_packs_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_add.remove(cls.draw_merged_add_nodes_packs_menu)
+            cls.is_merged_add_nodes_packs_menu_appended = False
+        except ValueError:
+            pass
+    
+    @classmethod
+    def remove_merged_save_nodes_packs_menu(cls):
+        if not cls.is_merged_save_nodes_packs_menu_appended:
+            return
+        try:
+            bpy.types.NODE_MT_context_menu.remove(cls.draw_merged_save_nodes_packs_menu)
+            cls.is_merged_save_nodes_packs_menu_appended = False
+        except ValueError:
+            pass
+        # bpy.types.OBJECT_MT_modifier_add.remove(draw_ex_geo_add_menu)
 
 
 class HOTNODE_MT_select_pack(Menu):

@@ -73,6 +73,9 @@ class SyncService(ServiceBase):
     @classmethod
     def read_sync_meta(cls):
         """Read the sync meta from disk."""
+        if not cls.fm.is_path_exist(cls.fm.sync_meta_path):
+            cls.fm.ensure_app_dir_structure()
+            return False
         meta = cls.fm.read_json(cls.fm.sync_meta_path)
         return meta
 

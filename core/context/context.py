@@ -29,6 +29,7 @@ class Context:
         cls.pack_selected: Pack = None # selected pack
         cls.preset_selected: Preset = None # selected preset in selected pack
         cls.packs: dict[str, Pack] = {}
+        cls.fm.ensure_app_dir_structure()
         cls.load_packs_and_add()
         if cls.packs:
             for pack_name, pack in Context.packs.items():

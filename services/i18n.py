@@ -8,7 +8,10 @@ from bpy.app.translations import pgettext_iface as iface_
 
 class I18nService(ServiceBase):
     csv_path = ServiceBase.fm.translations_csv_path
-    translations = {}
+    translations = {
+        "en_US": {},
+        "zh_HANS": {},
+    }
 
     @classmethod
     def on_enable(cls):
@@ -21,15 +24,19 @@ class I18nService(ServiceBase):
     @classmethod
     def msg(cls, msg, locale: str = "en_US"):
         """Get translated message directly."""
-        return cls.translations.get(locale, cls.translations["en_US"]).get(("*", msg), msg)
+        translation = cls.translations.get(locale)
+        msg = translation.get(("*", msg), msg) if translation else msg
+        return msg
+    
+    @classmethod
+    def get_msg_from_all_locales(cls, msg):
+        """Get message from all locales."""
+        translations = cls.translations
+        return {locale: translation.get(("*", msg), msg) for locale, translation in translations.items()}
 
     @classmethod
     def load_translations(cls):
         translations = cls.translations
-        translations = {
-            "en_US": {},
-            "zh_HANS": {},
-        }
         with open(cls.csv_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:

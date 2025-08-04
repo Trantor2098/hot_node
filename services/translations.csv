@@ -76,7 +76,7 @@ msgctxt,msgid,zh_HANS
 *,No node data found in the preset.,在预设中未找到节点数据.
 *,Choose an Icon...,选择图标...
 *,Addon Data Directory,插件数据目录
-*,Save Nodes,保存节点
+*,Save Nodes,保存热节点
 *,Import preset pack(s) from zip file.,从zip文件导入节点包.
 *,Minimum length of the list to show in UI,在 UI 中显示列表的最小长度
 *,Filter for image names when loading images.,加载图像时的图像名称过滤器.

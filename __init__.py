@@ -38,14 +38,11 @@ bl_info = {
 
 
 def register():
-
+    services.enable_i18n() # for user_pref default names to be translated
     core.startup()
     services.enable_all()
 
 
 def unregister():
-
     services.disable_all()
     core.shutdown()
-        
-    

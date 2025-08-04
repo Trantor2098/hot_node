@@ -19,6 +19,43 @@ from ...services.history import HistoryService as HS
 from ...services.i18n import I18nService as IS
 
 
+def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
+    """Translate default pack and preset names to the current locale."""
+    locale = bpy.app.translations.locale
+    
+    # optimize for en_US, no need to loop
+    if locale == "en_US":
+        if (
+            user_prefs.sidebar_category == "Hot Node"
+            and user_prefs.default_pack_name == "NodesPack"
+            and user_prefs.default_preset_name == "Nodes"
+            and user_prefs.merged_add_nodes_menu_label == "Add Nodes"
+            and user_prefs.merged_save_nodes_menu_label == "Save Nodes"
+        ):
+            return 
+    
+    # loop to find the default translated names.
+    default_translated_names = IS.get_msg_from_all_locales("Hot Node")
+    if user_prefs.sidebar_category in default_translated_names.values() and user_prefs.sidebar_category != default_translated_names.get(locale, "Hot Node"):
+        user_prefs.sidebar_category = default_translated_names.get(locale, "Hot Node")
+    
+    default_translated_names = IS.get_msg_from_all_locales("NodesPack")
+    if user_prefs.default_pack_name in default_translated_names.values() and user_prefs.default_pack_name != default_translated_names.get(locale, "NodesPack"):
+        user_prefs.default_pack_name = default_translated_names.get(locale, "NodesPack")
+        
+    default_translated_names = IS.get_msg_from_all_locales("Nodes")
+    if user_prefs.default_preset_name in default_translated_names.values() and user_prefs.default_preset_name != default_translated_names.get(locale, "Nodes"):
+        user_prefs.default_preset_name = default_translated_names.get(locale, "Nodes")
+
+    default_translated_names = IS.get_msg_from_all_locales("Add Nodes")
+    if user_prefs.merged_add_nodes_menu_label in default_translated_names.values() and user_prefs.merged_add_nodes_menu_label != default_translated_names.get(locale, "Add Nodes"):
+        user_prefs.merged_add_nodes_menu_label = default_translated_names.get(locale, "Add Nodes")
+        
+    default_translated_names = IS.get_msg_from_all_locales("Save Nodes")
+    if user_prefs.merged_save_nodes_menu_label in default_translated_names.values() and user_prefs.merged_save_nodes_menu_label != default_translated_names.get(locale, "Save Nodes"):
+        user_prefs.merged_save_nodes_menu_label = default_translated_names.get(locale, "Save Nodes")
+
+
 def is_dev_update(self, context):
     if FileManager().is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
         from ... import dev
@@ -60,6 +97,7 @@ def add_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
         
         
 def save_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
+    print("Updating save nodes menu mode")
     pmm = ui.PackMenuManager()
     pmm.remove_merged_save_nodes_packs_menu()
     pmm.remove_list_save_nodes_pack_menu()
@@ -211,7 +249,7 @@ class HotNodeUserPrefs(AddonPreferences):
         description="Minimum length of the list to show in UI",
         default=3,
         min=3,
-        soft_max=50,
+        soft_max=100,
     ) # type: ignore
     
     # Data
@@ -335,13 +373,15 @@ def register():
     fm = FileManager()
     user_prefs = utils.get_user_prefs()
     
-    sidebar_category_update(user_prefs, bpy.context)
-    fm.define_app_data_dir_structure(user_prefs.data_dir)
-    fm.ensure_app_dir_structure()
-    
-    if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
-        from ... import dev
-        dev.register()
+    if user_prefs:
+        translate_default_name(user_prefs)
+        sidebar_category_update(user_prefs, bpy.context)
+        fm.define_app_data_dir_structure(user_prefs.data_dir)
+        fm.ensure_app_dir_structure()
+        
+        if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+            from ... import dev
+            dev.register()
 
 
 def unregister():
@@ -352,6 +392,8 @@ def unregister():
     
     fm = FileManager()
     user_prefs = utils.get_user_prefs()
-    if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
-        from ... import dev
-        dev.unregister()
+    
+    if user_prefs:
+        if user_prefs and user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+            from ... import dev
+            dev.unregister()

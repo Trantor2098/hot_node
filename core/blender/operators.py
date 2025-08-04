@@ -899,6 +899,8 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
                 continue
             if self.is_recovering:
                 timestemp_str, pack_name = AS.parse_autosave_zip_path(src_zip_path)
+                if "_autosave_" in pack_name:
+                    pack_name = utils.get_string_between_words(pack_name, None, ("_autosave_",))
                 pack_name = pack_name + " (Recovered)"
                 pack_name = utils.ensure_unique_name(pack_name, list(Context.packs.keys()))
             else:
