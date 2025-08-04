@@ -143,15 +143,20 @@ class PackMenuManager:
 
     @classmethod
     def on_register(cls):
+        user_prefs = utils.get_user_prefs()
         cls.pack_menu_clses.clear()
         cls.new_pack_menu_clses.clear()
         cls.pack_menu_num = 0
         Context.add_packs_changed_listener(cls.ensure_existing_pack_menu)
         
-        cls.append_list_add_nodes_pack_menu()
-        cls.append_list_save_nodes_pack_menu()
-        cls.append_merged_add_nodes_packs_menu()
-        cls.append_merged_save_nodes_packs_menu()
+        if user_prefs.add_nodes_menu_mode == 'LIST':
+            cls.append_list_add_nodes_pack_menu()
+        elif user_prefs.add_nodes_menu_mode == 'MERGE':
+            cls.append_merged_add_nodes_packs_menu()
+        if user_prefs.save_nodes_menu_mode == 'LIST':
+            cls.append_list_save_nodes_pack_menu()
+        elif user_prefs.save_nodes_menu_mode == 'MERGE':
+            cls.append_merged_save_nodes_packs_menu()
         
         cls.ensure_existing_pack_menu()
         

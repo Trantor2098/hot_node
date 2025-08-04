@@ -70,10 +70,15 @@ class VersioningService(ServiceBase):
                     jpreset = updater.update(preset_name, jpreset)
                     break
         return jpreset
-        
     
     @classmethod
     def convert_pack_of_0_X_X(cls, bl_context, pack: 'Pack'):
+        def try_remove_trees(node_groups, tree_names):
+            for tree_name in tree_names:
+                tree = node_groups.get(tree_name)
+                if tree:
+                    node_groups.remove(tree)
+                    
         uic: 'UIContext' = bl_context.window_manager.hot_node_ui_context
         preset_file_names = cls.fm.read_dir_file_names(pack.pack_dir, ".json", cull_suffix=False)
         
@@ -99,9 +104,13 @@ class VersioningService(ServiceBase):
             preset_name = preset_file_name[:-5]  # Remove .json suffix
             preset_path = pack.pack_dir / preset_file_name
             jpreset = cls.fm.read_json(preset_path)
-            ov = jpreset["HN_preset_data"]["version"]
+            jpreset_data = jpreset.get("HN_preset_data", {})
+            if not jpreset_data:
+                print(f"[Hot Node] Failed to update preset from Hot Node: [{pack.name}] {preset_name}.: No preset data found.")
+                continue
+            ov = jpreset_data["version"]
             new_tree_names = [tree_name for tree_name in jpreset.keys() if not tree_name.startswith("HN")]
-            dst_tree = tree_map[jpreset["HN_preset_data"]["tree_type"]]
+            dst_tree = tree_map[jpreset_data["tree_type"]]
             dst_tree.nodes.clear()
             dst_tree.links.clear()
             dst_tree.interface.clear()
@@ -121,12 +130,9 @@ class VersioningService(ServiceBase):
             if is_success:
                 print(f"[Hot Node] Updated preset from Hot Node v{utils.version_list_to_str(ov)} to v{utils.version_list_to_str(constants.HOT_NODE_VERSION)}: [{pack.name}] {preset_name}.")
             else:
-                print(f"[Hot Node] Failed to update preset from Hot Node v{utils.version_list_to_str(ov)} to v{utils.version_list_to_str(constants.HOT_NODE_VERSION)}: [{pack.name}] {preset_name}.")
+                print(f"[Hot Node] Failed to update preset from Hot Node v{utils.version_list_to_str(ov)} to v{utils.version_list_to_str(constants.HOT_NODE_VERSION)}: [{pack.name}] {preset_name}.: Parsing error.")
 
-            for new_tree_name in new_tree_names:
-                new_tree = node_groups.get(new_tree_name)
-                if new_tree:
-                    node_groups.remove(new_tree)
+            try_remove_trees(node_groups, new_tree_names)
 
         pack.save_metas()
                     

@@ -4,21 +4,21 @@ from pathlib import Path
 # NOTE Importing any modules from hot_node is forbidden in this file.
 
 
-############# Config #############
-
+# Config
 IS_DEV = False
 FILE_INDENT = 1 # release None, dev 1
 HOT_NODE_APP_DATA_DIR_NAME = "HotNodeAddonDev" # release "HotNodeAddon"
 HOT_NODE_VERSION = [1, 0, 0] # e.g. [1, 0, 0]
 
-############# Config #############
-
+# Procedural
 HOT_NODE_VERSION_STR = ".".join(map(str, HOT_NODE_VERSION)) # e.g. "1.0.0"
 BLENDER_VERSION = list(bpy.app.version) # e.g. [4, 2, 0]
 BLENDER_VERSION_STR = bpy.app.version_string # e.g. "4.2.0"
 HOT_NODE_PKG = __package__.rpartition('.')[0] # = bl_ext.blender_org.hot_node (if dev, = bl_ext.user_default.hot_node)
 HOT_NODE_ADDON_PATH = Path(__file__).parent.parent
+LOCALE = bpy.app.translations.locale # e.g. "en_US"
 
+# Common
 UNIVERSAL_NODE_TREE_IDNAME = "UniversalNodeTree" # not existing in blender, used to access preset in all node trees
 SHADER_NODE_TREE_IDNAME = "ShaderNodeTree"
 GEOMETRY_NODE_TREE_IDNAME = "GeometryNodeTree"
@@ -56,7 +56,7 @@ IMAGE_FILE_SUFFIXES = (
 
 BLENDER_ICONS = bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items
 
-PACK_ICONS_1 = ( # 9 icons in one row
+PACK_ICONS_1 = ( # 9 icons in one chunk
     'OUTLINER_COLLECTION',
     'COLLECTION_COLOR_01', 'COLLECTION_COLOR_02', 'COLLECTION_COLOR_03', 'COLLECTION_COLOR_04',
     'COLLECTION_COLOR_05', 'COLLECTION_COLOR_06', 'COLLECTION_COLOR_07', 'COLLECTION_COLOR_08',

@@ -17,6 +17,7 @@ def write_version_to_files(version_str: str):
         
     version_tuple = tuple(map(int, version_str_body.split('.')))
     version_list = [int(x) for x in version_str_body.split('.')]
+    
     # 1. Update utils/constants.py
     constants_path = Path(__file__).parent.parent.parent / "utils" / "constants.py"
     with constants_path.open("r", encoding="utf-8") as f:

@@ -42,7 +42,7 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
     default_translated_names = IS.get_msg_from_all_locales("NodesPack")
     if user_prefs.default_pack_name in default_translated_names.values() and user_prefs.default_pack_name != default_translated_names.get(locale, "NodesPack"):
         user_prefs.default_pack_name = default_translated_names.get(locale, "NodesPack")
-        
+    
     default_translated_names = IS.get_msg_from_all_locales("Nodes")
     if user_prefs.default_preset_name in default_translated_names.values() and user_prefs.default_preset_name != default_translated_names.get(locale, "Nodes"):
         user_prefs.default_preset_name = default_translated_names.get(locale, "Nodes")
@@ -97,7 +97,6 @@ def add_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
         
         
 def save_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
-    print("Updating save nodes menu mode")
     pmm = ui.PackMenuManager()
     pmm.remove_merged_save_nodes_packs_menu()
     pmm.remove_list_save_nodes_pack_menu()
@@ -178,13 +177,13 @@ class HotNodeUserPrefs(AddonPreferences):
     default_preset_name: StringProperty(
         name="Default Preset Name",
         description="Name of the default preset for creating nodes preset.",
-        default="Nodes",
+        default=IS.msg("Nodes", constants.LOCALE),
     ) # type: ignore
     
     default_pack_name: StringProperty(
         name="Default Pack Name",
         description="Name of the default pack for creating pack.",
-        default="NodesPack",
+        default=IS.msg("NodesPack", constants.LOCALE),
     ) # type: ignore
     
     is_filter_pack_by_tree_type: BoolProperty(
@@ -219,14 +218,14 @@ class HotNodeUserPrefs(AddonPreferences):
     merged_add_nodes_menu_label: StringProperty(
         name="Merged Add Nodes Menu Label",
         description="Name of the extended menu for adding custom nodes.",
-        default="Add Nodes",
+        default=IS.msg("Add Nodes", constants.LOCALE),
         update=add_nodes_menu_mode_update,
     ) # type: ignore
 
     merged_save_nodes_menu_label: StringProperty(
         name="Merged Save Nodes Menu Label",
         description="Name of the extended menu for saving custom nodes.",
-        default="Save Nodes",
+        default=IS.msg("Save Nodes", constants.LOCALE),
         update=save_nodes_menu_mode_update,
     ) # type: ignore
     
@@ -365,6 +364,7 @@ class HotNodeUserPrefs(AddonPreferences):
 
 
 def register():
+    print(IS.msg("Add Nodes", constants.LOCALE))
     try:
         bpy.utils.register_class(HotNodeUserPrefs)
     except:

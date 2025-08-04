@@ -4,14 +4,6 @@ import os
 import re
 import csv
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-MODULE_DIR = BASE_DIR
-
-# translations.csv path
-CSV_PATH = os.path.join(BASE_DIR, 'services', 'translations.csv')
-TEMP_CSV_PATH = os.path.join(BASE_DIR, "dev", "tools", "extracted_texts.csv")
-
 def find_text_strings(root_dir):
     text_strings = set()
     patterns = [
@@ -79,14 +71,21 @@ def append_new_msgids(csv_path, new_msgids):
             writer.writerow(['*', msgid])
 
 def main():
-    text_strings = find_text_strings(MODULE_DIR)
-    existing_msgids = read_existing_msgids(CSV_PATH)
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    module_dir = base_dir
+    
+    csv_path = os.path.join(base_dir, 'services', 'translations.csv')
+    temp_csv_path = os.path.join(base_dir, "dev", "tools", "extracted_texts.csv")
+    
+    text_strings = find_text_strings(module_dir)
+    existing_msgids = read_existing_msgids(csv_path)
     new_msgids = [s for s in text_strings if s and s not in existing_msgids]
+    
     print()
     print("============ FINISHED =============")
     print()
     if new_msgids:
-        append_new_msgids(TEMP_CSV_PATH, new_msgids)
+        append_new_msgids(temp_csv_path, new_msgids)
         print(f"Added {len(new_msgids)} text items to translations.csv")
     else:
         print("No new text items found to add.")
