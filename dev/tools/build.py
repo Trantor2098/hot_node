@@ -68,13 +68,13 @@ def check_code():
     print()
     print("---------------- Code Checking Results ----------------")
     if file_indent is None:
-        print("[FINE] FILE_INDENT")
+        print("✔  FILE_INDENT")
     else:
-        print(f"[WARN] FILE_INDENT: {file_indent} (should be None in release)")
+        print(f"⚠  FILE_INDENT: {file_indent} (should be None in release)")
     if app_data_dir_name == "HotNodeAddon":
-        print("✔ HOT_NODE_APP_DATA_DIR_NAME")
+        print("✔  HOT_NODE_APP_DATA_DIR_NAME")
     else:
-        print(f"⚠ HOT_NODE_APP_DATA_DIR_NAME: {app_data_dir_name} (should be HotNodeAddon in release)")
+        print(f"⚠  HOT_NODE_APP_DATA_DIR_NAME: {app_data_dir_name} (should be HotNodeAddon in release)")
     print("-------------------------------------------------------")
 
 
