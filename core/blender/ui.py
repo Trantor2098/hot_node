@@ -573,12 +573,6 @@ class HOTNODE_PT_main(Panel):
         # Specials Menu
         rcol.menu("HOTNODE_MT_preset_options", icon='DOWNARROW_HLT', text="")
         
-        # Move up & down
-        if rows >= 5:
-            rcol.separator()
-            rcol.operator("hotnode.order_preset", icon='TRIA_UP', text="").direction = 'UP'
-            rcol.operator("hotnode.order_preset", icon='TRIA_DOWN', text="").direction = 'DOWN'
-        
         if 'OVERWRITE_TREE_IO' in user_prefs.sidebar_items:
             rows += 2
             rcol.separator(factor=1.5)
@@ -616,6 +610,12 @@ class HOTNODE_PT_main(Panel):
             rcol.operator("hotnode.show_user_prefs", icon='PREFERENCES', text="")
             
         rows = max(rows, user_prefs.min_ui_list_length)
+        
+        # Move up & down
+        if rows >= 5:
+            rcol.separator()
+            rcol.operator("hotnode.order_preset", icon='TRIA_UP', text="").direction = 'UP'
+            rcol.operator("hotnode.order_preset", icon='TRIA_DOWN', text="").direction = 'DOWN'
         
         # Draw UI list
         lcol.template_list(
