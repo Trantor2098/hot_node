@@ -44,6 +44,8 @@ class HOTNODE_PT_dev_run(Panel):
                 col.label(text=f"  {pack_name}")
         else:
             col.label(text="  None")
+            
+        # When reloading the uic may not be set yet, which will crashes blender
         uic = context.window_manager.hot_node_ui_context
         col = row.column()
         col.label(text="UI Context:")

@@ -15,10 +15,24 @@ class HOTNODE_OT_dev_reload(Operator):
     bl_options = {'REGISTER'}
     
     def execute(self, context):
-        from ...hot_node import register, unregister
+        from ..core.blender import ui, ui_context, operators, user_pref
+        
+        def unregister():
+            user_pref.unregister()
+            operators.unregister()
+            ui.unregister()
+            ui_context.unregister()
+            
+        def register():
+            user_pref.register()
+            operators.register()
+            ui.register()
+            ui_context.register()
+
         bpy.app.timers.register(unregister, first_interval=0.1)
-        bpy.app.timers.register(dev_reload.dev_reload, first_interval=0.2)
-        bpy.app.timers.register(register, first_interval=0.4)
+        bpy.app.timers.register(dev_reload.dev_reload, first_interval=0.3)
+        bpy.app.timers.register(register, first_interval=0.5)
+        
         return {'FINISHED'}
 
 

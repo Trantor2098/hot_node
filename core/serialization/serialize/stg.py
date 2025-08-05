@@ -14,7 +14,7 @@ class Attrlist:
     A class to hold the attribute name list.
     This is used to store the white and black attrs of the stg.
     """
-    def __init__(self, w: tuple[str] = (), b: tuple[str] = (), is_white_only: bool = False, is_valid_func: callable = lambda: True):
+    def __init__(self, w: set[str] = set(), b: set[str] = set(), is_white_only: bool = False, is_valid_func: callable = lambda: True):
         self.w = w
         self.b = b
         self.is_white_only = is_white_only
@@ -34,6 +34,7 @@ class Stg:
     def __init__(self):
         self.set_types()
         self.cull_default = False # Whether to cull default value of the obj of this stg.
+        self.is_record_type = True
         self.types: tuple[type] = () # bl_idname/__class__.__name__ to find
         self.attr_lists: list[Attrlist] = [] # The white or black attrs of the obj of this stg.
         
@@ -66,7 +67,7 @@ class Stg:
         :param is_white_only: Whether the stg only has white attrs.
         :param is_valid_func: A function to check if the attr list is valid.
         """
-        self.attr_lists.append(Attrlist(w, b, is_white_only, is_valid_func))
+        self.attr_lists.append(Attrlist(set(w), set(b), is_white_only, is_valid_func))
         
     def clear_attr_lists(self):
         """
@@ -75,19 +76,20 @@ class Stg:
         """
         self.attr_lists = []
         
-    def set_types(self, *args):
-        self.types = tuple(arg if isinstance(arg, type) else getattr(bpy.types, arg) for arg in args)
+    def set_types(self, *args: type):
+        self.types = args
 
 
 class FallbackStg(Stg):
     def __init__(self):
         super().__init__()
     def serialize(self, attr, obj, fobj):
-        print(f"[HOT NODE] Fallback serialization for unsupported type (no serialization):")
-        print(f" |-node: {self.context.node}")
-        print(f" |-value's attr: {attr}")
-        print(f" |-value's type: {type(obj)}")
-        print()
+        if constants.IS_DEV:
+            print(f"[HOT NODE] Ser FallbackStg Accessed:")
+            print(f" |-node: {self.context.node}")
+            print(f" |-value's attr: {attr}")
+            print(f" |-value's type: {type(obj)}")
+            print()
         return None, False
 
 
@@ -95,6 +97,7 @@ class FallbackStg(Stg):
 class PresetStg(Stg):
     def __init__(self):
         super().__init__()
+        self.is_record_type = False
         
     def serialize(self, attr, main_tree: bpy.types.NodeTree, fobj):
         jpreset = {}
@@ -185,6 +188,7 @@ class NodeTreeStg(Stg):
         super().__init__()
         self.parse_all = False
         self.is_main_tree = False
+        self.is_record_type = False
         
     def serialize(self, attr, node_tree: bpy.types.NodeTree, fobj):
         self.context.node_tree = node_tree
@@ -222,6 +226,7 @@ class InterfaceStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(bpy.types.NodeTreeInterface)
+        self.is_record_type = False
 
     def serialize(self, attr, interface: bpy.types.NodeTreeInterface, fobj):
         self.context.interface = interface
@@ -267,6 +272,7 @@ class NodeLinksStg(Stg):
     def __init__(self):
         super().__init__()
         self.parse_all = False
+        self.is_record_type = False
         
     def serialize(self, attr, links: bpy.types.NodeLinks, fobj):
         self.context.node_links = links
@@ -304,6 +310,7 @@ class NodesStg(Stg):
         self.set_types(bpy.types.Nodes,)
         self.special = True
         self.parse_all = False
+        self.is_record_type = False
         
     def serialize(self, attr, nodes: bpy.types.Nodes, fobj):
         jnodes = {}
@@ -344,10 +351,13 @@ class NodeStg(Stg):
             # if the node is a referenced attribute, we just need to record the node name and the attr
             jnode["HN@ref2_node_attr"] = attr
             jnode["HN@ref2_node_name"] = node.name
+            jnode["HN@stg"] = "NodeRef"
             is_ref = True
+            self.is_record_type = False
+        else:
+            self.is_record_type = True
         self.context.node = node
         self.context.fnode = self.context.fnode_by_bl_idname.get(node.bl_idname)
-            
         return jnode, is_ref
 
  
@@ -355,6 +365,8 @@ class LinkStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(bpy.types.bpy_prop_collection,)
+        self.is_record_type = False
+    
     def serialize(self, attr, obj, fobj):
         # not used
         return None, True
@@ -392,7 +404,7 @@ class NodeSocketStg(Stg):
         super().__init__()
         self.set_types(bpy.types.NodeSocket,)
         self.append_attr_list(
-            b=("node", "select", "dimensions", "is_active_output", "internal_links", "rna_type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output", "link_limit")
+            b=("node", "select", "dimensions", "is_active_output", "internal_links", "rna_type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output", "link_limit", "is_icon_visible", "is_inactive", "inferred_structure_type")
         )
         self.cull_default = True
 
@@ -464,8 +476,8 @@ class BpyPropCollectionStg(Stg):
     def serialize(self, attr, obj, fobj):
         jobj = {}
         is_length_same = False
+        # maybe fobj is None, so we need to check if fobj is a collection
         if isinstance(fobj, bpy.types.bpy_prop_collection):
-            # maybe fobj is None, so we need to check if fobj is a collection
             if len(fobj) == len(obj):
                 # only cull default if the items if the length is the same
                 is_length_same = True
@@ -486,6 +498,7 @@ class BpyPropArrayStg(Stg):
         super().__init__()
         self.set_types(bpy.types.bpy_prop_array)
         self.cull_default = True
+        self.is_record_type = False
 
     def serialize(self, attr, obj, fobj):
         list_obj = list(obj)
@@ -504,6 +517,7 @@ class FlatVectorStg(Stg):
             mathutils.Quaternion,
         )
         self.cull_default = True
+        self.is_record_type = False
 
     def serialize(self, attr, obj, fobj):
         list_obj = list(obj)
@@ -549,6 +563,7 @@ class BasicStg(Stg):
         super().__init__()
         self.set_types(bool, int, str, float, bpy.types.EnumProperty)
         self.cull_default = True
+        self.is_record_type = False
 
     def serialize(self, attr, obj, fobj):
         need = fobj == None or obj != fobj

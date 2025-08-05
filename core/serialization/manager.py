@@ -32,6 +32,11 @@ class SerializationManager:
 
             self.ser_context = self.serializer.context
             self.deser_context = self.deserializer.context
+            
+    def reset(self):
+        """Reset the serialization manager to its initial state."""
+        self._initialized = False
+        self.__class__._instance = None
     
     def init_ser_context(self, bl_context: bpy.types.Context, main_tree: bpy.types.NodeTree|None = None):
         context = self.ser_context

@@ -173,3 +173,11 @@ msgctxt,msgid,zh_HANS
 *,"Packs are partially updated, please check the previous reports for details.","节点包仅部分加载并更新, 请查看之前的报告以获取详细信息."
 *,No legacy packs found to update.,未找到要加载的旧版节点包.
 *,All packs are updated.,所有旧版节点包已更新.
+*,Clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.,清除 Hot Node 的所有数据. 这将无法撤销. 您可以稍后从自动保存文件夹中恢复节点包.
+*,Show the button to load packs from legacy Hot Node version in the UI when there,当数据中没有节点包时，在 UI 中显示加载旧版 Hot Node 节点包的按钮.
+*,Format Data,格式化数据
+*,The preset already exists in the pack. Do you want to overwrite it?,同名预设已存在于节点包中. 您想要覆盖它吗?
+*,Development Mode,开发模式
+*,This operation will clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.,此操作将清除 Hot Node 的所有数据且无法撤销. 您可以稍后从自动保存文件夹中恢复节点包.
+*,Preset Already Existed,预设已存在
+*,Hot Node data formatted.,热节点插件数据已格式化.

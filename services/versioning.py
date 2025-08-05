@@ -91,7 +91,7 @@ class VersioningService(ServiceBase):
 
         failed_preset_names = []
         for preset_file_name in preset_file_names:
-            if preset_file_name == ".metadata.json":
+            if ".metadata" in preset_file_name:
                 continue
             preset_name = preset_file_name[:-5]  # Remove .json suffix
             preset_path = pack.pack_dir / preset_file_name

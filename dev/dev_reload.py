@@ -44,6 +44,5 @@ def dev_reload():
         try:
             module = importlib.import_module(mod, __package__)
             importlib.reload(module)
-            print(f"[Hot Node Dev] Reloaded: {mod}")
         except Exception as e:
             print(f"[Hot Node Dev] Failed to reload {mod}: {e}")

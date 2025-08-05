@@ -1,12 +1,9 @@
-*,Rename Pack
-*,History Service Start Time
-*,Preset Name for Creation
-*,Presets
-*,Pack Selected Name
-*,Texture Directory Path
-*,Node Preset
-*,Preset Selected Index
-*,Pack Name for Creation
-*,Hot Node UI Context
-*,Create Preset
-*,Hot Node Step Flag
+*,Clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.
+*,Show the button to load packs from legacy Hot Node version in the UI when there
+*,Format Data
+*,The preset already exists in the pack. Do you want to overwrite it?
+*,Development Mode
+*,Others
+*,This operation will clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.
+*,Preset Already Existed
+*,Pack data formatted.

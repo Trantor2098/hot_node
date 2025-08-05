@@ -17,6 +17,9 @@ def find_text_strings(root_dir):
         r'placeholder\s*=\s*[\'"](.*?)[\'"]',
         r'description\s*=\s*[\'"](.*?)[\'"]',
         r'heading\s*=\s*[\'"](.*?)[\'"]',
+        r'title\s*=\s*[\'"](.*?)[\'"]',
+        r'confirm_text\s*=\s*[\'"](.*?)[\'"]',
+        r'message\s*=\s*[\'"](.*?)[\'"]',
     ]
     exclude_dirs = {os.path.join(root_dir, 'dev'), os.path.join(root_dir, 'utils')}
     for folder, _, files in os.walk(root_dir):
@@ -69,26 +72,48 @@ def append_new_msgids(csv_path, new_msgids):
         writer = csv.writer(f)
         for msgid in new_msgids:
             writer.writerow(['*', msgid])
-
-def main():
+            
+def extract_texts():
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     module_dir = base_dir
     
-    csv_path = os.path.join(base_dir, 'services', 'translations.csv')
-    temp_csv_path = os.path.join(base_dir, "dev", "tools", "extracted_texts.csv")
+    csv_path = os.path.join(base_dir, "dev", "tools", 'translations.csv')
+    temp_csv_path = os.path.join(base_dir, "dev", "tools", "translations_wip.csv")
     
     text_strings = find_text_strings(module_dir)
     existing_msgids = read_existing_msgids(csv_path)
     new_msgids = [s for s in text_strings if s and s not in existing_msgids]
     
-    print()
-    print("============ FINISHED =============")
-    print()
     if new_msgids:
+        print()
+        print("--------- Extract Results ---------")
         append_new_msgids(temp_csv_path, new_msgids)
         print(f"Added {len(new_msgids)} text items to translations.csv")
     else:
         print("No new text items found to add.")
+    return text_strings
+    
+def collect_unused_texts(needed_text_strings):
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    module_dir = base_dir
+    
+    csv_path = os.path.join(base_dir, "dev", "tools", 'translations.csv')
+    temp_csv_path = os.path.join(base_dir, "dev", "tools", "translations_unused.csv")
+    
+    existing_msgids = read_existing_msgids(csv_path)
+
+    unused_msgids = [s for s in existing_msgids if s and s not in needed_text_strings]
+    if unused_msgids:
+        print()
+        print("------- Unused Results ---------")
+        append_new_msgids(temp_csv_path, unused_msgids)
+        print(f"Collected {len(unused_msgids)} unused text items.")
+    else:
+        print("No unused text items found.")
+
+def main():
+    text_strings = extract_texts()
+    collect_unused_texts(text_strings)
 
 if __name__ == '__main__':
     main()

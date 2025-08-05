@@ -601,8 +601,9 @@ class HOTNODE_PT_main(Panel):
             ops.preset_name = preset.name if preset else ""
             ops.pack_name = Context.get_pack_selected_name()
             ops.is_duplicate = True
-            rcol.operator("wm.call_menu", icon='FILE', text="").name = "HOTNODE_MT_copy_preset_to_pack"
-            rcol.operator("wm.call_menu", icon='FILE_HIDDEN', text="").name = "HOTNODE_MT_move_preset_to_pack"
+            # cant use menu caller ops because it wont call invoke func of ops
+            rcol.menu("HOTNODE_MT_copy_preset_to_pack", icon='FILE', text="")
+            rcol.menu("HOTNODE_MT_move_preset_to_pack", icon='FILE_HIDDEN', text="")
         if 'UNDO_REDO' in user_prefs.sidebar_items:
             min_rows += 3
             rcol.separator(factor=1.5)
@@ -698,8 +699,12 @@ class HOTNODE_PT_edit(Panel):
         col.separator(factor=2)
         col.label(text="Others")
         row = col.row(align=True)
-        row.operator("hotnode.refresh", icon='FILE_REFRESH', text="")
-        row.operator("hotnode.show_user_prefs", icon='PREFERENCES', text="")
+        sub = row.row(align=True)
+        sub.operator("hotnode.refresh", icon='FILE_REFRESH', text="")
+        sub.operator("hotnode.show_user_prefs", icon='PREFERENCES', text="")
+        sub = row.row(align=True)
+        sub.alignment = 'RIGHT'
+        sub.operator("hotnode.format_data", icon='BRUSH_DATA', text="")
 
 
 classes = (

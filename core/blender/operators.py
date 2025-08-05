@@ -488,12 +488,23 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
         options={'HIDDEN'}
     ) # type: ignore
     
+    preset_name_alt: StringProperty(
+        name="Alternative Preset Name",
+        default="",
+    ) # type: ignore
+    
     # move or copy
     is_move: BoolProperty(
         default=False,
         options={'HIDDEN'}
     ) # type: ignore
     
+    # move or copy
+    is_overwriting: BoolProperty(
+        default=False,
+        options={'HIDDEN'}
+    ) # type: ignore
+
     @staticmethod
     def undo(
         uic: UIContext,
@@ -539,26 +550,29 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
     def execute(self, context):
         Reporter.set_active_ops(self)
         uic: UIContext = context.window_manager.hot_node_ui_context
-        idx_before_transfer = self.src_pack.get_preset_idx(self.preset)
-        is_src_pack_selected = self.src_pack is Context.get_pack_selected()
-        is_dst_pack_selected = self.dst_pack is Context.get_pack_selected()
+        src_pack = Context.get_pack(self.src_pack_name)
+        dst_pack = Context.get_pack(self.dst_pack_name)
+        preset = src_pack.get_preset(self.preset_name)
+        idx_before_transfer = src_pack.get_preset_idx(preset)
+        is_src_pack_selected = src_pack is Context.get_pack_selected()
+        is_dst_pack_selected = dst_pack is Context.get_pack_selected()
         
         step = HS.step(self.bl_label, self)
         
         if self.is_overwriting:
-            preset_to_overwrite = self.dst_pack.get_preset(self.preset_name)
+            preset_to_overwrite = dst_pack.get_preset(self.preset_name)
             HS.add_changed_paths(step, preset_to_overwrite.path)
-            self.dst_pack.remove_preset(preset_to_overwrite)
+            dst_pack.remove_preset(preset_to_overwrite)
         
-        idx_after = 0 if self.src_pack.presets else -1
+        idx_after = 0 if src_pack.presets else -1
         if self.is_move:
-            HS.add_changed_paths(step, self.src_pack.meta_path, self.dst_pack.meta_path)
-            HS.add_deleted_paths(step, self.preset.path)
-            self.src_pack.remove_preset(self.preset)
-            self.dst_pack.add_preset(self.preset) # add_preset will change preset path
-            self.dst_pack.save_preset(self.preset)
-            self.dst_pack.save_metas()
-            HS.add_created_paths(step, self.preset.path)
+            HS.add_changed_paths(step, src_pack.meta_path, dst_pack.meta_path)
+            HS.add_deleted_paths(step, preset.path)
+            src_pack.remove_preset(preset)
+            dst_pack.add_preset(preset) # add_preset will change preset path
+            dst_pack.save_preset(preset)
+            dst_pack.save_metas()
+            HS.add_created_paths(step, preset.path)
             
             # handle idx change if the preset is in the current pack
             if is_src_pack_selected:
@@ -566,11 +580,11 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
                 idx_after = uic.preset_selected_idx
                 Context.select_preset(idx_after)
         else:
-            HS.add_changed_paths(step, self.dst_pack.meta_path)
-            copied_preset = self.preset.deepcopy()
-            self.dst_pack.add_preset(copied_preset)
-            self.dst_pack.save_preset(copied_preset)
-            self.dst_pack.save_metas()
+            HS.add_changed_paths(step, dst_pack.meta_path)
+            copied_preset = preset.deepcopy()
+            dst_pack.add_preset(copied_preset)
+            dst_pack.save_preset(copied_preset)
+            dst_pack.save_metas()
             HS.add_created_paths(step, copied_preset.path)
 
             if is_src_pack_selected:
@@ -583,24 +597,31 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
         HS.set_redo(step, self.redo, self.src_pack_name, self.dst_pack_name, self.is_move, idx_after)
         
         HS.save_step(step)
+        Reporter.report_finish("Preset overwritten.")
         Reporter.set_active_ops(None)
         return {'FINISHED'}
     
     def invoke(self, context, event):
         uic: UIContext = context.window_manager.hot_node_ui_context
         preset_name = uic.presets[uic.preset_selected_idx].name
-        self.src_pack = Context.packs[self.src_pack_name]
-        self.dst_pack = Context.packs[self.dst_pack_name]
-        self.preset = self.src_pack.get_preset(preset_name)
-        if self.preset.name in self.dst_pack.meta.ordered_preset_names:
+        src_pack = Context.get_pack(self.src_pack_name)
+        dst_pack = Context.get_pack(self.dst_pack_name)
+        self.preset = src_pack.get_preset(preset_name)
+        print(self.preset.name)
+        print(dst_pack.meta.ordered_preset_names)
+        if self.preset.name in dst_pack.meta.ordered_preset_names:
             wm = context.window_manager
-            result = wm.invoke_confirm(
-                self, 
-                event=event, 
-                title="Preset Already Existed", 
-                confirm_text="Overwrite",
-                message="The preset already exists in the pack. Do you want to overwrite it?"
+            result = wm.invoke_props_dialog(
+                self,
+                title="Overwrite or Copy with a Alternative Name",
             )
+            # result = wm.invoke_confirm(
+            #     self, 
+            #     event=event, 
+            #     title="Preset Already Existed", 
+            #     confirm_text="Overwrite",
+            #     message="The preset already exists in the pack. Do you want to overwrite it?"
+            # )
             self.is_overwriting = True
             return result
         self.is_overwriting = False
@@ -1107,6 +1128,42 @@ class HOTNODE_OT_update_legacy_packs(Operator):
         Reporter.set_active_ops(None)
         return {'FINISHED'}
     
+
+class HOTNODE_OT_format_data(Operator):
+    bl_idname = "hotnode.format_data"
+    bl_label = "Format Data"
+    bl_description = "Clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later."
+    bl_translation_context = i18n_contexts.default
+    bl_options = {'REGISTER'}
+
+    pack_name: StringProperty(
+        default="",
+        options={'HIDDEN'}
+    ) # type: ignore
+
+    @classmethod
+    def poll(cls, context):
+        return Context.get_pack_selected() is not None
+
+    def execute(self, context):
+        Reporter.set_active_ops(self)
+        Context.format_data()
+        HS.clear_cached_steps()
+        Reporter.report_finish("Hot Node data formatted.")
+        Reporter.set_active_ops(None)
+        return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        wm = context.window_manager
+        result = wm.invoke_confirm(
+            self, 
+            event=event, 
+            title="Format Data", 
+            confirm_text="Format Data",
+            message="This operation will clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later."
+        )
+        return result
+    
     
 class HOTNODE_OT_show_user_prefs(bpy.types.Operator):
     bl_idname = "hotnode.show_user_prefs"
@@ -1220,6 +1277,7 @@ classes = (
     HOTNODE_OT_import_pack,
     HOTNODE_OT_export_pack,
     HOTNODE_OT_update_legacy_packs,
+    HOTNODE_OT_format_data,
     HOTNODE_OT_show_user_prefs,
     HOTNODE_OT_refresh,
     HOTNODE_OT_undo,

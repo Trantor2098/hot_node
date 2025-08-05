@@ -46,7 +46,7 @@ class PresetMeta():
         """Convert a dictionary to a PresetMeta instance."""
         self.name = data.get("name", "")
         self.description = data.get("description", "")
-        self.tree_type = data.get("tree_type", constants.SHADER_NODE_TREE_IDNAME)
+        self.tree_type = data.get("tree_type", constants.UNIVERSAL_NODE_TREE_IDNAME)
         self.is_separator = data.get("is_separator", False)
         self.hot_node_version = data.get("hot_node_version", constants.HOT_NODE_VERSION)
         self.blender_version = data.get("blender_version", constants.BLENDER_VERSION)

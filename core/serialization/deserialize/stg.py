@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .adapter import Adapter
     from .deserializer import Deserializer, DeserializationContext
     
-    
+
 # NOTE How to add stg and use it:
 # 1. See the existing stgs to get familiar with the script.
 # 2. Create a new class that inherits from its subclasses.
@@ -35,8 +35,8 @@ class Stg:
     def deserialize(self, obj, jobj: dict):
         print(f"[Hot Node] Deserialization not implemented for {obj.__class__.__name__} (no action was done).")
     
-    def set_types(self, *args):
-        self.types = tuple(arg if isinstance(arg, type) else getattr(bpy.types, arg) for arg in args)
+    def set_types(self, *args: type):
+        self.types = args
 
 
 class LateStg(Stg):
@@ -58,9 +58,11 @@ class FallbackStg(Stg):
         super().__init__()
         
     def deserialize(self, obj, jobj: dict):
-        # print("[Hot Node] FallbackStg: No stg found for the object, using fallback deserialization.")
-        # print(f" | obj: {obj}")
-        # print(f" | jobj: {jobj}")
+        if constants.IS_DEV:
+            print("[Hot Node] Deser FallbackStg Accessed:")
+            print(f" | node: {self.context.node}")
+            print(f" | obj: {obj}")
+            print(f" | jobj: {jobj}")
         self.deserializer.dispatch_deserialize(obj, jobj)
 
 
@@ -317,7 +319,7 @@ class NodesStg(Stg):
                 continue
             bl_idname = jnode["bl_idname"]
             node = nodes.new(type=bl_idname)
-            self.deserializer.serach_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
+            self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
             
         self.stgs.node_ref_late.deserialize()
         self.stgs.node_set_late.deserialize()
@@ -355,18 +357,18 @@ class NodeZoneOutputStg(NodeStg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            "GeometryNodeSimulationOutput",
-            "GeometryNodeRepeatOutput",
-            "GeometryNodeForeachGeometryElementOutput",
+            bpy.types.GeometryNodeSimulationOutput,
+            bpy.types.GeometryNodeRepeatOutput,
+            bpy.types.GeometryNodeForeachGeometryElementOutput,
         )
         self.items_attrs_map = {
-            "GeometryNodeSimulationOutput": ("state_items", ),
-            "GeometryNodeRepeatOutput": ("repeat_items", ),
-            "GeometryNodeForeachGeometryElementOutput": ("generation_items", "main_items", "input_items"),
+            bpy.types.GeometryNodeSimulationOutput: ("state_items", ),
+            bpy.types.GeometryNodeRepeatOutput: ("repeat_items", ),
+            bpy.types.GeometryNodeForeachGeometryElementOutput: ("generation_items", "main_items", "input_items"),
         }
     
     def set(self, node, jnode: dict = None, b: tuple[str] = ()):
-        items_attrs = self.items_attrs_map.get(node.bl_idname, ())
+        items_attrs = self.items_attrs_map.get(node.__class__, ())
         # set items first, so that NodeInputs and NodeOutputs can be created before setting them
         for items_attr in items_attrs:
             items = getattr(node, items_attr)
@@ -382,25 +384,26 @@ class NodeZoneInputStg(NodeStg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            "GeometryNodeSimulationInput",
-            "GeometryNodeRepeatInput",
-            "GeometryNodeForeachGeometryElementInput",
+            bpy.types.GeometryNodeSimulationInput,
+            bpy.types.GeometryNodeRepeatInput,
+            bpy.types.GeometryNodeForeachGeometryElementInput,
         )
     
     def deserialize(self, node, jnode: dict):
         self.set_context(node, jnode)
         jnode["HN@ref"] = node
         # pair_with_output will build the node's input and output sockets
-        if node.paired_output:
-            has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
-            if has_dst_node:
-                self.stgs.node_set_late.request(node, jnode, self)
+        has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
+        if has_dst_node:
+            self.stgs.node_set_late.request(node, jnode, self)
 
 
 class NodeFrameStg(NodeStg):
     def __init__(self):
         super().__init__()
-        self.set_types("NodeFrame")
+        self.set_types(
+            bpy.types.NodeFrame,
+        )
         
     def deserialize(self, node, jnode: dict):
         self.set_context(node, jnode)
@@ -411,11 +414,18 @@ class NodeFrameStg(NodeStg):
 class NodeGroupStg(NodeStg):
     def __init__(self):
         super().__init__()
-        self.set_types(*constants.NODE_GROUP_IDNAMES)
+        self.set_types(
+            bpy.types.NodeGroup,
+            bpy.types.ShaderNodeGroup, # NOTE ShaderNodeGroup and the types below is NOT a subclass of NodeGroup
+            bpy.types.GeometryNodeGroup,
+            bpy.types.TextureNodeGroup,
+            bpy.types.CompositorNodeGroup,
+        )
 
     def deserialize(self, node: bpy.types.NodeGroup, jnode: dict):
         self.set_context(node, jnode)
         jnode_tree_name = jnode.get("HN@nt_name")
+        print(f"[Hot Node] NodeGroupStg deserialize: {jnode_tree_name}")
         if jnode_tree_name is not None:
             # dst node tree has already been created, so we can set it directly
             dst_node_tree = self.context.jnode_trees[jnode_tree_name]["HN@ref"]
@@ -613,19 +623,18 @@ class BpyPropCollectionStg(Stg):
         }
 
     def deserialize(self, obj, jobj):
+        index_strs = list(key for key in jobj.keys() if key.isdigit())
+        max_jobj_index = int(index_strs[-1]) if index_strs else -1
+        jobj_length = len(index_strs)
         actual_length = len(obj)
-        jobj_length = len(jobj)
-        indexs_str = list(jobj.keys())
-        max_jobj_index = int(indexs_str[-1]) if indexs_str else -1
         
         # if the length is the same, we can set all items.
         if actual_length == jobj_length:
             for i in range(actual_length):
-                self.deserializer.serach_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
         elif actual_length < jobj_length:
             # wtf is this. solve in the future
             if max_jobj_index >= jobj_length:
-                print(obj)
                 pass
             # actual_length < jobj_length < max_jobj_index
             else:
@@ -636,18 +645,17 @@ class BpyPropCollectionStg(Stg):
                     for i in range(jobj_length):
                         if i >= actual_length:
                             new_item_func(obj, jobj[str(i)])
-                        self.deserializer.serach_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                        self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
         # actual_length > jobj_length, means jobj is partially filled.
         else:
             # wtf is this. solve in the future
             if max_jobj_index >= actual_length:
                 print(f"[Hot Node] jobj_length < actual_length < max_jobj_index: {obj.rna_type.identifier}.")
             else:
-                for key, jitem in jobj.items():
-                    i = int(key)
+                for key in (key for key in jobj.keys() if key.isdigit()):
                     # if i < actual_length:
                     #     # we may recorded a virtual input whose idx is bigger than the length, but we dont need to set it.
-                    self.deserializer.serach_deserialize(obj[i], jitem, is_dispatch_on_fallback=True)
+                    self.deserializer.search_deserialize(obj[int(key)], jobj[key], is_dispatch_on_fallback=True)
                     # self.deserializer.dispatch_deserialize(obj[i], jitem)
                     
     def new_socket(self, collection_obj, jitem):
@@ -698,15 +706,14 @@ class NodeTreeInterfaceSocketMenuLateStg(LateStg):
         
         
 class HNStg(Stg):
+    """Attr starts with HN@ or jobj that contains a HN@type: HN@... will be handled by this stg."""
     def __init__(self):
         super().__init__()
         
-    def deserialize(self, obj, attr: str, jvalue):
-        if attr == "HN@ref2_node_attr":
-            # this is a special attr, used to set the node's paired output node.
-            print("[Hot Node] Setting special attribute:", attr)
-            self.stgs.node_ref_late.request(self.context.jnode, jvalue)
-            return
+    def deserialize(self, value, jvalue):
+        hn_stg = jvalue["HN@stg"]
+        if hn_stg == "NodeRef":
+            self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
 
 
 class SetStg(Stg):
@@ -726,8 +733,11 @@ class SetStg(Stg):
                 jvalue = mathutils.Vector(jvalue)
             setattr(obj, attr, jvalue)
         except Exception as e:
-            print("[Hot Node] Basic stg try_setattr failed, see below:")
-            print(" | obj:", obj)
-            print(" | attr:", attr)
-            print(" | jvalue:", jvalue)
-            print(f" | exception: {e}")
+            if constants.IS_DEV:
+                print("[Hot Node] SetStg try_setattr failed, see below:")
+                print(" | obj:", obj)
+                print(" | attr:", attr)
+                print(" | jvalue:", jvalue)
+                print(f" | exception: {e}")
+            else:
+                print("[Hot Node] SetStg try_setattr failed silently.")

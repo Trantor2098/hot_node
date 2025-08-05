@@ -47,6 +47,7 @@ class Context:
         cls.preset_selected: Preset = None # selected preset in selected pack
         cls.packs.clear()
         cls.trigger_packs_changed()
+        cls.sm.reset()
         pass
     
     @classmethod
@@ -297,3 +298,9 @@ class Context:
             cls.select_preset(next(iter(cls.pack_selected.presets)))
         else:
             cls.preset_selected = None
+            
+    @classmethod
+    def format_data(cls):
+        cls.fm.remove_tree(cls.fm.packs_dir)
+        cls.fm.remove_tree(cls.fm.runtime_dir)
+        cls.fm.ensure_app_dir_structure()

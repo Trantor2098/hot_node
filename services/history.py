@@ -359,14 +359,9 @@ class HistoryService(ServiceBase):
         jsteps.clear()
             
     @classmethod
-    def clear_history(cls):
-        """Clear the history."""
-        cls.fm.remove_file(cls.fm.history_meta_path)
-        cls.fm.remove_tree(cls.fm.history_file_dir)
+    def clear_cached_steps(cls):
         cls.jsteps.clear()
         cls.jundone_steps.clear()
-        cls.fm.ensure_dir(cls.fm.history_file_dir)
-        cls.save_history()
 
     @classmethod
     def clamp_step_num(cls):

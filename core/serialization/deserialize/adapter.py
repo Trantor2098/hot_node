@@ -14,7 +14,7 @@ class Adapter():
     """This class defines the stgs with adaption to the current Blender version."""
     class Stgs:
         """Activative strategies for the current Blender version."""
-        def __init__(self, blender_version):
+        def __init__(self, blender_version: list[int, int, int]):
             self._blender_version = blender_version
             self.set: SetStg = None
             self.hn: HNStg = None
@@ -29,6 +29,7 @@ class Adapter():
             self.compositor_node_color_balance: CompositorNodeColorBalanceStg = None
             self.node_zone_input: NodeZoneInputStg = None
             self.node_zone_output: NodeZoneOutputStg = None
+            # self.node_frame: NodeFrameStg = None
             self.node_group: NodeGroupStg = None
             self.node: NodeStg = None
             # self.node_link: NodeLinkStg = None
@@ -38,21 +39,37 @@ class Adapter():
             self.node_tree: NodeTreeStg = None
             self.preset: PresetStg = None
             self.fallback: FallbackStg = None
+            self._stg_list_hn: list[Stg] = None
             self._stg_list_node: list[Stg] = None
             self._stg_list_core: list[Stg] = None
             self._stg_list_all: list[Stg] = None
+            
+        @property
+        def stg_list_hn(self) -> list[Stg]:
+            """HN stgs, used for HN@type"""
+            if self._stg_list_hn is not None:
+                return self._stg_list_hn
+            if self._blender_version == [2, 93, 0]:
+                pass
+            else:
+                self._stg_list_hn = [
+                    self.hn,
+                    self.fallback, # fallback is always the last one
+                ]
+            return self._stg_list_hn
             
         @property
         def stg_list_node(self) -> list[Stg]:
             """node stgs"""
             if self._stg_list_node is not None:
                 return self._stg_list_node
-            if self._blender_version == "2.93":
+            if self._blender_version == [2, 93, 0]:
                 pass
             else:
                 self._stg_list_node = [
                     self.node_zone_output,
                     self.node_zone_input,
+                    # self.node_frame,
                     self.node_group,
                     self.compositor_node_color_balance,
                     self.node,
@@ -64,7 +81,7 @@ class Adapter():
             """will be used for dispatching if no list was specified"""
             if self._stg_list_core is not None:
                 return self._stg_list_core
-            if self._blender_version == "2.93":
+            if self._blender_version == [2, 93, 0]:
                 pass
             else:
                 self._stg_list_core = [
@@ -79,7 +96,7 @@ class Adapter():
         def stg_list_all(self) -> list[Stg]:
             if self._stg_list_all is not None:
                 return self._stg_list_all
-            if self._blender_version == "2.93":
+            if self._blender_version == [2, 93, 0]:
                 pass
             else:
                 self._stg_list_all = [
@@ -135,6 +152,7 @@ class Adapter():
             stgs.compositor_node_color_balance = CompositorNodeColorBalanceStg()
             stgs.node_zone_input = NodeZoneInputStg()
             stgs.node_zone_output = NodeZoneOutputStg()
+            # stgs.node_frame = NodeFrameStg()
             stgs.node_group = NodeGroupStg()
             stgs.node = NodeStg()
             # stgs.node_link = LinkStg()

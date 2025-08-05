@@ -176,10 +176,17 @@ class FileManager:
         return file_names
                 
     def unzip_to(self, src_zip_path: Path, dst_dir_path: Path):
-        """dst_zip_path is the dir that contains the unzipped files, not the dir containing the unzipped dir."""
-        file = zipfile.ZipFile(src_zip_path)
-        file.extractall(dst_dir_path)
-        file.close()
+        """
+        Unzip a zip's files to a specified directory.
+        """
+        with zipfile.ZipFile(src_zip_path) as file:
+            file.extractall(dst_dir_path)
+        zip_name = src_zip_path.stem
+        nested_dir = dst_dir_path / zip_name
+        if nested_dir.is_dir():
+            for item in nested_dir.iterdir():
+                shutil.move(str(item), str(dst_dir_path))
+            shutil.rmtree(nested_dir)
         
     def zip_to(self, src_dir_path: Path, dst_zip_path: Path):
         zip = zipfile.ZipFile(dst_zip_path, 'w', zipfile.ZIP_DEFLATED)

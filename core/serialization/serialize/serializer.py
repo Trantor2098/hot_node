@@ -36,10 +36,8 @@ class Serializer:
         self.context = Context()
         self.manager: 'SerializationManager' = manager
         self.stgs: 'Adapter.Stgs' = manager.ser_stgs
-        self.stg_list_core = self.stgs.stg_list_core
-        self.stg_list_all = self.stgs.stg_list_all
         # give the serializer and the stgs ref to each stg
-        for stg in self.stg_list_all:
+        for stg in self.stgs.stg_list_all:
             stg.serializer = self
             stg.stgs = self.stgs
             stg.context = self.context
@@ -81,13 +79,13 @@ class Serializer:
         """Loop the stgs to find the stg of the given object."""
         # TODO Type Mapping
         if stg_list is None:
-            stg_list = self.stg_list_core
+            stg_list = self.stgs.stg_list_core
 
         for stg in stg_list:
             if isinstance(obj, stg.types):
                 return stg
 
-        return self.stg_list_core[-1]
+        return self.stgs.stg_list_core[-1]
 
     def dispatch_serialize(self, obj, fobj: object|None, stg: 'Stg|None' = None):
         """
@@ -112,24 +110,30 @@ class Serializer:
                 continue
             value_stg = self.get_stg(value)
             cull_default = not self.context.user_prefs.is_maximize_compatibility and stg.cull_default and value_stg.cull_default
+            # only serialize when the value has stg
             if value_stg is not None:
-                # only serialize when the value has stg
+                # if attr is in white attrs, serialize it
                 if attr_list is not None and attr in attr_list.w:
-                    # if attr is in white attrs, serialize it
                     jobj[attr], need = value_stg.serialize(attr, value, None)
+                    if value_stg.is_record_type:
+                        jvalue["HN@type"] = value.__class__.__name__
+                # cull default value if condition met
                 elif cull_default and fobj is not None and hasattr(fobj, attr):
-                    # cull default value if condition met
                     fvalue = getattr(fobj, attr)
                     jvalue, need = value_stg.serialize(attr, value, fvalue)
+                    # serialize when default value changed (determined by stg, known from param "need")
                     if need:
-                        # serialize when default value changed (determined by stg, known from param "need")
                         jobj[attr] = jvalue
+                        if value_stg.is_record_type:
+                            jvalue["HN@type"] = value.__class__.__name__
+                # serialize directly if not cull default value
                 else:
-                    # serialize directly if not cull default value
                     jvalue, need = value_stg.serialize(attr, value, None)
                     if need:
                         jobj[attr] = jvalue
-        if jobj:
+                        if value_stg.is_record_type:
+                            jvalue["HN@type"] = value.__class__.__name__
+        if jobj and stg.is_record_type:
             jobj["HN@type"] = obj.__class__.__name__
         self.context.obj_tree.pop()
         return jobj
@@ -150,6 +154,8 @@ class Serializer:
         else:
             jobj, need = stg.serialize(None, obj, fobj)
         self.context.obj_tree.pop()
+        if jobj and stg.is_record_type:
+            jobj["HN@type"] = obj.__class__.__name__
         return jobj
     
     def specify_serialize(self, obj, fobj: object|None, stg: 'Stg'=None):
@@ -157,4 +163,6 @@ class Serializer:
         self.context.obj_tree.append(obj)
         jobj, need = stg.serialize(None, obj, fobj)
         self.context.obj_tree.pop()
+        if jobj and stg.is_record_type:
+            jobj["HN@type"] = obj.__class__.__name__
         return jobj

@@ -124,8 +124,12 @@ def is_dev_update(self, context):
         from ... import dev
         if self.is_dev:
             dev.register()
+            constants.IS_DEV = True
+            constants.FILE_INDENT = 1
         else:
             dev.unregister()
+            constants.IS_DEV = False
+            constants.FILE_INDENT = None
 
 
 class HotNodeUserPrefs(AddonPreferences):
@@ -394,6 +398,8 @@ def register():
         if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
             from ... import dev
             dev.register()
+            constants.IS_DEV = True
+            constants.FILE_INDENT = 1
 
 
 def unregister():
@@ -406,6 +412,6 @@ def unregister():
     user_prefs = utils.get_user_prefs()
     
     if user_prefs:
-        if user_prefs and user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
+        if user_prefs.is_dev and fm.is_path_exist(constants.HOT_NODE_ADDON_PATH / "dev"):
             from ... import dev
             dev.unregister()

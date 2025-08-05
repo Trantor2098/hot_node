@@ -5,17 +5,21 @@ from pathlib import Path
 
 
 # Config
-FILE_INDENT = None # release None, dev 1
 HOT_NODE_APP_DATA_DIR_NAME = "HotNodeAddonDev" # release "HotNodeAddon"
 HOT_NODE_VERSION = [1, 0, 0] # e.g. [1, 0, 0]. this can be changed automatically by hotnode/dev/tools/build.py
 
-# Procedural
+# Procedural, do not change manually
 HOT_NODE_VERSION_STR = ".".join(map(str, HOT_NODE_VERSION)) # e.g. "1.0.0"
 BLENDER_VERSION = list(bpy.app.version) # e.g. [4, 2, 0]
 BLENDER_VERSION_STR = bpy.app.version_string # e.g. "4.2.0"
+
 HOT_NODE_PKG = __package__.rpartition('.')[0] # = bl_ext.blender_org.hot_node (if dev, = bl_ext.user_default.hot_node)
 HOT_NODE_ADDON_PATH = Path(__file__).parent.parent
+
+IS_DEV = False
 LOCALE = bpy.app.translations.locale # e.g. "en_US"
+FILE_INDENT = None # release None, dev 1
+BLENDER_ICONS = bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items
 
 # Common
 UNIVERSAL_NODE_TREE_IDNAME = "UniversalNodeTree" # not existing in blender, used to access preset in all node trees
@@ -53,7 +57,6 @@ IMAGE_FILE_SUFFIXES = (
     ".webp",
 )
 
-BLENDER_ICONS = bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items
 
 PACK_ICONS_1 = ( # 9 icons in one chunk
     'OUTLINER_COLLECTION',
