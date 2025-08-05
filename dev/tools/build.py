@@ -44,8 +44,8 @@ def write_version_to_files(version_str: str):
             break
     with manifest_path.open("w", encoding="utf-8") as f:
         f.writelines(lines)
-        
-        
+
+
 def check_code():
     import ast
     constants_path = Path(__file__).parent.parent.parent / "utils" / "constants.py"
