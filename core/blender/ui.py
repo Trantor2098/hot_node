@@ -557,7 +557,6 @@ class HOTNODE_PT_main(Panel):
         
         # For UI list
         lcol = row.column(align=True)
-        rows = 3 if len(pack.presets) < 2 else 5
         
         # Add / Remove Preset
         rcol = row.column(align=True)
@@ -573,13 +572,22 @@ class HOTNODE_PT_main(Panel):
         # Specials Menu
         rcol.menu("HOTNODE_MT_preset_options", icon='DOWNARROW_HLT', text="")
         
+        rows = 3 if len(pack.presets) < 2 else 5
+        min_rows = rows # count the rows that at least needed
+        rows = max(user_prefs.min_ui_list_length, rows)
+        
+        if user_prefs.sidebar_items or rows >= 5:
+            rcol.separator()
+            rcol.operator("hotnode.order_preset", icon='TRIA_UP', text="").direction = 'UP'
+            rcol.operator("hotnode.order_preset", icon='TRIA_DOWN', text="").direction = 'DOWN'
+        
         if 'OVERWRITE_TREE_IO' in user_prefs.sidebar_items:
-            rows += 2
+            min_rows += 2
             rcol.separator(factor=1.5)
             rcol.separator()
             rcol.prop(user_prefs, "is_overwrite_tree_io", icon='NODE', text="")
         if 'PACKS' in user_prefs.sidebar_items:
-            rows += len(Context.get_ordered_packs()) + 1
+            min_rows += len(Context.get_ordered_packs()) + 1
             rcol.separator(factor=1.5)
             for pack in Context.get_ordered_packs():
                 icon = pack.meta.icon
@@ -587,7 +595,7 @@ class HOTNODE_PT_main(Panel):
                 ops.pack_name = pack.name
                 ops.mode = 'BYNAME'
         if 'TRANSFER_PRESET' in user_prefs.sidebar_items:
-            rows += 4
+            min_rows += 4
             rcol.separator(factor=1.5)
             ops = rcol.operator("hotnode.add_preset", icon='DUPLICATE', text="")
             ops.preset_name = preset.name if preset else ""
@@ -596,26 +604,20 @@ class HOTNODE_PT_main(Panel):
             rcol.operator("wm.call_menu", icon='FILE', text="").name = "HOTNODE_MT_copy_preset_to_pack"
             rcol.operator("wm.call_menu", icon='FILE_HIDDEN', text="").name = "HOTNODE_MT_move_preset_to_pack"
         if 'UNDO_REDO' in user_prefs.sidebar_items:
-            rows += 3
+            min_rows += 3
             rcol.separator(factor=1.5)
             rcol.operator("hotnode.undo", icon='LOOP_BACK', text="")
             rcol.operator("hotnode.redo", icon='LOOP_FORWARDS', text="")
         if 'REFRESH' in user_prefs.sidebar_items:
-            rows += 1
+            min_rows += 1
             rcol.separator(factor=1.5)
             rcol.operator("hotnode.refresh", icon='FILE_REFRESH', text="")
         if 'PREFERENCES' in user_prefs.sidebar_items:
-            rows += 2
+            min_rows += 2
             rcol.separator(factor=1.5)
             rcol.operator("hotnode.show_user_prefs", icon='PREFERENCES', text="")
             
-        rows = max(rows, user_prefs.min_ui_list_length)
-        
-        # Move up & down
-        if rows >= 5:
-            rcol.separator()
-            rcol.operator("hotnode.order_preset", icon='TRIA_UP', text="").direction = 'UP'
-            rcol.operator("hotnode.order_preset", icon='TRIA_DOWN', text="").direction = 'DOWN'
+        rows = max(min_rows, rows) # judge if the user min rows covers the needed rows
         
         # Draw UI list
         lcol.template_list(
