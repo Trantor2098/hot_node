@@ -324,6 +324,7 @@ class NodesStg(Stg):
         self.stgs.node_ref_late.deserialize()
         self.stgs.node_set_late.deserialize()
         self.stgs.node_location_set_late.deserialize()
+
         jnodes["HN@ref"] = nodes # set late then wont be fond by our setter~
 
     def set_context(self, nodes, jnodes: dict):
@@ -465,8 +466,8 @@ class NodeRefLateStg(LateStg):
             if src_ref_attr == "paired_output":
                 src_node.pair_with_output(dst_node)
             elif src_ref_attr == "parent":
-                # for parent NodeFrames, set parent location will change all sons' locations
-                self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
+                dst_node.location = mathutils.Vector(src_jnode["location"]) + self.context.cursor_offset
+                src_node.parent = dst_node
             else:
                 self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
             src_jnode[src_ref_attr] = None
@@ -511,18 +512,27 @@ class NodeLocationSetLateStg(LateStg):
         super().__init__()
         
     def deserialize(self):
+        jnodes = self.context.jnodes
         apply_offset = False
         if self.context.node_tree is self.context.edit_tree and not self.context.is_create_tree:
             apply_offset = True
             
         cursor_offset = self.context.cursor_offset
-        for key, jnode in self.context.jnodes.items():
-            if key.startswith("HN@"):
+        
+        for key, jnode in jnodes.items():
+            if not apply_offset or key.startswith("HN@"):
                 continue
+            
             node = jnode["HN@ref"]
-            if not apply_offset or node.bl_idname == "NodeFrame":
-                # node's real location = node location + frame location, so dont apply duplicated offset to frames
+            jparent = jnode.get("parent")
+                
+            if isinstance(node, bpy.types.NodeFrame):
                 node.location = mathutils.Vector(jnode["location"])
+            elif jparent:
+                # real node loc = parent loc + jnode loc (relative to parent) + cursor offset
+                parent_jnode = jnodes.get(jparent["HN@ref2_node_name"])
+                parent_location = mathutils.Vector(parent_jnode["location"])
+                node.location = mathutils.Vector(jnode["location"]) + parent_location + cursor_offset
             else:
                 node.location = mathutils.Vector(jnode["location"]) + cursor_offset
 

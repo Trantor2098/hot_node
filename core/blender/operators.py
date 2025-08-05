@@ -343,7 +343,6 @@ class HOTNODE_OT_overwrite_preset_with_selected_nodes(Operator):
     
     @classmethod
     def poll(cls, context):
-        # we should have a right click menu, so escape presets check... if len == 0, just create
         return Context.get_pack_selected() is not None and getattr(context.space_data, "edit_tree") is not None
 
     def execute(self, context):
@@ -457,7 +456,7 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             
         if len(deser_context.newed_main_tree_nodes) == 1:
             edit_tree.nodes.active = deser_context.newed_main_tree_nodes[0]
-            
+        
         Reporter.set_active_ops(None)
         return {'FINISHED'}
 

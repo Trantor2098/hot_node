@@ -544,11 +544,34 @@ class HOTNODE_PT_main(Panel):
             row.popover("HOTNODE_PT_edit", icon='COLLAPSEMENU', text="")
             
             if user_prefs.is_show_load_legacy_packs_button:
-                layout.separator()
-                row = layout.row(align=True)
-                row.operator("hotnode.update_legacy_packs", text="Load & Update Legacy Packs")
-                row = layout.row(align=True)
-                row.prop(user_prefs, "is_show_load_legacy_packs_button", text="Show this button")
+                layout.separator(factor=0.5)
+                layout.separator(type='LINE')
+                layout.separator(factor=0.5)
+                
+                # row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
+                col = layout.column()
+                col.scale_y = 0.8
+                col.label(text="Hot Node 1.0 have a new structure,", icon='INFO')
+                col.label(text="it's more stable and flexible.", icon='BLANK1')
+                
+                col.separator(factor=1.5)
+                col.label(text="You can still load your old packs", icon='BLANK1')
+                col.label(text="but may unable to fully done.", icon='BLANK1')
+                col.label(text="Recover operation is also available,", icon='BLANK1')
+                col.label(text="you can find it in pack options menu.", icon='BLANK1')
+                
+                col.separator(factor=1.5)
+                col.label(text="Hot Node will try it's best.", icon='BLANK1')
+                
+                col = layout.column()
+                col.separator(factor=1.5)
+                row = col.row(align=True)
+                row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
+                
+                col.separator(factor=1.5)
+                row = col.row()
+                row.alignment = 'CENTER'
+                row.prop(user_prefs, "is_show_load_legacy_packs_button", text="Show")
             return
         
         # Presets List
