@@ -1,9 +1,12 @@
-*,Clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.
-*,Show the button to load packs from legacy Hot Node version in the UI when there
-*,Format Data
-*,The preset already exists in the pack. Do you want to overwrite it?
-*,Development Mode
+*,Show
+*,Load Old Packs
+*,you can find it in pack options menu.
+*,"Recover operation is also available,"
+*,it
+*,but may unable to fully done.
+*,Preset overwritten.
+*,Hot Node will try it
+*,"Hot Node 1.0 have a new structure,"
 *,Others
-*,This operation will clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.
-*,Preset Already Existed
-*,Pack data formatted.
+*,Overwrite or Copy with a Alternative Name
+*,You can still load your old packs

@@ -543,35 +543,8 @@ class HOTNODE_PT_main(Panel):
             row.separator(factor=1.5)
             row.popover("HOTNODE_PT_edit", icon='COLLAPSEMENU', text="")
             
-            if user_prefs.is_show_load_legacy_packs_button:
-                layout.separator(factor=0.5)
-                layout.separator(type='LINE')
-                layout.separator(factor=0.5)
-                
-                # row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
-                col = layout.column()
-                col.scale_y = 0.8
-                col.label(text="Hot Node 1.0 have a new structure,", icon='INFO')
-                col.label(text="it's more stable and flexible.", icon='BLANK1')
-                
-                col.separator(factor=1.5)
-                col.label(text="You can still load your old packs", icon='BLANK1')
-                col.label(text="but may unable to fully done.", icon='BLANK1')
-                col.label(text="Recover operation is also available,", icon='BLANK1')
-                col.label(text="you can find it in pack options menu.", icon='BLANK1')
-                
-                col.separator(factor=1.5)
-                col.label(text="Hot Node will try it's best.", icon='BLANK1')
-                
-                col = layout.column()
-                col.separator(factor=1.5)
-                row = col.row(align=True)
-                row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
-                
-                col.separator(factor=1.5)
-                row = col.row()
-                row.alignment = 'CENTER'
-                row.prop(user_prefs, "is_show_load_legacy_packs_button", text="Show")
+            if user_prefs.is_show_addon_new_version_info:
+                self.draw_addon_new_version_info(layout, user_prefs)
             return
         
         # Presets List
@@ -644,13 +617,22 @@ class HOTNODE_PT_main(Panel):
         rows = max(min_rows, rows) # judge if the user min rows covers the needed rows
         
         # Draw UI list
-        lcol.template_list(
-            "HOTNODE_UL_presets", "", 
-            uic, "presets",
-            uic, "preset_selected_idx", 
-            rows=rows
-        )
-           
+        if user_prefs.preset_list_mode == 'DEFAULT':
+            lcol.template_list(
+                "HOTNODE_UL_presets", "", 
+                uic, "presets",
+                uic, "preset_selected_idx", 
+                rows=rows
+            )
+        elif user_prefs.preset_list_mode == 'BUTTON':
+        
+            
+            for preset in pack.ordered_presets:
+                icon = constants.ICON_BY_TREE_TYPE_IDNAME.get(preset.meta.tree_type, 'NODETREE')
+                ops = lcol.operator("hotnode.add_preset_nodes_to_tree", icon=icon, text=preset.name, translate=False)
+                ops.preset_name = preset.name
+                ops.pack_name = pack_name
+
         # Preset Usage UI
         layout.separator(factor=0.1)
         row = layout.row()
@@ -673,6 +655,40 @@ class HOTNODE_PT_main(Panel):
         #             for info in dy_sub_infos:
         #                 row = layout.row()
         #                 row.label(text=info, icon='BLANK1')
+        
+    def draw_addon_new_version_info(self, layout: UILayout, user_prefs):
+        layout.separator(factor=0.5)
+        layout.separator(type='LINE')
+        layout.separator(factor=0.5)
+        
+        # row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
+        col = layout.column()
+        col.scale_y = 0.8
+        col.label(text="Hot Node 1.0 have a new structure,", icon='INFO')
+        col.label(text="it's more stable and flexible.", icon='BLANK1')
+        
+        col.separator(factor=1.5)
+        col.label(text="You can still load your old packs", icon='BLANK1')
+        col.label(text="but may unable to fully done.", icon='BLANK1')
+        col.label(text="Recover operation is also available,", icon='BLANK1')
+        col.label(text="you can find it in pack options menu.", icon='BLANK1')
+        
+        col.separator(factor=1.5)
+        col.label(text="Hot Node will try it's best.", icon='BLANK1')
+        
+        
+        col = layout.column()
+        row = col.row(align=True)   
+        col.label(text="Chu~", icon='BLANK1')
+
+        col.separator(factor=1.5)
+        row = col.row(align=True)
+        row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Your Old Packs")
+        
+        col.separator()
+        row = col.row()
+        row.alignment = 'CENTER'
+        row.prop(user_prefs, "is_show_addon_new_version_info", text="Show")
 
 
 class HOTNODE_PT_edit(Panel):

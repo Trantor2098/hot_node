@@ -426,7 +426,6 @@ class NodeGroupStg(NodeStg):
     def deserialize(self, node: bpy.types.NodeGroup, jnode: dict):
         self.set_context(node, jnode)
         jnode_tree_name = jnode.get("HN@nt_name")
-        print(f"[Hot Node] NodeGroupStg deserialize: {jnode_tree_name}")
         if jnode_tree_name is not None:
             # dst node tree has already been created, so we can set it directly
             dst_node_tree = self.context.jnode_trees[jnode_tree_name]["HN@ref"]
@@ -543,7 +542,18 @@ class NodeSocketStg(Stg):
         self.set_types(bpy.types.NodeSocket)
         
     def deserialize(self, socket: bpy.types.NodeSocket, jsocket: dict):
-        self.deserializer.dispatch_deserialize(socket, jsocket, b=("type", "label"))
+        if socket.bl_idname == "NodeSocketVirtual":
+            return
+        elif socket.bl_idname == "NodeSocketColor":
+            jdefault_value = jsocket.get("default_value", None)
+            if jdefault_value == 0.0:
+                jdefault_value = [0.0, 0.0, 0.0, 1.0]
+                b = ("type", "label", "default_value")
+            else:
+                b = ("type", "label")
+        else:
+            b = ("type", "label")
+        self.deserializer.dispatch_deserialize(socket, jsocket, b=b)
         
     def new(self, socket_collection, jsocket: dict):
         socket = socket_collection.new(jsocket["type"], jsocket["name"])

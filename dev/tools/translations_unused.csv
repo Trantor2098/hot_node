@@ -27,3 +27,34 @@
 *,"Always create a new node tree, even if the two trees are the same."
 *,Preset
 *,UI & Custom
+*,Show preferences button in the side bar.
+*,Load & Update Legacy Packs
+*,⚠ Development
+*,Show this button
+*,Extend the context menu with a list of custom pack menu.
+*,The directory path for textures.
+*,Show duplicate / copy / move preset button in the side bar.
+*,"Packs are partially updated, please check the previous reports for details."
+*,Preferences
+*,List
+*,Show refresh button in the side bar.
+*,Extend the context menu with a menu containing custom packs for saving nodes.
+*,Always New
+*,Show undo / redo button in the side bar.
+*,NodesPack
+*,Pack
+*,All packs are updated.
+*,Preset
+*,Disable the save nodes menu.
+*,Duplicate / Copy / Move Preset
+*,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.
+*,UI & Custom
+*,Only create new node tree if the node tree interface is different.
+*,Undo / Redo
+*,Extend the add nodes menu with a menu containing custom packs.
+*,Extend the add nodes menu with a list of custom pack menu.
+*,Load and update all packs saved with previous versions of Hot Node.
+*,"Always create a new node tree, even if the two trees are the same."
+*,Show overwrite tree I/O toggle in the side bar.
+*,Show packs in the side bar to select.
+*,Try to Reuse

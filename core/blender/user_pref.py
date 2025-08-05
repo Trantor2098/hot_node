@@ -256,9 +256,19 @@ class HotNodeUserPrefs(AddonPreferences):
         soft_max=100,
     ) # type: ignore
     
-    is_show_load_legacy_packs_button: BoolProperty(
-        name="Show Load Legacy Packs Button",
-        description="Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.",
+    preset_list_mode: EnumProperty(
+        name="Preset List Mode",
+        description="Mode for displaying presets in the sidebar",
+        items=[
+            ('DEFAULT', "Default", "Default UI list for presets."),
+            ('BUTTON', "Button", "Button list to quickly add nodes to the node editor."),
+        ],
+        default='DEFAULT',
+    ) # type: ignore
+    
+    is_show_addon_new_version_info: BoolProperty(
+        name="Show Addon New Version Info",
+        description="Show the infos and special operations for the new version of add-on in the UI.",
         default=True,
     ) # type: ignore
 
@@ -334,6 +344,9 @@ class HotNodeUserPrefs(AddonPreferences):
         col.separator()
         col.prop(self, "min_ui_list_length")
         col.separator()
+        row = col.row(align=True)
+        row.prop(self, "preset_list_mode", expand=True)
+        col.separator()
         col.prop(self, "sidebar_items")
         
         col.separator()
@@ -370,7 +383,7 @@ class HotNodeUserPrefs(AddonPreferences):
         col.separator()
         col.separator(type='LINE')
         col.label(text="Others")
-        col.prop(self, "is_show_load_legacy_packs_button")
+        col.prop(self, "is_show_addon_new_version_info")
 
         # Experimental
         col.separator()

@@ -181,3 +181,17 @@ msgctxt,msgid,zh_HANS
 *,This operation will clean up all data of Hot Node. CANNOT BE UNDONE but you can recover packs from the autosave folder later.,此操作将清除 Hot Node 的所有数据且无法撤销. 您可以稍后从自动保存文件夹中恢复节点包.
 *,Preset Already Existed,预设已存在
 *,Hot Node data formatted.,热节点插件数据已格式化.
+*,Load Your Old Packs,加载您的旧节点包
+*,Preset overwritten.,预设已被覆盖.
+*,"Hot Node 1.0 have a new structure,",热节点 1.0 全面升级,
+*,it's more stable and flexible.,插件现在更稳定灵活.
+*,You can still load your old packs,您仍可以加载旧节点包
+*,but may unable to fully done.,但可能无法完全成功.
+*,"Recover operation is also available,","恢复操作也可用,"
+*,you can find it in pack options menu.,可在节点包选项中找到.
+*,Hot Node will try it's best.,热节点将尽力而为.
+*,"Chu~","啾咪~"
+*,Recovered successfully.,恢复成功.
+*,"Recovered partially successfully, see the previous infos.","部分恢复成功, 请查看之前的信息."
+*,Imported successfully.,导入成功.
+*,"Imported partially successfully, see the previous infos.","部分导入成功, 请查看之前的信息."

@@ -487,11 +487,6 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
         options={'HIDDEN'}
     ) # type: ignore
     
-    preset_name_alt: StringProperty(
-        name="Alternative Preset Name",
-        default="",
-    ) # type: ignore
-    
     # move or copy
     is_move: BoolProperty(
         default=False,
@@ -610,17 +605,13 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
         print(dst_pack.meta.ordered_preset_names)
         if self.preset.name in dst_pack.meta.ordered_preset_names:
             wm = context.window_manager
-            result = wm.invoke_props_dialog(
-                self,
-                title="Overwrite or Copy with a Alternative Name",
+            result = wm.invoke_confirm(
+                self, 
+                event=event, 
+                title="Preset Already Existed", 
+                confirm_text="Overwrite",
+                message="The preset already exists in the pack. Do you want to overwrite it?"
             )
-            # result = wm.invoke_confirm(
-            #     self, 
-            #     event=event, 
-            #     title="Preset Already Existed", 
-            #     confirm_text="Overwrite",
-            #     message="The preset already exists in the pack. Do you want to overwrite it?"
-            # )
             self.is_overwriting = True
             return result
         self.is_overwriting = False
@@ -956,9 +947,9 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
             uic.select_pack(uic, last_imported_pack)
             if imported_num == file_num:
                 if self.is_recovering:
-                    self.report({'INFO'}, "Recovered successfully.")
+                    Reporter.report_finish("Recovered successfully.", "Recovered partially successfully, see the previous infos.")
                 else:
-                    self.report({'INFO'}, "Imported successfully.")
+                    Reporter.report_finish("Imported successfully.", "Import partially successfully, see the previous infos.")
             else:
                 self.report({'INFO'}, "Partially imported successfully.")
         elif file_num > 1:
