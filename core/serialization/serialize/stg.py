@@ -285,20 +285,26 @@ class NodeLinksStg(Stg):
             # create links for ng (because all nodes in ng are needed), and for selected
             if self.parse_all or from_node.select and to_node.select:
                 jlink = {}
-                jlink["HN@from_node_name"] = from_node.name
-                jlink["HN@to_node_name"] = to_node.name
+                jlink["HN@fn_n"] = from_node.name
+                jlink["HN@tn_n"] = to_node.name
                 outputs = from_node.outputs
                 length = len(outputs)
                 for i in range(length):
                     # fortunatelly it seems like socket type have __eq__() function that allows we to use ==, and it works...
                     if from_socket == outputs[i]:
-                        jlink["HN@from_socket_idx"] = i
+                        jlink["HN@fs_i"] = i
+                        jlink["HN@fs_bid"] = from_socket.bl_idname
+                        jlink["HN@fs_n"] = from_socket.name
+                        jlink["HN@fs_id"] = from_socket.identifier
                         break
                 inputs = to_node.inputs
                 length = len(inputs)
                 for i in range(length):
                     if to_socket == inputs[i]:
-                        jlink["HN@to_socket_idx"] = i
+                        jlink["HN@ts_i"] = i
+                        jlink["HN@ts_bid"] = to_socket.bl_idname
+                        jlink["HN@ts_n"] = to_socket.name
+                        jlink["HN@ts_id"] = to_socket.identifier
                         break
                 jlinks.append(jlink)
         return jlinks, True
@@ -406,13 +412,15 @@ class NodeSocketStg(Stg):
         super().__init__()
         self.set_types(bpy.types.NodeSocket,)
         self.append_attr_list(
-            b=("node", "select", "dimensions", "is_active_output", "internal_links", "rna_type", "identifier", "is_linked", "is_unavailable", "is_multi_input", "is_output", "link_limit", "is_icon_visible", "is_inactive", "inferred_structure_type")
+            b=("node", "select", "dimensions", "is_active_output", "internal_links", "rna_type", "is_linked", "is_unavailable", "is_multi_input", "is_output", "link_limit", "is_icon_visible", "is_inactive", "inferred_structure_type")
         )
         self.cull_default = True
 
     def serialize(self, attr, obj: bpy.types.NodeSocket, fobj):
         jobj = self.serializer.dispatch_serialize(obj, fobj, self)
         need = jobj != {}
+        if need:
+            jobj["identifier"] = obj.identifier # for future use.
         return jobj, need
 
 

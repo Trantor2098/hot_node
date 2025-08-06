@@ -287,24 +287,62 @@ class NodeLinksStg(Stg):
                 from_node, to_node = self.get_from_and_to_node(jlink)
                 if from_node.bl_idname != "NodeGroupInput" and to_node.bl_idname != "NodeGroupOutput":
                     self.build_link(jlink, from_node, to_node, node_links)
-                        
+                    # TODO 5.0 GeoNode added a Mode menu, implement support for it
+
     def get_from_and_to_node(self, jlink: dict):
         jnodes = self.context.jnodes
-        from_node_name = jlink['HN@from_node_name']
-        to_node_name = jlink['HN@to_node_name']
+        from_node_name = jlink['HN@fn_n']
+        to_node_name = jlink['HN@tn_n']
         jfrom_node =  jnodes.get(from_node_name)
         jto_node = jnodes.get(to_node_name)
         from_node = jfrom_node["HN@ref"]
         to_node = jto_node["HN@ref"]
         return from_node, to_node
                         
-    def build_link(self, jlink, from_node, to_node, node_links):
-        HN_from_socket_idx = jlink['HN@from_socket_idx']
-        HN_to_socket_idx = jlink['HN@to_socket_idx']
-        if (HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs)):
-            from_socket = from_node.outputs[HN_from_socket_idx]
-            to_socket = to_node.inputs[HN_to_socket_idx]
-            node_links.new(from_socket, to_socket)
+    def build_link(self, jlink, from_node, to_node, node_links: bpy.types.NodeLinks):
+        HN_from_socket_idx = jlink['HN@fs_i']
+        HN_to_socket_idx = jlink['HN@ts_i']
+        
+        if not HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs):
+            return
+        
+        from_socket = from_node.outputs[HN_from_socket_idx]
+        to_socket = to_node.inputs[HN_to_socket_idx]
+        link = node_links.new(from_socket, to_socket)
+        
+        # try build link by identifier if the link is not valid
+        if not link.is_valid:
+            print(f"[Hot Node] Link {from_node.name} -> {to_node.name} is not valid, trying to fix it by identifier.")
+            HN_to_socket_identifier = jlink["HN@ts_id"]
+            HN_to_socket_bl_idname = jlink["HN@ts_bid"]
+            HN_from_socket_identifier = jlink["HN@fs_id"]
+            HN_from_socket_bl_idname = jlink["HN@fs_bid"]
+            is_new_to_socket = False
+            if HN_to_socket_bl_idname != to_socket.bl_idname:
+                is_new_to_socket = True
+                for socket in to_node.inputs:
+                    if socket.bl_idname == HN_to_socket_bl_idname and socket.identifier == HN_to_socket_identifier:
+                        new_to_socket = socket
+                        break
+            is_new_from_socket = False
+            if HN_from_socket_bl_idname != from_socket.bl_idname:
+                is_new_from_socket = True
+                for socket in from_node.outputs:
+                    if socket.bl_idname == HN_from_socket_bl_idname and socket.identifier == HN_from_socket_identifier:
+                        new_from_socket = socket
+                        break
+            if is_new_to_socket and is_new_from_socket:
+                node_links.remove(link)
+                link = node_links.new(new_from_socket, new_to_socket)
+            elif is_new_to_socket:
+                node_links.remove(link)
+                link = node_links.new(from_socket, new_to_socket)
+            elif is_new_from_socket:
+                node_links.remove(link)
+                link = node_links.new(new_from_socket, to_socket)
+            else:
+                print(f"[Hot Node] Failed to fix link {from_node.name} -> {to_node.name} by identifier, please check the node tree.")
+        return link
 
 
 class NodesStg(Stg):
@@ -510,11 +548,11 @@ class NodeSocketStg(Stg):
             jdefault_value = jsocket.get("default_value", None)
             if jdefault_value == 0.0:
                 jdefault_value = [0.0, 0.0, 0.0, 1.0]
-                b = ("type", "label", "default_value")
+                b = ("identifier", "type", "label", "default_value")
             else:
-                b = ("type", "label")
+                b = ("identifier", "type", "label")
         else:
-            b = ("type", "label")
+            b = ("identifier", "type", "label")
         self.deserializer.dispatch_deserialize(socket, jsocket, b=b)
         
     def new(self, socket_collection, jsocket: dict):

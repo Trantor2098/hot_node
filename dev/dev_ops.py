@@ -1,3 +1,5 @@
+import os
+
 import bpy
 from bpy.types import Operator
 from bpy.props import StringProperty, BoolProperty, EnumProperty
@@ -47,14 +49,13 @@ class HOTNODE_OT_dev_reload(Operator):
 
 class HOTNODE_OT_dev_run1(Operator):
     bl_idname = "hotnode.dev_run1"
-    bl_label = "add_all_nodes_to_edit_tree"
-    bl_description = "add_all_nodes_to_edit_tree"
+    bl_label = "Open Addon Data Directory"
+    bl_description = "Open the addon data directory"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
         
-        dev_utils.add_all_nodes_to_edit_tree(context)
-        
+        os.startfile(Context.fm.app_data_dir)
         return {'FINISHED'}
 
 
@@ -75,13 +76,20 @@ class HOTNODE_OT_dev_run2(Operator):
 
 class HOTNODE_OT_dev_run3(Operator):
     bl_idname = "hotnode.dev_run3"
-    bl_label = "Print Current Blender Version"
+    bl_label = "Print Socket Identifier"
     bl_description = "extract_selected_nodes_unique_attr_type"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
         
-        print(constants.BLENDER_VERSION_STR)
+        for node in context.selected_nodes:
+            print(f"Node: {node.name}, Type: {node.bl_idname}")
+            print("Inputs:")
+            for socket in node.inputs:
+                print(f"{socket.name}: {socket.identifier}")
+            print("Outputs:")
+            for socket in node.outputs:
+                print(f"{socket.name}: {socket.identifier}")
 
         return {'FINISHED'}
 

@@ -21,7 +21,7 @@ def find_text_strings(root_dir):
         r'confirm_text\s*=\s*[\'"](.*?)[\'"]',
         r'message\s*=\s*[\'"](.*?)[\'"]',
     ]
-    exclude_dirs = {os.path.join(root_dir, 'dev'), os.path.join(root_dir, 'utils')}
+    exclude_dirs = {os.path.join(root_dir, 'dev'), os.path.join(root_dir, 'utils'), os.path.join(root_dir, 'services', 'i18n.py')}
     for folder, _, files in os.walk(root_dir):
         # exclude dev, utils
         if any(os.path.abspath(folder).startswith(os.path.abspath(ex)) for ex in exclude_dirs):

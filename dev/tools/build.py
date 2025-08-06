@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -106,6 +107,7 @@ def build(
     print(result.stdout)
     if result.stderr:
         print("Error:", result.stderr)
+    os.startfile(output_dir)
         
 
 def main():
@@ -116,9 +118,8 @@ def main():
     build(
         blender_path=r"D:\Software\Software_B\Blender\blender-4.3.0-release\blender.exe",
         source_dir=str(Path(__file__).parent.parent.parent),
-        output_dir=r"E:\.temp",
+        output_dir=r"E:\Alpha\Proj\hot_node\builds",
     )
-    
     check_code()
     
 if __name__ == "__main__":
