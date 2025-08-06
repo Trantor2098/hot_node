@@ -1,12 +1,9 @@
 *,Show
-*,Load Old Packs
-*,you can find it in pack options menu.
-*,"Recover operation is also available,"
-*,it
-*,but may unable to fully done.
-*,Preset overwritten.
 *,Hot Node will try it
-*,"Hot Node 1.0 have a new structure,"
+*,Preset List Mode
+*,Show the infos and special operations for the new version of add-on in the UI.
+*,Show Addon New Version Info
+*,it
 *,Others
-*,Overwrite or Copy with a Alternative Name
-*,You can still load your old packs
+*,Load Old Packs
+*,Mode for displaying presets in the sidebar

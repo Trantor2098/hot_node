@@ -113,9 +113,9 @@ class PresetStg(Stg):
             if self.is_interface_same(context.main_tree, context.jmain_tree.get("interface")):
                 node_tree_stg.is_set_tree_io = False
                 node_links_stg.is_link_group_io = True
-            # if tree io is not capatible and has group io node, let user to choose whether to reset tree io or not
+            # if tree io is not capatible and has group io node, let user to choose whether to reset tree io or not, or set when adding nodes to a new tree
             elif self.has_group_io_node(context.jmain_tree):
-                node_tree_stg.is_set_tree_io = context.user_prefs.is_overwrite_tree_io
+                node_tree_stg.is_set_tree_io = context.user_prefs.is_overwrite_tree_io or context.is_add_nodes_to_new_tree
                 node_links_stg.is_link_group_io = node_tree_stg.is_set_tree_io
             # if dont have group io node, dont need to set tree io
             else:
@@ -137,8 +137,10 @@ class PresetStg(Stg):
     def has_group_io_node(self, jnode_tree: dict) -> bool:
         """Check if the node tree has group io nodes."""
         for jnode in jnode_tree["nodes"].values():
-            if jnode["bl_idname"] in ("NodeGroupInput", "NodeGroupOutput"):
+            if jnode["bl_idname"] in (constants.NODE_GROUP_INPUT_IDNAME, constants.NODE_GROUP_OUTPUT_IDNAME):
+                self.context.is_has_group_io_node = True
                 return True
+        self.context.is_has_group_io_node = False
         return False
     
     def is_interface_same(self, node_tree, jinterface) -> bool:
@@ -320,10 +322,10 @@ class NodesStg(Stg):
             bl_idname = jnode["bl_idname"]
             node = nodes.new(type=bl_idname)
             self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
-            
+
         self.stgs.node_ref_late.deserialize()
         self.stgs.node_set_late.deserialize()
-        self.stgs.node_location_set_late.deserialize()
+        # cursor offset will be handled in hot_node/core/blender/operators.py
 
         jnodes["HN@ref"] = nodes # set late then wont be fond by our setter~
 
@@ -398,19 +400,6 @@ class NodeZoneInputStg(NodeStg):
         if has_dst_node:
             self.stgs.node_set_late.request(node, jnode, self)
 
-
-class NodeFrameStg(NodeStg):
-    def __init__(self):
-        super().__init__()
-        self.set_types(
-            bpy.types.NodeFrame,
-        )
-        
-    def deserialize(self, node, jnode: dict):
-        self.set_context(node, jnode)
-        self.set(node, jnode)
-        self.stgs.node_set_late.specify_request(node, jnode, "location")
-
  
 class NodeGroupStg(NodeStg):
     def __init__(self):
@@ -465,15 +454,18 @@ class NodeRefLateStg(LateStg):
             if src_ref_attr == "paired_output":
                 src_node.pair_with_output(dst_node)
             elif src_ref_attr == "parent":
-                dst_node.location = mathutils.Vector(src_jnode["location"]) + self.context.cursor_offset
                 src_node.parent = dst_node
             else:
                 self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
             src_jnode[src_ref_attr] = None
         self.request_list.clear()
 
-    def request(self, src_jnode, attr_name: str):
+    def request(self, src_jnode: dict, attr_name: str):
         """Return True if dst node is found, otherwise return False."""
+        jvalue = src_jnode.get(attr_name)
+        # actually, blender wont have a single NodeZone, it must be in pair.
+        if jvalue is None:
+            return False
         dst_node_name = src_jnode[attr_name]["HN@ref2_node_name"]
         dst_jnode = self.context.jnodes.get(dst_node_name)
         if dst_jnode is not None:
@@ -505,37 +497,7 @@ class NodeSetLateStg(LateStg):
     def specify_request(self, node, jnode, attr):
         self.specific_request_list.append((node, jnode, attr))
 
-  
-class NodeLocationSetLateStg(LateStg):
-    def __init__(self):
-        super().__init__()
-        
-    def deserialize(self):
-        jnodes = self.context.jnodes
-        apply_offset = False
-        if self.context.node_tree is self.context.edit_tree and not self.context.is_create_tree:
-            apply_offset = True
-            
-        cursor_offset = self.context.cursor_offset
-        
-        for key, jnode in jnodes.items():
-            if not apply_offset or key.startswith("HN@"):
-                continue
-            
-            node = jnode["HN@ref"]
-            jparent = jnode.get("parent")
-                
-            if isinstance(node, bpy.types.NodeFrame):
-                node.location = mathutils.Vector(jnode["location"])
-            elif jparent:
-                # real node loc = parent loc + jnode loc (relative to parent) + cursor offset
-                parent_jnode = jnodes.get(jparent["HN@ref2_node_name"])
-                parent_location = mathutils.Vector(parent_jnode["location"])
-                node.location = mathutils.Vector(jnode["location"]) + parent_location + cursor_offset
-            else:
-                node.location = mathutils.Vector(jnode["location"]) + cursor_offset
 
-      
 class NodeSocketStg(Stg):
     def __init__(self):
         super().__init__()
@@ -733,7 +695,10 @@ class HNStg(Stg):
     def deserialize(self, value, jvalue):
         hn_stg = jvalue["HN@stg"]
         if hn_stg == "NodeRef":
-            self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
+            # ref_attr = jvalue["HN@ref2_node_attr"]
+            is_requested = self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
+            # if not is_requested and ref_attr == "parent":
+            #     setattr(value, jvalue["HN@ref2_node_attr"], None)
 
 
 class SetStg(Stg):

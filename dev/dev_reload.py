@@ -20,12 +20,12 @@ def dev_reload():
         "..core.serialization.serialize.serializer",
         "..core.serialization.serialize.stg",
         "..core.serialization.manager",
-        "..services",
-        "..services.autosave",
-        "..services.history",
-        "..services.sync",
-        "..services.i18n",
-        "..services.versioning",
+        # "..services", # service cls.ID has problem with reloading
+        # "..services.autosave",
+        # "..services.history",
+        # "..services.sync",
+        # "..services.i18n",
+        # "..services.versioning",
         # "..utils.constants", # issue with path lacking if add this
         "..utils",
         "..utils.file_manager",

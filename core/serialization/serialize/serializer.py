@@ -1,5 +1,7 @@
 import bpy
 
+from ....utils import utils
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .stg import Stg
@@ -29,6 +31,19 @@ class Context:
 
         self.preset_name_when_only_one_node = None
         self.obj_tree: list = []
+        
+    def init_on_serializing_preset(self, bl_context: bpy.types.Context, main_tree: bpy.types.NodeTree|None = None):
+        self.bl_context = bl_context
+        self.user_prefs = utils.get_user_prefs(bl_context)
+        self.space_data = bpy.context.space_data
+        self.node_groups = bpy.data.node_groups
+        self.edit_tree = bl_context.space_data.edit_tree if hasattr(bl_context.space_data, "edit_tree") else None
+        if main_tree is None:
+            self.main_tree = self.edit_tree
+        else:
+            self.main_tree = main_tree
+        self.preset_name_when_only_one_node = None
+        self.prev_obj = None
 
 class Serializer:
     """This class use stgs to do the serialization."""

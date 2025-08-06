@@ -195,3 +195,8 @@ msgctxt,msgid,zh_HANS
 *,"Recovered partially successfully, see the previous infos.","部分恢复成功, 请查看之前的信息."
 *,Imported successfully.,导入成功.
 *,"Imported partially successfully, see the previous infos.","部分导入成功, 请查看之前的信息."
+*,Preset List Mode,预设列表偏好
+*,Show the infos and special operations for the new version of add-on in the UI.,在 UI 中显示插件新版本的信息和特殊操作.
+*,Show Add-on New Version Info,显示插件新版本信息
+*,Load Old Packs,加载旧节点包
+*,Mode for displaying presets in the sidebar,在侧边栏中显示预设的偏好

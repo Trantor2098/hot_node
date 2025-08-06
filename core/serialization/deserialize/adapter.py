@@ -23,7 +23,6 @@ class Adapter():
             self.node_tree_interface_socket_menu_late: NodeTreeInterfaceSocketMenuLateStg = None
             self.node_tree_interface_socket_menu: NodeTreeInterfaceSocketMenuStg = None
             self.node_socket: NodeSocketStg = None
-            self.node_location_set_late: NodeLocationSetLateStg = None
             self.node_set_late: NodeSetLateStg = None
             self.node_ref_late: NodeRefLateStg = None
             self.compositor_node_color_balance: CompositorNodeColorBalanceStg = None
@@ -106,7 +105,6 @@ class Adapter():
                     self.image,
                     self.node_tree_interface_socket_menu_late,
                     self.node_tree_interface_socket_menu,
-                    self.node_location_set_late,
                     self.node_set_late,
                     self.node_ref_late,
                     self.node_socket,
@@ -145,7 +143,6 @@ class Adapter():
             stgs.image = ImageStg()
             stgs.node_tree_interface_socket_menu_late = NodeTreeInterfaceSocketMenuLateStg()
             stgs.node_tree_interface_socket_menu = NodeTreeInterfaceSocketMenuStg()
-            stgs.node_location_set_late = NodeLocationSetLateStg()
             stgs.node_socket = NodeSocketStg()
             stgs.node_set_late = NodeSetLateStg()
             stgs.node_ref_late = NodeRefLateStg()

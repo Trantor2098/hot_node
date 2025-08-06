@@ -149,9 +149,9 @@ class PresetStg(Stg):
         node_center = [0.0, 0.0]
         for jnode in jnodes.values():
             if jnode["bl_idname"] != "NodeFrame":
-                jlocation = jnode["location"]
-                node_center[0] += jlocation[0]
-                node_center[1] += jlocation[1]
+                jlocation_abs = jnode["location_absolute"]
+                node_center[0] += jlocation_abs[0]
+                node_center[1] += jlocation_abs[1]
                 location_node_num += 1
         if location_node_num > 0:
             node_center[0] /= location_node_num
@@ -331,7 +331,7 @@ class NodeStg(Stg):
         super().__init__()
         self.set_types(bpy.types.Node,)
         self.append_attr_list(
-            w=("name", "bl_idname", "location"), 
+            w=("name", "bl_idname", "location", "location_absolute"), 
             b=("node_tree", "internal_links", "rna_type", "select", "dimensions", "is_active_output", "type") # "type" is read-only but it will be culled by default
         )
         self.cull_default = True
@@ -352,6 +352,8 @@ class NodeStg(Stg):
             jnode["HN@ref2_node_attr"] = attr
             jnode["HN@ref2_node_name"] = node.name
             jnode["HN@stg"] = "NodeRef"
+            if attr == "parent":
+                jnode["HN@ref2_node_loc"] = list(node.location)
             is_ref = True
             self.is_record_type = False
         else:
@@ -383,7 +385,7 @@ class NodeGroupStg(NodeStg):
         )
         self.clear_attr_lists()
         self.append_attr_list(
-            w=("name", "bl_idname", "location"), 
+            w=("name", "bl_idname", "location", "location_absolute"), 
             b=("node_tree", "internal_links", "rna_type", "select", "dimensions", "is_active_output")
         )
         self.cull_default = True

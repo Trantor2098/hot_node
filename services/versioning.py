@@ -126,14 +126,6 @@ class VersioningService(ServiceBase):
             try_remove_trees(node_groups, new_tree_names)
 
         pack.save_metas()
-                    
-        node_groups.remove(temp_shader_node_tree)
-        node_groups.remove(temp_geometry_node_tree)
-        node_groups.remove(temp_texture_node_tree)
-        node_groups.remove(temp_compositor_node_tree)
-
-        for node_group in ori_node_groups:
-            node_group.name = node_group.name[26:]  # Remove "HN@TEMP_NODE_TREE_FOR_ORI_"
         
         legacy_meta_path = pack.pack_dir / ".metadata.json"
         
@@ -141,5 +133,12 @@ class VersioningService(ServiceBase):
         if legacy_meta_path.exists():
             legacy_meta = cls.fm.read_json(legacy_meta_path)  # Ensure the file is read before deletion
             cls.fm.remove_file(legacy_meta_path)
+
+        # Ensure trees renamed / removed, the most robust way
+        for node_group in node_groups:
+            if node_group.name.startswith("HN@TEMP_NODE_TREE_FOR_ORI_"):
+                node_group.name = node_group.name[26:]
+            elif node_group.name.startswith("HN@TEMP_"):
+                node_groups.remove(node_group)
         
         return failed_preset_names, legacy_meta

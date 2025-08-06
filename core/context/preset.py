@@ -93,10 +93,10 @@ class Preset():
     def serialize(self, bl_context, main_tree = None):
         self.jpreset = self.sm.serialize_preset(bl_context, main_tree)
         
-    def deserialize(self, bl_context):
+    def deserialize(self, bl_context, main_tree = None, is_add_nodes_to_new_tree: bool = False):
         self.load()
-        self.sm.deserialize_preset(bl_context, self.jpreset)
-        
+        self.sm.deserialize_preset(bl_context, self.jpreset, main_tree, is_add_nodes_to_new_tree)
+
     def get_ser_context(self):
         """Get the serialization context."""
         return self.sm.ser_context

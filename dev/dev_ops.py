@@ -4,7 +4,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.app.translations import pgettext_iface as _
 
 
-from . import dev_func, dev_utils, dev_reload
+from . import dev_func, dev_utils, dev_reload, dev_ui
 from ..core.context.context import Context
 from ..utils import constants
 
@@ -17,21 +17,30 @@ class HOTNODE_OT_dev_reload(Operator):
     def execute(self, context):
         from ..core.blender import ui, ui_context, operators, user_pref
         
+        dev_ui.unregister()
+        ui.unregister()
+        
         def unregister():
-            user_pref.unregister()
             operators.unregister()
-            ui.unregister()
             ui_context.unregister()
+            user_pref.unregister()
             
         def register():
             user_pref.register()
             operators.register()
-            ui.register()
             ui_context.register()
+            
+        def register_ui():
+            ui.register()
+            
+        def reset_classes():
+            # reset the context to ensure it is re-initialized and sm, ser, deser singletons is reset.
+            Context.reset()
 
         bpy.app.timers.register(unregister, first_interval=0.1)
-        bpy.app.timers.register(dev_reload.dev_reload, first_interval=0.3)
-        bpy.app.timers.register(register, first_interval=0.5)
+        bpy.app.timers.register(dev_reload.dev_reload, first_interval=0.2)
+        bpy.app.timers.register(register, first_interval=0.3)
+        bpy.app.timers.register(register_ui, first_interval=0.4)
         
         return {'FINISHED'}
 
@@ -51,23 +60,15 @@ class HOTNODE_OT_dev_run1(Operator):
 
 class HOTNODE_OT_dev_run2(Operator):
     bl_idname = "hotnode.dev_run2"
-    bl_label = "Print Current Context"
+    bl_label = "Add a Node to Edit Center"
     bl_description = "extract_active_node_hierarchy"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
         
-        print(Context.pack_selected)
-        
-        print("[HOT NODE] Current Context:")
-        print(f" |-pack_selected: {Context.pack_selected.name if Context.pack_selected is not None else 'None'}")
-        print(f" |-preset_selected: {Context.preset_selected.name if Context.preset_selected is not None else 'None'}")
-        print(f" |-packs:")
-        for pack_name, pack in Context.packs.items():
-            print(f" | |-{pack_name}:")
-            print(f" | | |-icon: {pack.meta.icon}")
-            print(f" | | |-description: {pack.meta.description}")
-            print(f" | | |-presets:")
+        edit_tree = context.space_data.edit_tree
+        if edit_tree:
+            node = edit_tree.nodes.new("NodeReroute")
         
         return {'FINISHED'}
 

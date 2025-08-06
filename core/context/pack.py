@@ -248,9 +248,9 @@ class Pack:
         self.add_preset(new_preset)
         self.save_preset(new_preset)
         return new_preset
-            
-    def add_preset_nodes_to_tree(self, bl_context, preset: Preset):
-        preset.deserialize(bl_context)
+
+    def add_preset_nodes_to_tree(self, bl_context, preset: Preset, main_tree = None, is_new_tree: bool = False):
+        preset.deserialize(bl_context, main_tree, is_new_tree)
             
     def overwrite_preset(self, preset: Preset|str, bl_context, main_tree = None):
         """Serialize current selected nodes and write the result to disk."""

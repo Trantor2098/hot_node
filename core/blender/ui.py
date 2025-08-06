@@ -13,6 +13,12 @@ from ...utils import constants
 from ...utils import utils
 from .ui_context import UIContext, UIPreset
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..context.pack import Pack
+    from ..context.preset import Preset
+    from ..blender.user_pref import HotNodeUserPrefs
+
 
 class HOTNODE_MT_merged_add_nodes_packs(Menu):
     """A menu shows a pack's presets for user to get / modify / create / ..."""
@@ -393,13 +399,7 @@ class HOTNODE_MT_preset_options(Menu):
         preset = Context.preset_selected
         layout = self.layout
 
-        # Refresh
-        # layout.operator("hotnode.refresh", icon='FILE_REFRESH')
-        # layout.operator("hotnode.repair_corruption", icon='FILE_REFRESH')
-
-        # Move top / bottom
-        # layout.separator()
-        layout.operator("hotnode.order_preset", icon='TRIA_UP_BAR', text="Move to Top").direction = 'TOP'
+        ops = layout.operator("hotnode.order_preset", icon='TRIA_UP_BAR', text="Move to Top").direction = 'TOP'
         layout.operator("hotnode.order_preset", icon='TRIA_DOWN_BAR', text="Move to Bottom").direction = 'BOTTOM'
 
         # Preset to Pack
@@ -463,13 +463,26 @@ class HOTNODE_UL_presets(UIList):
     def draw_item(self, context, layout: UILayout, data, item, icon, active_data, active_propname, index):
         ui_preset: UIPreset = item
         preset = Context.pack_selected.get_preset(ui_preset.name)
+        pack = Context.get_pack_selected()
         
         if preset is None:
             layout.prop(ui_preset, "name", text="", emboss=False, icon='ERROR')
             return
         
         icon = constants.ICON_BY_TREE_TYPE_IDNAME.get(preset.meta.tree_type, 'NODETREE')
-        layout.prop(ui_preset, "name", text="", emboss=False, icon=icon, translate=False)
+        is_type_match = preset.meta.tree_type == getattr(context.space_data, "tree_type", None)
+        
+        row = layout.column(align=True)
+        
+        row.scale_x = 0.9
+        row.active = is_type_match
+        ops = row.operator("hotnode.add_preset_nodes_to_tree", icon=icon, text="", translate=False, emboss=False)
+        ops.preset_name = preset.name
+        ops.pack_name = pack.name
+        
+        row = layout.column(align=True)
+        row.active = is_type_match
+        row.prop(ui_preset, "name", text="", emboss=False, translate=False)
 
     
 class HOTNODE_PT_main(Panel):
@@ -479,31 +492,6 @@ class HOTNODE_PT_main(Panel):
     bl_region_type = 'UI'
     bl_category = "Hot Node"
     bl_translation_context = i18n_contexts.default
-
-    # dy_info: str|None = None
-    # dy_info_icon: str|None = None
-    # dy_sub_infos: tuple[str]|None = None
-    # dy_info_born_time = 0.0
-    # dy_info_duration = 3.0
-    
-    # @classmethod
-    # def set_dynamic_info(cls, info: str, main_icon: str|None = None, sub_infos: tuple[str]|None = None, duration: float = 3.0):
-    #     cls.dy_info = info
-    #     cls.dy_info_icon = main_icon
-    #     cls.dy_sub_infos = sub_infos
-    #     cls.dy_info_born_time = time.time()
-    #     cls.dy_info_duration = duration
-        
-    # @classmethod
-    # def get_or_expire_dynamic_info(cls):
-    #     if cls.dy_info is None:
-    #         return None, None, None
-    #     if time.time() - cls.dy_info_born_time > cls.dy_info_duration:
-    #         cls.dy_info = None
-    #         cls.dy_info_icon = None
-    #         cls.dy_sub_infos = None
-    #         return None, None, None
-    #     return cls.dy_info, cls.dy_info_icon, cls.dy_sub_infos
 
     def draw(self, context):
         SS.ensure_sync_on_interval()
@@ -546,7 +534,7 @@ class HOTNODE_PT_main(Panel):
             if user_prefs.is_show_addon_new_version_info:
                 self.draw_addon_new_version_info(layout, user_prefs)
             return
-        
+
         # Presets List
         layout.separator(factor=0.1)
         row = layout.row()
@@ -617,21 +605,12 @@ class HOTNODE_PT_main(Panel):
         rows = max(min_rows, rows) # judge if the user min rows covers the needed rows
         
         # Draw UI list
-        if user_prefs.preset_list_mode == 'DEFAULT':
-            lcol.template_list(
-                "HOTNODE_UL_presets", "", 
-                uic, "presets",
-                uic, "preset_selected_idx", 
-                rows=rows
-            )
-        elif user_prefs.preset_list_mode == 'BUTTON':
-        
-            
-            for preset in pack.ordered_presets:
-                icon = constants.ICON_BY_TREE_TYPE_IDNAME.get(preset.meta.tree_type, 'NODETREE')
-                ops = lcol.operator("hotnode.add_preset_nodes_to_tree", icon=icon, text=preset.name, translate=False)
-                ops.preset_name = preset.name
-                ops.pack_name = pack_name
+        lcol.template_list(
+            "HOTNODE_UL_presets", "", 
+            uic, "presets",
+            uic, "preset_selected_idx", 
+            rows=rows
+        )
 
         # Preset Usage UI
         layout.separator(factor=0.1)
@@ -644,18 +623,7 @@ class HOTNODE_PT_main(Panel):
         ops = row.operator("hotnode.overwrite_preset_with_selection", icon='GREASEPENCIL', text="")
         ops.preset_name = preset_name
         ops.pack_name = pack_name
-
-        # Dynamic Info
-        # dy_info, dy_info_icon, dy_sub_infos = self.get_or_expire_dynamic_info()
-        # if dy_info is not None:
-        #     if time.time() - self.dy_info_born_time < self.dy_info_duration:
-        #         row = layout.row()
-        #         row.label(text=dy_info, icon=dy_info_icon)
-        #         if dy_sub_infos is not None:
-        #             for info in dy_sub_infos:
-        #                 row = layout.row()
-        #                 row.label(text=info, icon='BLANK1')
-        
+    
     def draw_addon_new_version_info(self, layout: UILayout, user_prefs):
         layout.separator(factor=0.5)
         layout.separator(type='LINE')

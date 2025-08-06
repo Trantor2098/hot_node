@@ -30,7 +30,6 @@ def write_to_i18n_py(translations, i18n_py_path):
             new_lines.append(line)
             continue
         if in_class and line.strip().startswith('translations ='):
-            # 写入新的 translations 字典
             new_lines.append(f'    translations = {repr(translations)}\n')
             replaced = True
             in_class = False

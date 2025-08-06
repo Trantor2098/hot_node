@@ -112,6 +112,7 @@ def collect_unused_texts(needed_text_strings):
         print("No unused text items found.")
 
 def main():
+    # NOTE We may lost some text items in enum, and in special code blocks, so this is not a perfect solution. but works for most cases.
     text_strings = extract_texts()
     collect_unused_texts(text_strings)
 

@@ -1,7 +1,7 @@
 import bpy
 import mathutils
 # import time
-# from ....utils import utils
+from ....utils import utils
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -43,20 +43,47 @@ class DeserializationContext:
         self.is_create_tree = False
         self.is_apply_offset = True
         self.is_setting_main_tree = False
+        self.is_add_nodes_to_new_tree = False  # whether the preset is being added to a new tree
+        self.is_has_group_io_node = False  # whether the preset has group input/output nodes
+        self.is_compatibility_checked = False
         
         # Image file names cache in the user prefs texture directory. 
         # Load every time before deserializing a preset if image obj exists.
         self.image_names_in_dir: list[str] = []
         self.obj_tree: list = []
         
-    def init_on_deserializing_preset(self):
+    def init_on_deserializing_preset(self, bl_context: bpy.types.Context, jpreset: dict, main_tree: bpy.types.NodeTree|None = None, is_add_nodes_to_new_tree: bool = False):
+        jdata: dict = jpreset.get("HN@data", {})
+        
         self.existing_node_group_names.clear()
         self.newed_main_tree_nodes.clear()
         self.image_names_in_dir.clear()
-        
+
         self.is_create_tree = False
         self.is_apply_offset = True
         self.is_setting_main_tree = False
+        self.bl_context = bl_context
+        self.user_prefs = utils.get_user_prefs(bl_context)
+        self.space_data = bl_context.space_data
+        self.node_groups = bpy.data.node_groups
+        self.edit_tree = bl_context.space_data.edit_tree if hasattr(bl_context.space_data, "edit_tree") else None
+        if main_tree is None:
+            self.main_tree = self.edit_tree
+        else:
+            self.main_tree = main_tree
+
+        self.jpreset = jpreset
+        self.jdata = jdata
+        self.jnode_trees = jpreset.get("HN@node_trees", {})
+        self.jmain_tree = self.jnode_trees.get("HN@main_tree", {})
+        
+        # use get to avoid KeyError if the key is not present when preset version is old
+        self.data_node_center = jdata.get("node_center", [0.0, 0.0])
+        self.data_compatible_mode = jdata.get("compatible_mode", True)
+        
+        self.existing_node_group_names = list(self.node_groups.keys())
+        self.image_names_in_dir = []
+        self.is_add_nodes_to_new_tree = is_add_nodes_to_new_tree
         
     def cal_cursor_offset(self):
         self.cursor_offset = self.bl_context.space_data.cursor_location - mathutils.Vector(self.data_node_center)

@@ -58,3 +58,40 @@
 *,Show overwrite tree I/O toggle in the side bar.
 *,Show packs in the side bar to select.
 *,Try to Reuse
+*,Preferences
+*,Show undo / redo button in the side bar.
+*,it's more stable and flexible.
+*,"Packs are partially updated, please check the previous reports for details."
+*,NodesPack
+*,Show packs in the side bar to select.
+*,"Imported partially successfully, see the previous infos."
+*,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.
+*,Try to Reuse
+*,List
+*,Disable the save nodes menu.
+*,Show duplicate / copy / move preset button in the side bar.
+*,Only create new node tree if the node tree interface is different.
+*,Extend the context menu with a list of custom pack menu.
+*,Load and update all packs saved with previous versions of Hot Node.
+*,"Always create a new node tree, even if the two trees are the same."
+*,Show the button to load packs from legacy Hot Node version in the UI when there
+*,All packs are updated.
+*,Pack
+*,Extend the add nodes menu with a menu containing custom packs.
+*,Extend the context menu with a menu containing custom packs for saving nodes.
+*,Undo / Redo
+*,"Recovered partially successfully, see the previous infos."
+*,Always New
+*,Show this button
+*,UI & Custom
+*,Show Load Legacy Packs Button
+*,Show preferences button in the side bar.
+*,Preset
+*,Extend the add nodes menu with a list of custom pack menu.
+*,Hot Node will try it's best.
+*,Show refresh button in the side bar.
+*,Load & Update Legacy Packs
+*,The directory path for textures.
+*,Show overwrite tree I/O toggle in the side bar.
+*,⚠ Development
+*,Duplicate / Copy / Move Preset

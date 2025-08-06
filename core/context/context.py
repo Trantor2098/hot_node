@@ -290,6 +290,7 @@ class Context:
         elif isinstance(preset, int):
             preset = cls.pack_selected.ordered_presets[preset] if preset >= 0 and preset < len(cls.pack_selected.ordered_presets) else None
         cls.preset_selected = preset
+        return preset
         
     @classmethod
     def select_first_preset_or_none(cls):
