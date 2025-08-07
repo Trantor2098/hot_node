@@ -1280,9 +1280,9 @@ class HOTNODE_OT_undo(bpy.types.Operator):
     def execute(self, context):
         Reporter.set_active_ops(self)
         uic = context.window_manager.hot_node_ui_context
-        
         try:
             step = HS.undo(uic)
+            SS.save_sync_meta()
         except Exception as e:
             Reporter.report_error("History data un-matched. History cleared.")
             HS.discard_jsteps(HS.jsteps)
@@ -1311,6 +1311,7 @@ class HOTNODE_OT_redo(bpy.types.Operator):
         uic = context.window_manager.hot_node_ui_context
         try:
             step = HS.redo(uic)
+            SS.save_sync_meta()
         except Exception as e:
             Reporter.report_error("History data un-matched. History cleared.")
             HS.discard_jsteps(HS.jundone_steps)

@@ -15,6 +15,8 @@ def write_version_to_files(version_str: str):
     if dash_index != -1:
         version_str_body = version_str[:dash_index]
         suffix = version_str[dash_index:]
+    else:
+        version_str_body = version_str
         
     version_tuple = tuple(map(int, version_str_body.split('.')))
     version_list = [int(x) for x in version_str_body.split('.')]
@@ -108,11 +110,11 @@ def build(
     if result.stderr:
         print("Error:", result.stderr)
     os.startfile(output_dir)
-        
+
 
 def main():
     # Write the version to __init__.py, blender_manifest.toml, and utils/constants.py
-    write_version_to_files("1.0.0")
+    write_version_to_files("1.0.0-beta")
     
     # build settings are defined in blender_manifest.toml
     build(

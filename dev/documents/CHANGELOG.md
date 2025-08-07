@@ -1,15 +1,19 @@
 ChangeLog
 ========
 
-## [1.0.0] - 2025-08-02
+## [1.0.0] - 2025-08-07
 --------
 
 ### Added
-- Custom pack icon, UI list minimum length, sidebar items, pack / preset default name, and more.
+- You can click the little icon beside the preset to add nodes now.
+- Custom pack icon, UI list minimum length, sidebar items, pack / preset / menu default name, and more.
+- Pack filter checker to show packs which are in current editing node tree type.
+- New code structure. In the future it's easier to add support for the new blender node / third party node, and, easier for the other contributors to join the node-support-development!
 
 ### Changed
 - Brand new isolated history system, now undo/redo can be shared across blender sessions, and wont be pushed into blender's history.
 - Brand new node parsing and setting system with strong **stability** and **flexibility** for handling issues in the future.
+- Extended menu to node add menu / context menu can be disabled now.
 - Finetuned interaction design.
 - Changed translation system to blender's.
 - Keywords mode of setting images are removed. Instead, a image name filter is avaliable for matching images by name similarity when the image directory was given.

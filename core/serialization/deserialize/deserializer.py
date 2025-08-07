@@ -201,9 +201,3 @@ class Deserializer:
             return
         stg.deserialize(obj, jobj)
         self.context.obj_tree.pop()
-        
-    def specify_request(self, obj, stg: 'LateStg', *args):
-        """Request the stg to do something before serializing."""
-        self.context.obj_tree.append(obj)
-        stg.request(*args)
-        self.context.obj_tree.pop()

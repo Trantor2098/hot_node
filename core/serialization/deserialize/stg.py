@@ -384,16 +384,17 @@ class NodeStg(Stg):
         self.set_types(bpy.types.Node)
         # self.b = ("location", "location_absolute")
         # self.b = ("location_absolute",)
-        self.b = ("location",)
+        self.b = ("location",) # to not let 4.4- set location. set it manually.
 
     def deserialize(self, node, jnode: dict):
+        """Template methods to deserialize a node. Override these as you like!"""
         if node is None:
             node = self.new(jnode)
-        self.set_parent_node_first(node, jnode)
+        self.try_set_node_ref(node, jnode)
         self.set_context(node, jnode)
         jnode["HN@ref"] = node
         self.set(node, jnode)
-        if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE and node.parent:
+        if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
             self.set_loc_4_3_L(node, jnode)
         self.set_loc_offset(node, jnode)
 
@@ -405,20 +406,25 @@ class NodeStg(Stg):
         """Template method to set node attributes. Override this method to set specific attributes."""
         self.deserializer.dispatch_deserialize(node, jnode, b=b if b else self.b)
         
-    def set_parent_node_first(self, node, jnode: dict):
+    def try_set_node_ref(self, node, jnode: dict):
         """recursively set parent node first to ensure parent assignment is done before node loc setting"""
-        jparent = jnode.get("parent")
-        if jparent:
-            parent_jname = jparent["HN@ref2_node_name"]
-            parent_jnode = self.context.jnodes.get(parent_jname)
-            if parent_jnode:
+        jnode_ref = jnode.get("parent")
+        if jnode_ref:
+            self.set_node_ref(node, jnode, jnode_ref, self.context.node_frames_with_children)
+                
+    def set_node_ref(self, node, jnode: dict, jnode_ref: dict, node_set_to_append = None):
+        """node_set_to_append: a set to append the parent node to, usually is node_frames_with_children"""
+        parent_jname = jnode_ref["HN@ref2_node_name"]
+        parent_jnode = self.context.jnodes.get(parent_jname)
+        if parent_jnode:
+            parent_node = parent_jnode.get("HN@ref")
+            # parent_node not created, create it first
+            if not parent_node:
+                self.deserializer.specify_deserialize(None, parent_jnode, self.stgs.node)
                 parent_node = parent_jnode.get("HN@ref")
-                # parent_node not created, create it first
-                if not parent_node:
-                    self.deserializer.specify_deserialize(None, parent_jnode, self.stgs.node)
-                    parent_node = parent_jnode.get("HN@ref")
-                self.context.node_frames_with_children.add(parent_node)
-                node.parent = parent_node
+            if node_set_to_append:
+                node_set_to_append.add(parent_node)
+            node.parent = parent_node
                 
     def set_loc_4_3_L(self, node, jnode: dict = None):
         """for version 4.3 and lower, node dont have location_absolute, but 4.4+ set location by abs loc, so treat old node with abs loc."""
@@ -428,7 +434,6 @@ class NodeStg(Stg):
         if self.context.is_apply_offset and self.context.is_setting_main_tree:
             loc1 = node.location.copy()
             node.location += self.context.cursor_offset
-            print(loc1, " + ", self.context.cursor_offset, " = ", node.location, " (", node.name, ")")
         
     def set_context(self, node, jnode):
         self.context.node = node
@@ -472,13 +477,41 @@ class NodeZoneInputStg(NodeStg):
             bpy.types.GeometryNodeRepeatInput,
             bpy.types.GeometryNodeForeachGeometryElementInput,
         )
+        
+    def try_set_node_ref(self, node, jnode):
+        jpaired_output = jnode.get("paired_output")
+        if jpaired_output:
+            self.set_node_ref(node, jnode, jpaired_output, None)
+        jnode_ref = jnode.get("parent")
+        if jnode_ref:
+            self.set_node_ref(node, jnode, jnode_ref, self.context.node_frames_with_children)
+
+# NOTE we found a better way, look above ^
+# class NodeZoneInputStg(NodeStg):
+#     def __init__(self):
+#         super().__init__()
+#         self.set_types(
+#             bpy.types.GeometryNodeSimulationInput,
+#             bpy.types.GeometryNodeRepeatInput,
+#             bpy.types.GeometryNodeForeachGeometryElementInput,
+#         )
+        
+#     def deserialize(self, node, jnode: dict):
+#         if node is None:
+#             node = self.new(jnode)
+#         jnode["HN@ref"] = node
+#         # pair_with_output will build the node's input and output sockets
+#         has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
+#         if has_dst_node:
+#             self.stgs.node_set_late.request(node, jnode, self.set_late)
     
-    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
-        # jnode["HN@ref"] = node
-        # pair_with_output will build the node's input and output sockets
-        has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
-        if has_dst_node:
-            self.stgs.node_set_late.request(node, jnode, self)
+#     def set_late(self, node, jnode: dict = None):
+#         self.set_parent_node_first(node, jnode)
+#         self.set_context(node, jnode)
+#         self.set(node, jnode)
+#         if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
+#             self.set_loc_4_3_L(node, jnode)
+#         self.set_loc_offset(node, jnode)
 
  
 class NodeGroupStg(NodeStg):
@@ -492,8 +525,7 @@ class NodeGroupStg(NodeStg):
             bpy.types.CompositorNodeGroup,
         )
 
-    def deserialize(self, node: bpy.types.NodeGroup, jnode: dict):
-        self.set_context(node, jnode)
+    def set(self, node: bpy.types.NodeGroup, jnode: dict):
         jnode_tree_name = jnode.get("HN@nt_name")
         if jnode_tree_name is not None:
             # dst node tree has already been created, so we can set it directly
@@ -504,7 +536,7 @@ class NodeGroupStg(NodeStg):
                 return
             else:
                 node.node_tree = dst_node_tree
-        self.set(node, jnode)
+        self.deserializer.dispatch_deserialize(node, jnode)
         
 
 class CompositorNodeColorBalanceStg(NodeStg):
@@ -563,18 +595,19 @@ class NodeSetLateStg(LateStg):
         self.specific_request_list = [] # for specific attr.
         
     def deserialize(self):
-        for node, jnode, stg in self.request_list:
-            stg: NodeStg
-            stg.set(node, jnode)
+        for node, jnode, set_func in self.request_list:
+            set_func(node, jnode)
         self.request_list.clear()
+        
         for node, jnode, attr in self.specific_request_list:
-            self.deserializer.dispatch_deserialize(node, jnode)
+            self.deserializer.dispatch_deserialize(node, jnode, self.stgs.stg_list_node)
         self.specific_request_list.clear()
             
-    def request(self, node, jnode, stg: Stg):
-        self.request_list.append((node, jnode, stg))
+    def request(self, node, jnode, set_func):
+        """set_func should have 2 parameter: node, jnode"""
+        self.request_list.append((node, jnode, set_func))
         
-    def specify_request(self, node, jnode, attr):
+    def request_attr(self, node, jnode, attr):
         self.specific_request_list.append((node, jnode, attr))
 
 
@@ -773,13 +806,14 @@ class HNStg(Stg):
         super().__init__()
         
     def deserialize(self, value, jvalue):
+        # not used, paired_output and parent are now solved in NodeStg.set_ref_node(), they look up the ref2node to set, so dont need late ref/set anymore.
+        # TODO clean up
         pass
         # hn_stg = jvalue["HN@stg"]
         # if hn_stg == "NodeRef":
-        #     # ref_attr = jvalue["HN@ref2_node_attr"]
-        #     is_requested = self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
-        #     # if not is_requested and ref_attr == "parent":
-        #     #     setattr(value, jvalue["HN@ref2_node_attr"], None)
+        #     ref2_node_attr = jvalue["HN@ref2_node_attr"]
+        #     if ref2_node_attr == "paired_output":
+        #         is_requested = self.stgs.node_ref_late.request(self.context.jnode, ref2_node_attr)
 
 
 class SetStg(Stg):

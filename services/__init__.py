@@ -47,12 +47,19 @@ class ServiceBase:
     """Base class for all services in the Hot Node system."""
     is_enabled = False
     fm = FileManager()
+    
+    AutosaveService = None
+    HistoryService = None
+    I18nService = None
+    SyncService = None
+    VersioningService = None
 
     @classmethod
     def enable(cls, *args, **kwargs):
         if not cls.is_enabled:
             cls.is_enabled = True
             cls.ID = str(time.time())
+            setattr(ServiceBase, cls.__name__, cls)
             if cls.inject_dependencies is not ServiceBase.inject_dependencies:
                 cls.inject_dependencies(*args, **kwargs)
             cls.on_enable()

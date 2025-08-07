@@ -334,7 +334,6 @@ class NodesStg(Stg):
         # if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
         if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
             for name, jnode in jnodes.items():
-                print(jnode.get("location_absolute"))
                 if not jnode.get("location_absolute"):
                     jnode["location_absolute"] = list(self.stgs.node.cal_location_absolute(nodes[name]))
 

@@ -9,7 +9,7 @@ from bpy.app.translations import (
 
 
 from . import ServiceBase
-from .sync import SyncService
+# from .sync import SyncService
 from ..utils import utils
 from ..utils.reporter import Reporter
 
@@ -282,11 +282,11 @@ class HistoryService(ServiceBase):
         
     @classmethod
     def ensure_sync(cls):
-        if SyncService.is_enabled:
-            if not SyncService.is_id_sync():
+        if cls.SyncService.is_enabled:
+            if not cls.SyncService.is_id_sync():
                 cls.load_history()
         else:
-            cls.load_history() # XXX costly
+            cls.load_history() # costly
 
     @classmethod
     def load_history(cls):

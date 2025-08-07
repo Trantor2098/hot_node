@@ -41,6 +41,7 @@ class SyncService(ServiceBase):
 
     @classmethod
     def sync(cls):
+        cls.HistoryService.load_history()
         prev_pack_selected_name = cls.context_cls.pack_selected.name if cls.context_cls.pack_selected else ""
         cls.context_cls.initialize(prev_pack_selected_name)
         cls.uic_cls.initialize()
