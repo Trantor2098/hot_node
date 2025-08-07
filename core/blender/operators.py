@@ -463,7 +463,7 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
         main_tree = edit_tree
         is_new_tree = self.is_new_tree or main_tree is None
         if is_new_tree:
-            deser_context.is_apply_offset = False
+            deser_context.is_create_tree = True
             space_tree_type = space.tree_type
             if space_tree_type == constants.SHADER_NODE_TREE_IDNAME:
                 # new world

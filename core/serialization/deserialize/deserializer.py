@@ -42,8 +42,8 @@ class DeserializationContext:
         self.cursor_offset: 'mathutils.Vector' = mathutils.Vector((0, 0))
         self.node_frames_with_children: set[bpy.types.Node] = set()  # node with children, used to cancel selection when attaching
 
-        self.is_create_tree = False
-        self.is_apply_offset = True
+        self.is_create_tree = False # whether the preset is being added to a new tree, triggered by the user
+        self.is_apply_offset = True # whether to apply the cursor offset when deserializing nodes, choose by user
         self.is_setting_main_tree = False
         self.is_add_nodes_to_new_tree = False  # whether the preset is being added to a new tree
         self.is_has_group_io_node = False  # whether the preset has group input/output nodes

@@ -396,7 +396,8 @@ class NodeStg(Stg):
         self.set(node, jnode)
         if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
             self.set_loc_4_3_L(node, jnode)
-        self.set_loc_offset(node, jnode)
+        if self.context.is_apply_offset and self.context.is_setting_main_tree and not self.context.is_create_tree:
+            self.set_loc_offset(node, jnode)
 
     def new(self, jnode: dict):
         bl_idname = jnode["bl_idname"]
@@ -422,7 +423,7 @@ class NodeStg(Stg):
             if not parent_node:
                 self.deserializer.specify_deserialize(None, parent_jnode, self.stgs.node)
                 parent_node = parent_jnode.get("HN@ref")
-            if node_set_to_append:
+            if node_set_to_append is not None:
                 node_set_to_append.add(parent_node)
             node.parent = parent_node
                 
@@ -431,9 +432,7 @@ class NodeStg(Stg):
         node.location += mathutils.Vector(jnode["location_absolute"])
         
     def set_loc_offset(self, node, jnode: dict = None):
-        if self.context.is_apply_offset and self.context.is_setting_main_tree:
-            loc1 = node.location.copy()
-            node.location += self.context.cursor_offset
+        node.location += self.context.cursor_offset
         
     def set_context(self, node, jnode):
         self.context.node = node
