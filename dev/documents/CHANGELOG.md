@@ -18,6 +18,7 @@ ChangeLog
 ### Fixed
 - Significant stability improvement.
 - `NodeZone` stability improvement.
+- Thoroughly repaired the `NodeFrame` location problem.
 
 ## [0.7.11] - 2024-06-23
 

@@ -394,7 +394,7 @@ class NodeStg(Stg):
         jnode["HN@ref"] = node
         self.set(node, jnode)
         if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE and node.parent:
-            node.location += mathutils.Vector(jnode["location_absolute"])
+            self.set_loc_4_3_L(node, jnode)
         self.set_loc_offset(node, jnode)
 
     def new(self, jnode: dict):
@@ -419,6 +419,10 @@ class NodeStg(Stg):
                     parent_node = parent_jnode.get("HN@ref")
                 self.context.node_frames_with_children.add(parent_node)
                 node.parent = parent_node
+                
+    def set_loc_4_3_L(self, node, jnode: dict = None):
+        """for version 4.3 and lower, node dont have location_absolute, but 4.4+ set location by abs loc, so treat old node with abs loc."""
+        node.location += mathutils.Vector(jnode["location_absolute"])
         
     def set_loc_offset(self, node, jnode: dict = None):
         if self.context.is_apply_offset and self.context.is_setting_main_tree:

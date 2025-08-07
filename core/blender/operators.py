@@ -427,7 +427,9 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             
     @staticmethod
     def attach_nodes_to_cursor(new_node_frames_with_children):
-        # cursor offset is already applied in serialization.deserialize.stg.NodeStg.set_loc_offset
+        # cursor offset is already applied in serialization.deserialize.stg.NodeStg.set_loc_offset.
+        # 1. For frame with children, dont attach to cursor, because it will cause frame shake. Let children "pull" the frame.
+        # 2. For longly frame, select it and attach to cursor, so it will be moved to the cursor position.
         for node in new_node_frames_with_children:
             node.select = False
         

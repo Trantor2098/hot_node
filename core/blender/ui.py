@@ -380,6 +380,9 @@ class HOTNODE_MT_pack_options(Menu):
         col.operator("hotnode.create_pack", icon='ADD').pack_name = iface_(user_prefs.default_pack_name)
         col.operator("hotnode.remove_pack", icon='REMOVE').pack_name = Context.get_pack_selected_name()
         
+        col.separator()
+        col.prop(user_prefs, "is_filter_pack_by_tree_type", icon='FILTER', text="Filter by Tree Type")
+        
         if Context.get_pack_selected():
             col.separator()
             col.menu("HOTNODE_MT_pack_icons", icon='TAG', text="Choose an Icon...")

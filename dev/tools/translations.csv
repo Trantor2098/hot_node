@@ -201,3 +201,4 @@ msgctxt,msgid,zh_HANS
 *,Load Old Packs,加载旧节点包
 *,Mode for displaying presets in the sidebar,在侧边栏中显示预设的偏好
 *,No nodes were added. The preset is empty.,未添加任何节点. 预设为空.
+*,Filter by Tree Type,仅显示当前树类型的包

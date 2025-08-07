@@ -117,6 +117,10 @@ def data_dir_update(self: 'HotNodeUserPrefs', context):
     fm.ensure_app_dir_structure()
     SS.sync()
     HS.load_history()
+    
+    
+def is_filter_pack_by_tree_type_update(self: 'HotNodeUserPrefs', context):
+    SS.sync()
 
 
 def is_dev_update(self, context):
@@ -195,7 +199,7 @@ class HotNodeUserPrefs(AddonPreferences):
         name="Filter Pack by Tree Type",
         description="Filter packs in the add-on panel by the current node tree type in the node editor",
         default=False,
-        update=sidebar_category_update,
+        update=is_filter_pack_by_tree_type_update,
     ) # type: ignore
 
     add_nodes_menu_mode: EnumProperty(
