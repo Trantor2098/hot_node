@@ -382,9 +382,10 @@ class NodeStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(bpy.types.Node)
-        # self.b = ("location", "location_absolute")
-        # self.b = ("location_absolute",)
-        self.b = ("location",) # to not let 4.4- set location. set it manually.
+        if constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
+            self.b = ("location",) # to not let 4.4- set location. set it manually.
+        else:
+            self.b = ("location", "location_absolute")
 
     def deserialize(self, node, jnode: dict):
         """Template methods to deserialize a node. Override these as you like!"""
@@ -403,9 +404,9 @@ class NodeStg(Stg):
         bl_idname = jnode["bl_idname"]
         return self.context.nodes.new(type=bl_idname)
     
-    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
+    def set(self, node, jnode: dict = None):
         """Template method to set node attributes. Override this method to set specific attributes."""
-        self.deserializer.dispatch_deserialize(node, jnode, b=b if b else self.b)
+        self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
         
     def try_set_node_ref(self, node, jnode: dict):
         """recursively set parent node first to ensure parent assignment is done before node loc setting"""
@@ -456,7 +457,7 @@ class NodeZoneOutputStg(NodeStg):
             bpy.types.GeometryNodeForeachGeometryElementOutput: ("generation_items", "main_items", "input_items"),
         }
     
-    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
+    def set(self, node, jnode: dict = None):
         items_attrs = self.items_attrs_map.get(node.__class__, ())
         # set items first, so that NodeInputs and NodeOutputs can be created before setting them
         for items_attr in items_attrs:
@@ -465,7 +466,7 @@ class NodeZoneOutputStg(NodeStg):
             self.deserializer.specify_deserialize(items, jitems, self.stgs.bpy_prop_collection)
             # clear the jitems to avoid setting it again
             jitems = None
-        self.deserializer.dispatch_deserialize(node, jnode)
+        self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
         # jnode["HN@ref"] = node
 
 
@@ -524,6 +525,7 @@ class NodeGroupStg(NodeStg):
             bpy.types.TextureNodeGroup,
             bpy.types.CompositorNodeGroup,
         )
+        self.b += ("node_tree",)  # add node_tree to b, so that it will be set by deserializer
 
     def set(self, node: bpy.types.NodeGroup, jnode: dict):
         jnode_tree_name = jnode.get("HN@nt_name")
@@ -536,6 +538,7 @@ class NodeGroupStg(NodeStg):
                 return
             else:
                 node.node_tree = dst_node_tree
+        self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
         
 
 class CompositorNodeColorBalanceStg(NodeStg):
@@ -546,11 +549,12 @@ class CompositorNodeColorBalanceStg(NodeStg):
     def set(self, node: bpy.types.NodeGroup, jnode: dict):
         correction_method = jnode.get("correction_method", 'LIFT_GAMMA_GAIN')
         if correction_method == 'LIFT_GAMMA_GAIN':
-            b = ("offset", "power", "slope")
+            self.b = self.b + ("offset", "power", "slope")
         elif correction_method == 'OFFSET_POWER_SLOPE':
-            b = ("lift", "gamma", "gain")
+            self.b = self.b + ("lift", "gamma", "gain")
+        self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
 
-
+# NOTE now node find and set their ref, so dont need to request a late deserialization
 # class NodeRefLateStg(LateStg):
 #     def __init__(self):
 #         super().__init__()
@@ -586,6 +590,7 @@ class CompositorNodeColorBalanceStg(NodeStg):
 #             return False
 
 
+# NOTE now node find and set their ref, so dont need to request a late deserialization
 # class NodeSetLateStg(LateStg):
 #     def __init__(self):
 #         super().__init__()
@@ -823,10 +828,10 @@ class SetStg(Stg):
         try:
             # BUG sometimes (often after Ctrl + G and the node group interface is autoly created) tree interface socket's subtype is "", 
             # but it is supposed to be 'NONE'. maybe a blender bug? here we check this to avoid TypeError except.
-            # SOLVE THIS FUCKIGN BUG. it happens at gamma node.
-            if attr == "subtype" and jvalue == "":
-                jvalue = 'NONE'
-            elif isinstance(jvalue, list):
+            # SOLVE THIS BUG. it happens at gamma node.
+            # if attr == "subtype" and jvalue == "":
+            #     jvalue = 'NONE'
+            if isinstance(jvalue, list):
                 jvalue = mathutils.Vector(jvalue)
             setattr(obj, attr, jvalue)
         except Exception as e:

@@ -29,10 +29,13 @@ class Context:
         self.fnode_by_bl_idname: dict[str, bpy.types.Node] = {} # for comparing
         self.fnode: bpy.types.Node = None
 
+        # self.main_tree_jnode_frames_with_children: set[bpy.types.Node] = set()
+
         self.preset_name_when_only_one_node = None
         self.obj_tree: list = []
         
     def init_on_serializing_preset(self, bl_context: bpy.types.Context, main_tree: bpy.types.NodeTree|None = None):
+        self.__init__()
         self.bl_context = bl_context
         self.user_prefs = utils.get_user_prefs(bl_context)
         self.space_data = bpy.context.space_data
@@ -42,8 +45,6 @@ class Context:
             self.main_tree = self.edit_tree
         else:
             self.main_tree = main_tree
-        self.preset_name_when_only_one_node = None
-        self.prev_obj = None
 
 class Serializer:
     """This class use stgs to do the serialization."""

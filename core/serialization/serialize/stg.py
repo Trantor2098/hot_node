@@ -147,12 +147,13 @@ class PresetStg(Stg):
         jnodes = jpreset["HN@node_trees"]["HN@main_tree"]["nodes"]
         location_node_num = 0
         node_center = [0.0, 0.0]
+        # main_tree_jnode_frames_with_children = self.context.main_tree_jnode_frames_with_children
         for jnode in jnodes.values():
-            if jnode["bl_idname"] != "NodeFrame":
-                jlocation_abs = jnode.get("location_absolute", jnode["location"])
-                node_center[0] += jlocation_abs[0]
-                node_center[1] += jlocation_abs[1]
-                location_node_num += 1
+            # if jnode not in main_tree_jnode_frames_with_children:
+            jlocation_abs = jnode.get("location_absolute", jnode["location"])
+            node_center[0] += jlocation_abs[0]
+            node_center[1] += jlocation_abs[1]
+            location_node_num += 1
         if location_node_num > 0:
             node_center[0] /= location_node_num
             node_center[1] /= location_node_num
@@ -370,6 +371,7 @@ class NodeStg(Stg):
             jnode["HN@stg"] = "NodeRef"
             if attr == "parent":
                 jnode["HN@ref2_node_loc"] = list(node.location)
+                # self.context.main_tree_jnode_frames_with_children.add(jnode)
             is_ref = True
             self.is_record_type = False
         else:
