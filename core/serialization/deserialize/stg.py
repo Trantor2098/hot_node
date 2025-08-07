@@ -132,6 +132,7 @@ class PresetStg(Stg):
             context.clear_cursor_offset()
 
         # set main tree
+        context.is_setting_main_tree = True
         self.deserializer.specify_deserialize(context.main_tree, jnode_tree, self.stgs.node_tree)
         
     def has_group_io_node(self, jnode_tree: dict) -> bool:
@@ -310,38 +311,38 @@ class NodeLinksStg(Stg):
         to_socket = to_node.inputs[HN_to_socket_idx]
         link = node_links.new(from_socket, to_socket)
         
-        # try build link by identifier if the link is not valid
-        if not link.is_valid:
-            print(f"[Hot Node] Link {from_node.name} -> {to_node.name} is not valid, trying to fix it by identifier.")
-            HN_to_socket_identifier = jlink["HN@ts_id"]
-            HN_to_socket_bl_idname = jlink["HN@ts_bid"]
-            HN_from_socket_identifier = jlink["HN@fs_id"]
-            HN_from_socket_bl_idname = jlink["HN@fs_bid"]
-            is_new_to_socket = False
-            if HN_to_socket_bl_idname != to_socket.bl_idname:
-                is_new_to_socket = True
-                for socket in to_node.inputs:
-                    if socket.bl_idname == HN_to_socket_bl_idname and socket.identifier == HN_to_socket_identifier:
-                        new_to_socket = socket
-                        break
-            is_new_from_socket = False
-            if HN_from_socket_bl_idname != from_socket.bl_idname:
-                is_new_from_socket = True
-                for socket in from_node.outputs:
-                    if socket.bl_idname == HN_from_socket_bl_idname and socket.identifier == HN_from_socket_identifier:
-                        new_from_socket = socket
-                        break
-            if is_new_to_socket and is_new_from_socket:
-                node_links.remove(link)
-                link = node_links.new(new_from_socket, new_to_socket)
-            elif is_new_to_socket:
-                node_links.remove(link)
-                link = node_links.new(from_socket, new_to_socket)
-            elif is_new_from_socket:
-                node_links.remove(link)
-                link = node_links.new(new_from_socket, to_socket)
-            else:
-                print(f"[Hot Node] Failed to fix link {from_node.name} -> {to_node.name} by identifier, please check the node tree.")
+        # if the link valid or is exactly invalid when saving (ser stg only record is_valid when it's False), return
+        if link.is_valid or not jlink.get("HN@is_valid", True):
+            return link
+        
+        # try to handle invalid link (usually caused by node socket map change of blender updation)
+        HN_to_socket_identifier = jlink["HN@ts_id"]
+        HN_to_socket_bl_idname = jlink["HN@ts_bid"]
+        HN_from_socket_identifier = jlink["HN@fs_id"]
+        HN_from_socket_bl_idname = jlink["HN@fs_bid"]
+        is_new_to_socket = False
+        if HN_to_socket_bl_idname != to_socket.bl_idname:
+            is_new_to_socket = True
+            for socket in to_node.inputs:
+                if socket.bl_idname == HN_to_socket_bl_idname and socket.identifier == HN_to_socket_identifier:
+                    new_to_socket = socket
+                    break
+        is_new_from_socket = False
+        if HN_from_socket_bl_idname != from_socket.bl_idname:
+            is_new_from_socket = True
+            for socket in from_node.outputs:
+                if socket.bl_idname == HN_from_socket_bl_idname and socket.identifier == HN_from_socket_identifier:
+                    new_from_socket = socket
+                    break
+        if is_new_to_socket and is_new_from_socket:
+            node_links.remove(link)
+            link = node_links.new(new_from_socket, new_to_socket)
+        elif is_new_to_socket:
+            node_links.remove(link)
+            link = node_links.new(from_socket, new_to_socket)
+        elif is_new_from_socket:
+            node_links.remove(link)
+            link = node_links.new(new_from_socket, to_socket)
         return link
 
 
@@ -357,13 +358,16 @@ class NodesStg(Stg):
         for key, jnode in jnodes.items():
             if key.startswith("HN@"):
                 continue
+            # may be handled by other stg
+            if jnode.get("HN@ref"):
+                continue 
             bl_idname = jnode["bl_idname"]
             node = nodes.new(type=bl_idname)
             self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
 
         self.stgs.node_ref_late.deserialize()
         self.stgs.node_set_late.deserialize()
-        # cursor offset will be handled in hot_node/core/blender/operators.py
+        # cursor offset will be handled in NodeStg
 
         jnodes["HN@ref"] = nodes # set late then wont be fond by our setter~
 
@@ -378,14 +382,49 @@ class NodeStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(bpy.types.Node)
+        # self.b = ("location", "location_absolute")
+        # self.b = ("location_absolute",)
+        self.b = ("location",)
 
     def deserialize(self, node, jnode: dict):
+        if node is None:
+            node = self.new(jnode)
+        self.set_parent_node_first(node, jnode)
         self.set_context(node, jnode)
-        self.set(node, jnode)
-        
-    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
-        self.deserializer.dispatch_deserialize(node, jnode, b=b if b else self.b)
         jnode["HN@ref"] = node
+        self.set(node, jnode)
+        if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE and node.parent:
+            node.location += mathutils.Vector(jnode["location_absolute"])
+        self.set_loc_offset(node, jnode)
+
+    def new(self, jnode: dict):
+        bl_idname = jnode["bl_idname"]
+        return self.context.nodes.new(type=bl_idname)
+    
+    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
+        """Template method to set node attributes. Override this method to set specific attributes."""
+        self.deserializer.dispatch_deserialize(node, jnode, b=b if b else self.b)
+        
+    def set_parent_node_first(self, node, jnode: dict):
+        """recursively set parent node first to ensure parent assignment is done before node loc setting"""
+        jparent = jnode.get("parent")
+        if jparent:
+            parent_jname = jparent["HN@ref2_node_name"]
+            parent_jnode = self.context.jnodes.get(parent_jname)
+            if parent_jnode:
+                parent_node = parent_jnode.get("HN@ref")
+                # parent_node not created, create it first
+                if not parent_node:
+                    self.deserializer.specify_deserialize(None, parent_jnode, self.stgs.node)
+                    parent_node = parent_jnode.get("HN@ref")
+                self.context.node_frames_with_children.add(parent_node)
+                node.parent = parent_node
+        
+    def set_loc_offset(self, node, jnode: dict = None):
+        if self.context.is_apply_offset and self.context.is_setting_main_tree:
+            loc1 = node.location.copy()
+            node.location += self.context.cursor_offset
+            print(loc1, " + ", self.context.cursor_offset, " = ", node.location, " (", node.name, ")")
         
     def set_context(self, node, jnode):
         self.context.node = node
@@ -418,7 +457,7 @@ class NodeZoneOutputStg(NodeStg):
             # clear the jitems to avoid setting it again
             jitems = None
         self.deserializer.dispatch_deserialize(node, jnode)
-        jnode["HN@ref"] = node
+        # jnode["HN@ref"] = node
 
 
 class NodeZoneInputStg(NodeStg):
@@ -430,9 +469,8 @@ class NodeZoneInputStg(NodeStg):
             bpy.types.GeometryNodeForeachGeometryElementInput,
         )
     
-    def deserialize(self, node, jnode: dict):
-        self.set_context(node, jnode)
-        jnode["HN@ref"] = node
+    def set(self, node, jnode: dict = None, b: tuple[str] = ()):
+        # jnode["HN@ref"] = node
         # pair_with_output will build the node's input and output sockets
         has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
         if has_dst_node:
@@ -731,12 +769,13 @@ class HNStg(Stg):
         super().__init__()
         
     def deserialize(self, value, jvalue):
-        hn_stg = jvalue["HN@stg"]
-        if hn_stg == "NodeRef":
-            # ref_attr = jvalue["HN@ref2_node_attr"]
-            is_requested = self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
-            # if not is_requested and ref_attr == "parent":
-            #     setattr(value, jvalue["HN@ref2_node_attr"], None)
+        pass
+        # hn_stg = jvalue["HN@stg"]
+        # if hn_stg == "NodeRef":
+        #     # ref_attr = jvalue["HN@ref2_node_attr"]
+        #     is_requested = self.stgs.node_ref_late.request(self.context.jnode, jvalue["HN@ref2_node_attr"])
+        #     # if not is_requested and ref_attr == "parent":
+        #     #     setattr(value, jvalue["HN@ref2_node_attr"], None)
 
 
 class SetStg(Stg):

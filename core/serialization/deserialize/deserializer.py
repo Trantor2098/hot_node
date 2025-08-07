@@ -38,8 +38,10 @@ class DeserializationContext:
         self.data_compatible_mode: bool = True
         
         self.existing_node_group_names: list[str] = []
-        self.newed_main_tree_nodes: list[bpy.types.Node] = [] # for cursor moving
+        self.newed_main_tree_nodes: list[bpy.types.Node] = []
         self.cursor_offset: 'mathutils.Vector' = mathutils.Vector((0, 0))
+        self.node_frames_with_children: set[bpy.types.Node] = set()  # node with children, used to cancel selection when attaching
+
         self.is_create_tree = False
         self.is_apply_offset = True
         self.is_setting_main_tree = False
@@ -53,15 +55,8 @@ class DeserializationContext:
         self.obj_tree: list = []
         
     def init_on_deserializing_preset(self, bl_context: bpy.types.Context, jpreset: dict, main_tree: bpy.types.NodeTree|None = None, is_add_nodes_to_new_tree: bool = False):
-        jdata: dict = jpreset.get("HN@data", {})
+        self.__init__()
         
-        self.existing_node_group_names.clear()
-        self.newed_main_tree_nodes.clear()
-        self.image_names_in_dir.clear()
-
-        self.is_create_tree = False
-        self.is_apply_offset = True
-        self.is_setting_main_tree = False
         self.bl_context = bl_context
         self.user_prefs = utils.get_user_prefs(bl_context)
         self.space_data = bl_context.space_data
@@ -72,6 +67,7 @@ class DeserializationContext:
         else:
             self.main_tree = main_tree
 
+        jdata: dict = jpreset.get("HN@data", {})
         self.jpreset = jpreset
         self.jdata = jdata
         self.jnode_trees = jpreset.get("HN@node_trees", {})

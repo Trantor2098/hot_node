@@ -21,6 +21,9 @@ LOCALE = bpy.app.translations.locale # e.g. "en_US"
 FILE_INDENT = None # release None, dev 1
 BLENDER_ICONS = bpy.types.UILayout.bl_rna.functions["prop"].parameters["icon"].enum_items
 
+# IS_NODE_HAS_LOCATION_ABSOLUTE = hasattr(bpy.types.Node, "location_absolute") # blender 4.4+ have this attribute
+IS_NODE_HAS_LOCATION_ABSOLUTE = BLENDER_VERSION >= [4, 4, 0] # blender 4.4+ have this attribute
+
 # Common
 UNIVERSAL_NODE_TREE_IDNAME = "UniversalNodeTree" # not existing in blender, used to access preset in all node trees
 SHADER_NODE_TREE_IDNAME = "ShaderNodeTree"
@@ -43,6 +46,7 @@ NODE_GROUP_IDNAMES = (SHADER_NODE_GROUP_IDNAME, GEOMETRY_NODE_GROUP_IDNAME, COMP
 
 NODE_GROUP_INPUT_IDNAME = "NodeGroupInput"
 NODE_GROUP_OUTPUT_IDNAME = "NodeGroupOutput"
+NODE_FRAME_IDNAME = "NodeFrame"
 
 ICON_BY_TREE_TYPE_IDNAME = {
     "ShaderNodeTree": 'NODE_MATERIAL',

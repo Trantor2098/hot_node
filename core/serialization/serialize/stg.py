@@ -149,7 +149,7 @@ class PresetStg(Stg):
         node_center = [0.0, 0.0]
         for jnode in jnodes.values():
             if jnode["bl_idname"] != "NodeFrame":
-                jlocation_abs = jnode["location_absolute"]
+                jlocation_abs = jnode.get("location_absolute", jnode["location"])
                 node_center[0] += jlocation_abs[0]
                 node_center[1] += jlocation_abs[1]
                 location_node_num += 1
@@ -306,6 +306,8 @@ class NodeLinksStg(Stg):
                         jlink["HN@ts_n"] = to_socket.name
                         jlink["HN@ts_id"] = to_socket.identifier
                         break
+                if not link.is_valid:
+                    jlink["HN@is_valid"] = False
                 jlinks.append(jlink)
         return jlinks, True
 
@@ -329,6 +331,13 @@ class NodesStg(Stg):
                 jnode = self.serializer.search_serialize(node, fnode, self.stgs.stg_list_node)
                 jnodes[name] = jnode
                 nodes.remove(fnode)
+        # if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
+        if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
+            for name, jnode in jnodes.items():
+                print(jnode.get("location_absolute"))
+                if not jnode.get("location_absolute"):
+                    jnode["location_absolute"] = list(self.stgs.node.cal_location_absolute(nodes[name]))
+
         return jnodes, True
 
 
@@ -350,6 +359,8 @@ class NodeStg(Stg):
     
     def pre_serialize(self, attr, node: bpy.types.Node, fobj):
         """Universal serialization steps before the actual serialization."""
+        self.context.node = node
+        self.context.fnode = self.context.fnode_by_bl_idname.get(node.bl_idname)
         jnode = {}
         is_ref = False
         if attr is not None:
@@ -364,9 +375,15 @@ class NodeStg(Stg):
             self.is_record_type = False
         else:
             self.is_record_type = True
-        self.context.node = node
-        self.context.fnode = self.context.fnode_by_bl_idname.get(node.bl_idname)
         return jnode, is_ref
+    
+    def cal_location_absolute(self, node: bpy.types.Node) -> mathutils.Vector:
+        location = node.location.copy()
+        parent = node.parent
+        while parent is not None:
+            location += parent.location
+            parent = parent.parent
+        return location
 
  
 class LinkStg(Stg):

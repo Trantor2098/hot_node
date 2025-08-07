@@ -426,22 +426,15 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             space.cursor_location = tree.view_center
             
     @staticmethod
-    def attach_nodes_to_cursor(edit_tree, new_nodes, cursor_offset):
-        new_node_frames = []
-        for node in new_nodes:
-            if node.bl_idname == "NodeFrame":
-                new_node_frames.append(node)
-                node.select = False
-            else:
-                node.location += cursor_offset
+    def attach_nodes_to_cursor(new_node_frames_with_children):
+        # cursor offset is already applied in serialization.deserialize.stg.NodeStg.set_loc_offset
+        for node in new_node_frames_with_children:
+            node.select = False
         
         bpy.ops.node.translate_attach_remove_on_cancel('INVOKE_DEFAULT')
             
-        for node in new_node_frames:
+        for node in new_node_frames_with_children:
             node.select = True
-            
-        if len(new_nodes) == 1:
-            edit_tree.nodes.active = new_nodes[0]
     
     @classmethod
     def poll(cls, context):
@@ -462,11 +455,13 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
         pack = Context.packs[self.pack_name]
         preset = pack.get_preset(self.preset_name)
         space = context.space_data
-
+        deser_context = preset.get_deser_context()
+        
         edit_tree: bpy.types.NodeTree = getattr(space, "edit_tree", None)
         main_tree = edit_tree
         is_new_tree = self.is_new_tree or main_tree is None
         if is_new_tree:
+            deser_context.is_apply_offset = False
             space_tree_type = space.tree_type
             if space_tree_type == constants.SHADER_NODE_TREE_IDNAME:
                 # new world
@@ -518,7 +513,6 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
             return {'CANCELLED'}
             
         # call translate ops for moving nodes. escaping select NodeFrames because they will cause bugs in move ops. reselect them later.
-        deser_context = preset.get_deser_context()
         new_nodes = deser_context.newed_main_tree_nodes
         
         if not new_nodes:
@@ -528,7 +522,10 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
         
         # attach nodes to mouse cursor
         if edit_tree:
-            self.attach_nodes_to_cursor(edit_tree, new_nodes, deser_context.cursor_offset)
+            self.attach_nodes_to_cursor(deser_context.node_frames_with_children)
+            # activate single node
+            if len(new_nodes) == 1:
+                edit_tree.nodes.active = new_nodes[0]
 
         Reporter.set_active_ops(None)
         return {'FINISHED'}

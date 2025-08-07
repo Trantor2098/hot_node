@@ -1,4 +1,5 @@
 import os
+import mathutils
 
 import bpy
 from bpy.types import Operator
@@ -77,7 +78,6 @@ class HOTNODE_OT_dev_run2(Operator):
 class HOTNODE_OT_dev_run3(Operator):
     bl_idname = "hotnode.dev_run3"
     bl_label = "Print Socket Identifier"
-    bl_description = "extract_selected_nodes_unique_attr_type"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
@@ -96,28 +96,63 @@ class HOTNODE_OT_dev_run3(Operator):
 
 class HOTNODE_OT_dev_run4(Operator):
     bl_idname = "hotnode.dev_run4"
-    bl_label = "find_nodes_having_dynamic_inputs"
-    bl_description = "find_nodes_having_dynamic_inputs"
+    bl_label = "Set Node Location"
     bl_options = {'REGISTER'}
     
+    x: bpy.props.FloatProperty(
+        name="Location X",
+        description="Set the X location of the selected nodes",
+        default=0.0
+    ) # type: ignore
+    
+    y: bpy.props.FloatProperty(
+        name="Location Y",
+        description="Set the Y location of the selected nodes",
+        default=0.0
+    ) # type: ignore
+    
+    is_abs: bpy.props.BoolProperty(
+        name="Absolute Location",
+        description="Use absolute location instead of relative",
+        default=False
+    ) # type: ignore
+
     def execute(self, context):
         
-        pass
+        for node in context.space_data.edit_tree.nodes:
+            if node.select:
+                if self.is_abs:
+                    node.location_absolute = mathutils.Vector((self.x, self.y))
+                else:
+                    node.location = mathutils.Vector((self.x, self.y))
         
         return {'FINISHED'}
+    
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)
+    
+    def draw(self, context):
+        layout = self.layout
+        row = layout.row()
+        row.prop(self, "x")
+        row.prop(self, "y")
+        layout.prop(self, "is_abs")
 
 
 class HOTNODE_OT_dev_run5(Operator):
     bl_idname = "hotnode.dev_run5"
-    bl_label = "Try Report Using Context Ops"
-    bl_description = "extract_tree_unique_attr_type"
+    bl_label = "Print Node Location"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
         
-        print("[HOT NODE] Trying to report using context ops...")
-        from ..utils.reporter import Reporter
-        Reporter.report_finish("This is a test report using context ops.")
+        for node in context.space_data.edit_tree.nodes:
+            if node.select:
+                if constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
+                    print(f"{node.location} {node.location_absolute} {node.name}")
+                else:
+                    print(f"{node.location} {node.name}")
         
         return {'FINISHED'}
 
