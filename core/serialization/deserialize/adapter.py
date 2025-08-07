@@ -23,8 +23,8 @@ class Adapter():
             self.node_tree_interface_socket_menu_late: NodeTreeInterfaceSocketMenuLateStg = None
             self.node_tree_interface_socket_menu: NodeTreeInterfaceSocketMenuStg = None
             self.node_socket: NodeSocketStg = None
-            self.node_set_late: NodeSetLateStg = None
-            self.node_ref_late: NodeRefLateStg = None
+            # self.node_set_late: NodeSetLateStg = None
+            # self.node_ref_late: NodeRefLateStg = None
             self.compositor_node_color_balance: CompositorNodeColorBalanceStg = None
             self.node_zone_input: NodeZoneInputStg = None
             self.node_zone_output: NodeZoneOutputStg = None
@@ -105,8 +105,8 @@ class Adapter():
                     self.image,
                     self.node_tree_interface_socket_menu_late,
                     self.node_tree_interface_socket_menu,
-                    self.node_set_late,
-                    self.node_ref_late,
+                    # self.node_set_late,
+                    # self.node_ref_late,
                     self.node_socket,
                     self.compositor_node_color_balance,
                     self.node_zone_input,
@@ -144,8 +144,8 @@ class Adapter():
             stgs.node_tree_interface_socket_menu_late = NodeTreeInterfaceSocketMenuLateStg()
             stgs.node_tree_interface_socket_menu = NodeTreeInterfaceSocketMenuStg()
             stgs.node_socket = NodeSocketStg()
-            stgs.node_set_late = NodeSetLateStg()
-            stgs.node_ref_late = NodeRefLateStg()
+            # stgs.node_set_late = NodeSetLateStg()
+            # stgs.node_ref_late = NodeRefLateStg()
             stgs.compositor_node_color_balance = CompositorNodeColorBalanceStg()
             stgs.node_zone_input = NodeZoneInputStg()
             stgs.node_zone_output = NodeZoneOutputStg()

@@ -365,8 +365,8 @@ class NodesStg(Stg):
             node = nodes.new(type=bl_idname)
             self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
 
-        self.stgs.node_ref_late.deserialize()
-        self.stgs.node_set_late.deserialize()
+        # self.stgs.node_ref_late.deserialize()
+        # self.stgs.node_set_late.deserialize()
         # cursor offset will be handled in NodeStg
 
         jnodes["HN@ref"] = nodes # set late then wont be fond by our setter~
@@ -411,21 +411,22 @@ class NodeStg(Stg):
         """recursively set parent node first to ensure parent assignment is done before node loc setting"""
         jnode_ref = jnode.get("parent")
         if jnode_ref:
-            self.set_node_ref(node, jnode, jnode_ref, self.context.node_frames_with_children)
-                
-    def set_node_ref(self, node, jnode: dict, jnode_ref: dict, node_set_to_append = None):
+            node.parent = self.set_node_ref(jnode_ref, self.context.node_frames_with_children)
+
+    def set_node_ref(self, jnode_ref: dict, node_set_to_append = None):
         """node_set_to_append: a set to append the parent node to, usually is node_frames_with_children"""
-        parent_jname = jnode_ref["HN@ref2_node_name"]
-        parent_jnode = self.context.jnodes.get(parent_jname)
-        if parent_jnode:
-            parent_node = parent_jnode.get("HN@ref")
+        ref_jnode_name = jnode_ref["HN@ref2_node_name"]
+        ref_jnode = self.context.jnodes.get(ref_jnode_name)
+        if ref_jnode:
+            ref_node = ref_jnode.get("HN@ref")
             # parent_node not created, create it first
-            if not parent_node:
-                self.deserializer.specify_deserialize(None, parent_jnode, self.stgs.node)
-                parent_node = parent_jnode.get("HN@ref")
+            if not ref_node:
+                self.deserializer.specify_deserialize(None, ref_jnode, self.stgs.node)
+                ref_node = ref_jnode.get("HN@ref")
             if node_set_to_append is not None:
-                node_set_to_append.add(parent_node)
-            node.parent = parent_node
+                node_set_to_append.add(ref_node)
+            return ref_node
+        return None
                 
     def set_loc_4_3_L(self, node, jnode: dict = None):
         """for version 4.3 and lower, node dont have location_absolute, but 4.4+ set location by abs loc, so treat old node with abs loc."""
@@ -480,10 +481,10 @@ class NodeZoneInputStg(NodeStg):
     def try_set_node_ref(self, node, jnode):
         jpaired_output = jnode.get("paired_output")
         if jpaired_output:
-            self.set_node_ref(node, jnode, jpaired_output, None)
+            node.pair_with_output(self.set_node_ref(jpaired_output, None))
         jnode_ref = jnode.get("parent")
         if jnode_ref:
-            self.set_node_ref(node, jnode, jnode_ref, self.context.node_frames_with_children)
+            node.parent = self.set_node_ref(jnode_ref, self.context.node_frames_with_children)
 
 # NOTE we found a better way, look above ^
 # class NodeZoneInputStg(NodeStg):
@@ -535,7 +536,6 @@ class NodeGroupStg(NodeStg):
                 return
             else:
                 node.node_tree = dst_node_tree
-        self.deserializer.dispatch_deserialize(node, jnode)
         
 
 class CompositorNodeColorBalanceStg(NodeStg):
@@ -543,71 +543,69 @@ class CompositorNodeColorBalanceStg(NodeStg):
         super().__init__()
         self.set_types(bpy.types.CompositorNodeColorBalance)
 
-    def deserialize(self, node: bpy.types.NodeGroup, jnode: dict):
-        self.set_context(node, jnode)
+    def set(self, node: bpy.types.NodeGroup, jnode: dict):
         correction_method = jnode.get("correction_method", 'LIFT_GAMMA_GAIN')
         if correction_method == 'LIFT_GAMMA_GAIN':
             b = ("offset", "power", "slope")
         elif correction_method == 'OFFSET_POWER_SLOPE':
             b = ("lift", "gamma", "gain")
-        self.set(node, jnode, b=b)
 
 
-class NodeRefLateStg(LateStg):
-    def __init__(self):
-        super().__init__()
+# class NodeRefLateStg(LateStg):
+#     def __init__(self):
+#         super().__init__()
 
-    def deserialize(self):
-        # Set Referenced Nodes to The Nodes refering to them
-        for src_jnode, src_ref_attr, dst_jnode in self.request_list:
-            src_node = src_jnode["HN@ref"]
-            dst_node = dst_jnode["HN@ref"]
-            if src_ref_attr == "paired_output":
-                src_node.pair_with_output(dst_node)
-            elif src_ref_attr == "parent":
-                src_node.parent = dst_node
-            else:
-                self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
-            src_jnode[src_ref_attr] = None
-        self.request_list.clear()
+#     def deserialize(self):
+#         # Set Referenced Nodes to The Nodes refering to them
+#         for src_jnode, src_ref_attr, dst_jnode in self.request_list:
+#             src_node = src_jnode["HN@ref"]
+#             dst_node = dst_jnode["HN@ref"]
+#             if src_ref_attr == "paired_output":
+#                 src_node.pair_with_output(dst_node)
+#             elif src_ref_attr == "parent":
+#                 src_node.parent = dst_node
+#             else:
+#                 self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
+#             src_jnode[src_ref_attr] = None
+#         self.request_list.clear()
 
-    def request(self, src_jnode: dict, attr_name: str):
-        """Return True if dst node is found, otherwise return False."""
-        jvalue = src_jnode.get(attr_name)
-        # actually, blender wont have a single NodeZone, it must be in pair.
-        if jvalue is None:
-            return False
-        dst_node_name = src_jnode[attr_name]["HN@ref2_node_name"]
-        dst_jnode = self.context.jnodes.get(dst_node_name)
-        if dst_jnode is not None:
-            # if is None, it means we dont have dst node in json, maybe it's user didnt save the node's paired output node.
-            # when a request is made, the dst node may not be created yet.
-            self.request_list.append((src_jnode, attr_name, dst_jnode))
-            return True
-        else:
-            return False
+#     def request(self, src_jnode: dict, attr_name: str):
+#         """Return True if dst node is found, otherwise return False."""
+#         jvalue = src_jnode.get(attr_name)
+#         # actually, blender wont have a single NodeZone, it must be in pair.
+#         if jvalue is None:
+#             return False
+#         dst_node_name = src_jnode[attr_name]["HN@ref2_node_name"]
+#         dst_jnode = self.context.jnodes.get(dst_node_name)
+#         if dst_jnode is not None:
+#             # if is None, it means we dont have dst node in json, maybe it's user didnt save the node's paired output node.
+#             # when a request is made, the dst node may not be created yet.
+#             self.request_list.append((src_jnode, attr_name, dst_jnode))
+#             return True
+#         else:
+#             return False
 
 
-class NodeSetLateStg(LateStg):
-    def __init__(self):
-        super().__init__()
-        self.specific_request_list = [] # for specific attr.
+# class NodeSetLateStg(LateStg):
+#     def __init__(self):
+#         super().__init__()
+#         self.specific_request_list = [] # for specific attr.
         
-    def deserialize(self):
-        for node, jnode, set_func in self.request_list:
-            set_func(node, jnode)
-        self.request_list.clear()
+#     def deserialize(self):
+#         for node, jnode, set_func in self.request_list:
+#             set_func(node, jnode)
+#         self.request_list.clear()
         
-        for node, jnode, attr in self.specific_request_list:
-            self.deserializer.dispatch_deserialize(node, jnode, self.stgs.stg_list_node)
-        self.specific_request_list.clear()
+#         for node, jnode, attr in self.specific_request_list:
+#             self.deserializer.dispatch_deserialize(node, jnode, self.stgs.stg_list_node)
+#         self.specific_request_list.clear()
             
-    def request(self, node, jnode, set_func):
-        """set_func should have 2 parameter: node, jnode"""
-        self.request_list.append((node, jnode, set_func))
+#     def request(self, node, jnode, set_func):
+#         """set_func should have 2 parameter: node, jnode"""
+#         self.request_list.append((node, jnode, set_func))
         
-    def request_attr(self, node, jnode, attr):
-        self.specific_request_list.append((node, jnode, attr))
+#     def request_attr(self, node, jnode, attr):
+#         self.specific_request_list.append((node, jnode, attr))
 
 
 class NodeSocketStg(Stg):
@@ -839,4 +837,5 @@ class SetStg(Stg):
                 print(" | jvalue:", jvalue)
                 print(f" | exception: {e}")
             else:
-                print("[Hot Node] SetStg try_setattr failed silently.")
+                pass
+                # print("[Hot Node] SetStg try_setattr failed silently.")
