@@ -11,26 +11,27 @@
 
 📜 History system.
 
-🌐 Language: English, 简体中文. (Welcome to translate! See the Development section below.)
+🌐 Language: English, 简体中文. (Welcome to translate! See the [Development Section](https://github.com/Trantor2098/hot_node/tree/main?tab=readme-ov-file#save-and-add-nodes) below.)
 
 ## Usage
 In Blender 4.2+, go `Edit` > `Preferences` > `Get Extensions`, search "Hot Node" and install.
 
 Or, download zip via GitHub to install from disk.
 ### Save and add nodes
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/1_Reuse_Cross_File.gif)
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif" width="600"/>
+
 
 ### Shift A to Add Nodes
-![Shift A to Add Nodes](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/2_Shift_A_to_Access.gif)
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif" width="600"/>
 
 ### Match Image
-![Match Image](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/3_Match_Image.gif)
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif" width="600"/>
 
 ### History
-![History](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/4_History.gif)
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif" width="600"/>
 
 ### Customize
-![Customize](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/6_Customize.gif)
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif" width="600"/>
 
 ### More...
 Hot Node features are easy to discover and understant, you can discover by your self. 
