@@ -1,5 +1,4 @@
 # Hot Node 热节点
-
 ## ⭐ Features
 
 <span style="color:#FFCC57"><b>Save and add nodes across files in super fast speed.</b></span>
@@ -18,24 +17,29 @@ Via [Ko-fi](https://ko-fi.com/trantor) or [爱发电](https://afdian.com/a/trant
 Hot Node takes a lot of time to develop. Your support really makes a difference.
 
 ## Usage
+### Installation
 In Blender 4.2+, go `Edit` > `Preferences` > `Get Extensions`, search "Hot Node" and install.
 
 Or, download zip via GitHub to install from disk.
+
 ### Save and add nodes
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif"/>
+![Save and add nodes](https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif)
 
 
 ### Shift A to Add Nodes
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif"/>
+![Shift A to Add Nodes](https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif)
+
 
 ### Match Image
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif"/>
+![Match Image](https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif)
+
 
 ### History
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif"/>
+![History](https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif)
+
 
 ### Customize
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif"/>
+![Customize](https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif)
 
 ### More...
 Hot Node features are easy to discover and understant, you can discover by your self. 
@@ -43,7 +47,6 @@ Hot Node features are easy to discover and understant, you can discover by your 
 E.g. you can save nodes via context menu (right-click menu), import and export nodes pack, set node tree reuse mode, and disable the extend menu in preferences to have a orginal blender menu. etc. 
 
 ## Development
-
 ### Nodes Support
 Hot Node has an code architecture with a relatively high degree of decoupling. It naturally supported some third-party nodes but does not guarantee 100% accuracy. 
 
@@ -53,7 +56,6 @@ You can add support for nodes and make adaptations for the new version of Blende
 Hot Node uses `translations.csv` under `dev.tools` to store translations. You can add your language to it. See [Blender Locale Definiation](https://projects.staging.blender.org/blender/blender/src/branch/main/locale/languages) also.
 
 ## Credits
-
 ### Code Contributors
 None for now. Join the development!
 
@@ -63,7 +65,6 @@ None for now.
 ### Testing and Reporting
 VictoryLuode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin, ChyiZ_, 执念净化, et al.
 There may be oversights on the name list, sincerely appreciate all of you again that helped to make Hot Node better :D
-
 
 ## License
 
