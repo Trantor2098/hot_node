@@ -168,8 +168,10 @@ class Deserializer:
                 continue
             elif isinstance(jvalue, dict):
                 value = getattr(obj, attr)
+                # HN@stg tag lead to our custom stg
                 if jvalue.get("HN@stg"):
                     self.stgs.hn.deserialize(value, jvalue)
+                # HN@type is a back up of class name (usually same as the bl_idname) to find stgs
                 else:
                     self.get_stg(jvalue.get("HN@type", obj), stg_list).deserialize(value, jvalue)
             else:
