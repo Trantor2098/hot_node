@@ -2,15 +2,15 @@
 
 ## ⭐ Features
 
-⚡ **Save and add nodes across files in super fast speed.**
+<span style="color:#FFCC57"><b>Save and add nodes across files in super fast speed.</b></span>
 
-🖼️ Match image by name similarity and keyword.
+Match image by name similarity and keyword
 
-📥 Import and export nodes pack.
+Import and export nodes pack
 
-📜 History system.
+History system
 
-🌐 Language: English, 简体中文. (Welcome to translate! See the [Development Section](https://github.com/Trantor2098/hot_node/tree/main?tab=readme-ov-file#save-and-add-nodes) below.)
+Language: English, 简体中文. (Welcome to translate! See the [Development Section](https://github.com/Trantor2098/hot_node/tree/main?tab=readme-ov-file#save-and-add-nodes) below.)
 
 ## ❤️ Donate
 Via [Ko-fi](https://ko-fi.com/trantor) or [爱发电](https://afdian.com/a/trantor).

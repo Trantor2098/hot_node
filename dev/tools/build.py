@@ -114,11 +114,11 @@ def build(
 
 def main():
     # Write the version to __init__.py, blender_manifest.toml, and utils/constants.py
-    write_version_to_files("1.0.0-beta")
+    write_version_to_files("1.0.0")
     
     # build settings are defined in blender_manifest.toml
     build(
-        blender_path=r"D:\Software\Software_B\Blender\blender-4.3.0-release\blender.exe",
+        blender_path=r"D:\Software\Software_B\Blender\Blender 4.5\blender.exe",
         source_dir=str(Path(__file__).parent.parent.parent),
         output_dir=r"E:\Alpha\Proj\hot_node\builds",
     )
