@@ -18,22 +18,19 @@ In Blender 4.2+, go `Edit` > `Preferences` > `Get Extensions`, search "Hot Node"
 
 Or, download zip via GitHub to install from disk.
 ### Save and add nodes
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif)
+![Save and add nodes across files](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/1_Reuse_Cross_File.gif)
 
-### Shift A to Access
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif)
+### Shift A to Add Nodes
+![Shift A to Add Nodes](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/2_Shift_A_to_Access.gif)
 
 ### Match Image
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif)
+![Match Image](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/3_Match_Image.gif)
 
 ### History
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif)
-
-### Overwrite Tree IO
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/5_Overwrite_Tree_IO.gif)
+![History](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/4_History.gif)
 
 ### Customize
-![Save and add nodes across files](https://github.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif)
+![Customize](https://github.com/Trantor2098/hot_node/tree/main/dev/git_attachments/6_Customize.gif)
 
 ### More...
 Hot Node features are easy to discover and understant, you can discover by your self. 
