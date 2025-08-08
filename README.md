@@ -1,9 +1,8 @@
 # Hot Node 热节点
 
-## Features
+## ⭐ Features
 
-
-⭐ **Save and add nodes across files in super fast speed.**
+⚡ **Save and add nodes across files in super fast speed.**
 
 🖼️ Match image by name similarity and keyword.
 
@@ -13,25 +12,30 @@
 
 🌐 Language: English, 简体中文. (Welcome to translate! See the [Development Section](https://github.com/Trantor2098/hot_node/tree/main?tab=readme-ov-file#save-and-add-nodes) below.)
 
+## ❤️ Donate
+Via [Ko-fi](https://ko-fi.com/trantor) or [爱发电](https://afdian.com/a/trantor).
+
+Hot Node takes a lot of time to develop. Your support really makes a difference.
+
 ## Usage
 In Blender 4.2+, go `Edit` > `Preferences` > `Get Extensions`, search "Hot Node" and install.
 
 Or, download zip via GitHub to install from disk.
 ### Save and add nodes
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif" width="600"/>
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/1_Reuse_Cross_File.gif"/>
 
 
 ### Shift A to Add Nodes
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif" width="600"/>
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/2_Shift_A_to_Access.gif"/>
 
 ### Match Image
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif" width="600"/>
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/3_Match_Image.gif"/>
 
 ### History
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif" width="600"/>
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/4_History.gif"/>
 
 ### Customize
-<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif" width="600"/>
+<img src="https://raw.githubusercontent.com/Trantor2098/hot_node/main/dev/git_attachments/6_Customize.gif"/>
 
 ### More...
 Hot Node features are easy to discover and understant, you can discover by your self. 
@@ -47,9 +51,6 @@ You can add support for nodes and make adaptations for the new version of Blende
 
 ### Add Translations
 Hot Node uses `translations.csv` under `dev.tools` to store translations. You can add your language to it. See [Blender Locale Definiation](https://projects.staging.blender.org/blender/blender/src/branch/main/locale/languages) also.
-
-## Donate
-Hot Node is a free add-on, you can donate via [Ko-fi](https://ko-fi.com/trantor) or [爱发电](https://afdian.com/a/trantor). It takes us a lot of time to develop. Your support really makes a difference. 
 
 ## Credits
 
