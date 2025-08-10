@@ -1,4 +1,7 @@
 # ChangeLog
+## [1.0.2] - 2025-08-10
+### Fixed
+- The new pack after pack creation was not ordered.
 
 ## [1.0.1] - 2025-08-10
 ### Fixed
