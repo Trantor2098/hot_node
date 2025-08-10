@@ -19,6 +19,14 @@
 # END GPL LICENSE BLOCK #####
 
 
+# BEGIN DONORS BLOCK #####
+#
+# 热心B民, OR404NGE, 空物体blender, 
+# and others without leaving their name.
+#
+# END DONORS BLOCK #####
+
+
 from . import core
 from . import services
 
@@ -26,7 +34,7 @@ from . import services
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor2098",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
