@@ -30,6 +30,9 @@
 - `NodeZone` stability improvement.
 - Thoroughly repaired the `NodeFrame` location problem.
 
+### Removed
+- Pre-defined shortcuts for `Add Nodes` and `Save Nodes` menu.
+
 ## [0.7.11] - 2024-06-23
 
 ### Changed

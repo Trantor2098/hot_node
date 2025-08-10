@@ -3,9 +3,9 @@ schema_version = "1.0.0"
 # Example of manifest file for a Blender extension
 # Change the values according to your extension
 id = "hot_node"
-version = "1.0.1"
+version = "1.0.2"
 name = "Hot Node"
-tagline = "Add user-edited nodes with links"
+tagline = "Save and add user-edited nodes with links"
 maintainer = "Trantor2098 <trantor2098@gmail.com>"
 # Supported types: "add-on", "theme"
 type = "add-on"
@@ -60,7 +60,7 @@ license = [
 #
 [permissions]
 # network = "Need to sync motion-capture data to server"
-files = "Access filesystem for storing custom nodes"
+files = "Access file system for storing custom nodes"
 # clipboard = "Copy and paste bone transforms"
 
 # Optional: build settings.
