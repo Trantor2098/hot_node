@@ -733,6 +733,7 @@ class HOTNODE_OT_create_pack(Operator):
         
         pack = Context.create_pack(new_pack_name)
         Context.add_pack(pack)
+        Context.order_packs()
         Context.select_pack(pack)
         uic.select_pack(uic, pack)
         

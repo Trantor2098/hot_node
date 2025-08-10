@@ -272,6 +272,7 @@ class Context:
     @classmethod
     def order_packs(cls, mode: str = 'name') -> list[Pack]:
         """Order packs by name / mtime. The result will be saved to ordered_packs."""
+        # mtime unused for now because not sure macOS / linux behavior
         if mode == 'mtime':
             cls.ordered_packs = sorted(cls.packs.values(), key=lambda pack: pack.pack_dir.stat().st_mtime)
         else:
