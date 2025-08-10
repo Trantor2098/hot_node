@@ -62,7 +62,7 @@ None for now. Join the development!
 ### Donors
 热心B民, OR404NGE, 空物体blender, and others without leaving their name.
 
-### Testing and Reporting
+### Test and Report
 VictoryLuode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin, ChyiZ_, 执念净化, et al. And, others who were not recorded due to oversight.
 
 ## License
