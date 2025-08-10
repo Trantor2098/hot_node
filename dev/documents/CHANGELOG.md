@@ -1,8 +1,11 @@
-ChangeLog
-========
+# ChangeLog
+
+## [1.0.1] - 2025-08-07
+### Fixed
+- Presets in imported legacy pack lost their order after quit Blender.
+- Info after copy/move preset shows incorrectly.
 
 ## [1.0.0] - 2025-08-07
---------
 
 ### Added
 - You can click the little icon beside the preset to add nodes now.
