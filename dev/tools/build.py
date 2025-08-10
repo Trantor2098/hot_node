@@ -114,7 +114,7 @@ def build(
 
 def main():
     # Write the version to __init__.py, blender_manifest.toml, and utils/constants.py
-    write_version_to_files("1.0.0")
+    write_version_to_files("1.0.1")
     
     # build settings are defined in blender_manifest.toml
     build(
