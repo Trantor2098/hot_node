@@ -60,7 +60,7 @@ Hot Node uses `translations.csv` under `dev.tools` to store translations. You ca
 None for now. Join the development!
 
 ### Donors
-热心B民, OR404NGE, and others without leaving their name.
+热心B民, OR404NGE, 空物体blender, and others without leaving their name.
 
 ### Testing and Reporting
 VictoryLuode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin, ChyiZ_, 执念净化, et al. And, others who were not recorded due to oversight.
