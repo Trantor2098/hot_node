@@ -182,7 +182,7 @@ msgctxt,msgid,zh_HANS
 *,Preset Already Existed,预设已存在
 *,Hot Node data formatted.,热节点插件数据已格式化.
 *,Load Your Old Packs,加载您的旧节点包
-*,Preset overwritten.,预设已被覆盖.
+*,overwritten.,已被覆盖
 *,"Hot Node 1.0 have a new structure,",热节点 1.0 全面升级,
 *,it's more stable and flexible.,插件现在更稳定灵活.
 *,You can still load your old packs,您仍可以加载旧节点包
@@ -202,3 +202,5 @@ msgctxt,msgid,zh_HANS
 *,Mode for displaying presets in the sidebar,在侧边栏中显示预设的偏好
 *,No nodes were added. The preset is empty.,未添加任何节点. 预设为空.
 *,Filter by Tree Type,仅显示当前树类型的包
+*,moved to,已移动到
+*,copied to,已复制到

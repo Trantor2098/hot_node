@@ -134,3 +134,42 @@
 *,Show Load Legacy Packs Button
 *,UI & Custom
 *,Disable the save nodes menu.
+*,Show packs in the side bar to select.
+*,Show preferences button in the side bar.
+*,Undo / Redo
+*,Show the button to load packs from legacy Hot Node version in the UI when there
+*,Extend the context menu with a list of custom pack menu.
+*,Mode for displaying presets in the sidebar
+*,Extend the context menu with a menu containing custom packs for saving nodes.
+*,Preset List Mode
+*,Show duplicate / copy / move preset button in the side bar.
+*,"Always create a new node tree, even if the two trees are the same."
+*,Try to Reuse
+*,it's more stable and flexible.
+*,Load and update all packs saved with previous versions of Hot Node.
+*,Hot Node will try it's best.
+*,Show Load Legacy Packs Button
+*,"Imported partially successfully, see the previous infos."
+*,List
+*,Show overwrite tree I/O toggle in the side bar.
+*,Preferences
+*,Pack
+*,Show undo / redo button in the side bar.
+*,Disable the save nodes menu.
+*,"Recovered partially successfully, see the previous infos."
+*,UI & Custom
+*,NodesPack
+*,Extend the add nodes menu with a list of custom pack menu.
+*,Load & Update Legacy Packs
+*,Show this button
+*,Extend the add nodes menu with a menu containing custom packs.
+*,All packs are updated.
+*,Preset
+*,⚠ Development
+*,Always New
+*,Duplicate / Copy / Move Preset
+*,Show refresh button in the side bar.
+*,Only create new node tree if the node tree interface is different.
+*,"Packs are partially updated, please check the previous reports for details."
+*,Show the button to load packs from legacy Hot Node version in the UI when there's no pack in the data.
+*,The directory path for textures.

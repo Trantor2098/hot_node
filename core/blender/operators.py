@@ -19,6 +19,7 @@ from bpy.props import (
 from ..context.context import Context
 from ...services.autosave import AutosaveService as AS
 from ...services.history import HistoryService as HS
+from ...services.i18n import I18nService as IS
 from ...services.sync import SyncService as SS
 from ...services.versioning import VersioningService as VS
 from .ui_context import UIContext
@@ -662,9 +663,13 @@ class HOTNODE_OT_transfer_preset_to_pack(Operator):
 
         HS.set_undo(step, self.undo, self.src_pack_name, self.dst_pack_name, self.preset_name, self.is_move)
         HS.set_redo(step, self.redo, self.src_pack_name, self.dst_pack_name, self.is_move, idx_after)
-        
         HS.save_step(step)
-        Reporter.report_finish("Preset overwritten.")
+        if self.is_overwriting:
+            Reporter.report_finish("\"" + self.dst_pack_name + "\": \"" + self.preset_name + "\" " + IS.msg("overwritten."))
+        elif self.is_move:
+            Reporter.report_finish("\"" + self.preset_name + "\" " + IS.msg("moved to") + " \"" + self.dst_pack_name + "\"")
+        else:
+            Reporter.report_finish("\"" + self.preset_name + "\" " + IS.msg("copied to") + " \"" + self.dst_pack_name + "\"")
         Reporter.set_active_ops(None)
         return {'FINISHED'}
     
@@ -1003,6 +1008,7 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
                     Reporter.report_warning("Failed to update presets: [" + pack_name + "] " + ", ".join(failed_preset_names))
                 legacy_ordered_preset_names = legacy_meta.get("order", [])
                 pack.try_match_order(legacy_ordered_preset_names)
+                pack.save_metas()
             else:
                 pack = Context.load_pack(pack_name)
             Context.add_pack(pack)
@@ -1165,6 +1171,7 @@ class HOTNODE_OT_update_legacy_packs(Operator):
                     Reporter.report_warning(iface_("Failed to update presets: [") + pack_name + "] " + ", ".join(failed_preset_names))
                 legacy_ordered_preset_names = legacy_meta.get("order", [])
                 pack.try_match_order(legacy_ordered_preset_names)
+                pack.save_metas()
                 Context.add_pack(pack)
                 converted_packs.append(pack)
 

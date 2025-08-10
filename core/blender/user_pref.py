@@ -186,13 +186,13 @@ class HotNodeUserPrefs(AddonPreferences):
     default_preset_name: StringProperty(
         name="Default Preset Name",
         description="Name of the default preset for creating nodes preset.",
-        default=IS.msg("Nodes", constants.LOCALE),
+        default=IS.msg("Nodes"),
     ) # type: ignore
     
     default_pack_name: StringProperty(
         name="Default Pack Name",
         description="Name of the default pack for creating pack.",
-        default=IS.msg("NodesPack", constants.LOCALE),
+        default=IS.msg("NodesPack"),
     ) # type: ignore
     
     is_filter_pack_by_tree_type: BoolProperty(
@@ -227,14 +227,14 @@ class HotNodeUserPrefs(AddonPreferences):
     merged_add_nodes_menu_label: StringProperty(
         name="Merged Add Nodes Menu Label",
         description="Name of the extended menu for adding custom nodes.",
-        default=IS.msg("Add Nodes", constants.LOCALE),
+        default=IS.msg("Add Nodes"),
         update=add_nodes_menu_mode_update,
     ) # type: ignore
 
     merged_save_nodes_menu_label: StringProperty(
         name="Merged Save Nodes Menu Label",
         description="Name of the extended menu for saving custom nodes.",
-        default=IS.msg("Save Nodes", constants.LOCALE),
+        default=IS.msg("Save Nodes"),
         update=save_nodes_menu_mode_update,
     ) # type: ignore
     
