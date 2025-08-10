@@ -33,7 +33,7 @@ from . import services
 
 bl_info = {
     "name": "Hot Node",
-    "author": "Trantor2098",
+    "author": "Trantor",
     "version": (1, 0, 2),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
