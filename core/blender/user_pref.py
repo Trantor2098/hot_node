@@ -169,12 +169,6 @@ class HotNodeUserPrefs(AddonPreferences):
         default="",
     ) # type: ignore
     
-    is_maximize_compatibility: BoolProperty( # Experimental
-        name="Maximize Compatibility",
-        description="(Will significantly increase file size and slow down the add-on) Maximize compatibility for presets to work fine with future versions of Blender.",
-        default=False,
-    ) # type: ignore
-    
     # UI
     sidebar_category: StringProperty(
         name="Sidebar Category",
@@ -380,7 +374,6 @@ class HotNodeUserPrefs(AddonPreferences):
         col.separator()
         col.separator(type='LINE')
         col.label(text="Experimental")
-        col.prop(self, "is_maximize_compatibility", text="⚠ Maximize Compatibility")
         col.prop(self, "is_dev", text="⚠ Development Mode")
 
 
