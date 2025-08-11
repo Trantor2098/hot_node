@@ -125,7 +125,7 @@ class Serializer:
             if value is None:
                 continue
             value_stg = self.get_stg(value)
-            cull_default = not self.context.user_prefs.is_maximize_compatibility and stg.cull_default and value_stg.cull_default
+            cull_default = stg.cull_default and value_stg.cull_default
             # only serialize when the value has stg
             if value_stg is not None:
                 # if attr is in white attrs, serialize it

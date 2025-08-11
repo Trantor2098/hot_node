@@ -5,7 +5,7 @@ from ....utils import utils
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .stg import Stg, LateStg
+    from .stg import Stg
     from .adapter import Adapter
     from ..manager import SerializationManager
     from ...blender.user_pref import HotNodeUserPrefs

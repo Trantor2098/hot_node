@@ -6,8 +6,8 @@ from .serialize.adapter import Adapter as SerAdapter
 from .serialize.serializer import Serializer
 from .deserialize.adapter import Adapter as DeserAdapter
 from .deserialize.deserializer import Deserializer
-from ...utils.constants import BLENDER_VERSION, HOT_NODE_PKG
-from ...utils import utils
+from ...utils.constants import BLENDER_VERSION
+# For API usage: BLENDER_VERSION = list(bpy.app.version)
 
 class SerializationManager:
     """Singleton class to manage serialization and deserialization of presets."""
