@@ -488,10 +488,6 @@ def register():
         name="Hot Node UI Context",
         type=UIContext
     ) # type: ignore
-    # bpy.types.Scene.hot_node_ui_context = bpy.props.PointerProperty(
-    #     name="Hot Node UI Context",
-    #     type=UIContext
-    # ) # type: ignore
     
     bpy.app.timers.register(UIContext.initialize)
     
@@ -503,6 +499,5 @@ def unregister():
         except:
             pass
         
-    if hasattr(bpy.types.Scene, "hot_node_ui_context"):
+    if hasattr(bpy.types.WindowManager, "hot_node_ui_context"):
         del bpy.types.WindowManager.hot_node_ui_context
-        # del bpy.types.Scene.hot_node_ui_context
