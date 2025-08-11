@@ -59,7 +59,7 @@ Hot Node uses `translations.csv` under `dev.tools` to store translations. You ca
 Feel free to use any code of Hot Node in your program.
 
 ### Parse and Set Nodes
-1. Copy core/serialization as a module into your package.
+1. Copy `core/serialization/` as a module into your package.
 2. Search and replace the `utils`, `constants`, `file_manager`, and `user_prefs` with your implementation. These dependency can be easily reimplemented by reading their method name. You can also go to the relevant files to check the implementation.
 3. In your main code, from `serialization/manager.py`, new a `SerializationManager` to get the singleton manager instance.
 4. Use the method in `SerializationManager` such as `serialize_preset()`, `deserialize_preset()`.
