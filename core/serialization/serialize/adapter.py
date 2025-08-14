@@ -122,14 +122,14 @@ class Adapter():
     def __init__(self, blender_version: list[int, int, int]):
         self.blender_version = blender_version
         self.stgs = Adapter.Stgs(blender_version)
-        self._load_stgs(blender_version)
+        self.load_stgs(blender_version)
         # invoke the stg_list and stg_list_all properties to initialize them
         self.stgs.stg_list_core
         self.stgs.stg_list_node
         self.stgs.stg_list_interface_item
         self.stgs.stg_list_all
             
-    def _load_stgs(self, blender_version: list[int, int, int]):
+    def load_stgs(self, blender_version: list[int, int, int]):
         stgs = self.stgs
         if blender_version == [2, 93, 0]:
             pass

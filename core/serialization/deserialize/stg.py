@@ -72,6 +72,7 @@ class FallbackStg(Stg):
             print(f" | node: {self.context.node}")
             print(f" | obj: {obj}")
             print(f" | jobj: {jobj}")
+            print()
         self.deserializer.dispatch_deserialize(obj, jobj)
 
 
@@ -371,8 +372,13 @@ class NodesStg(Stg):
             if jnode.get("HN@ref"):
                 continue 
             bl_idname = jnode["bl_idname"]
-            node = nodes.new(type=bl_idname)
-            self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
+            # low Blender may dont have the node type
+            try:
+                node = nodes.new(type=bl_idname)
+                self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
+            except Exception as e:
+                Reporter.report_warning(f"Current blender version dosen't support node: {jnode['name']}")
+                pass
 
         # self.stgs.node_ref_late.deserialize()
         # self.stgs.node_set_late.deserialize()
@@ -496,33 +502,6 @@ class NodeZoneInputStg(NodeStg):
         if jnode_ref:
             node.parent = self.set_node_ref(jnode_ref, self.context.node_frames_with_children)
 
-# NOTE we found a better way, look above ^
-# class NodeZoneInputStg(NodeStg):
-#     def __init__(self):
-#         super().__init__()
-#         self.set_types(
-#             bpy.types.GeometryNodeSimulationInput,
-#             bpy.types.GeometryNodeRepeatInput,
-#             bpy.types.GeometryNodeForeachGeometryElementInput,
-#         )
-        
-#     def deserialize(self, node, jnode: dict):
-#         if node is None:
-#             node = self.new(jnode)
-#         jnode["HN@ref"] = node
-#         # pair_with_output will build the node's input and output sockets
-#         has_dst_node = self.stgs.node_ref_late.request(jnode, "paired_output")
-#         if has_dst_node:
-#             self.stgs.node_set_late.request(node, jnode, self.set_late)
-    
-#     def set_late(self, node, jnode: dict = None):
-#         self.set_parent_node_first(node, jnode)
-#         self.set_context(node, jnode)
-#         self.set(node, jnode)
-#         if not constants.IS_NODE_HAS_LOCATION_ABSOLUTE:
-#             self.set_loc_4_3_L(node, jnode)
-#         self.set_loc_offset(node, jnode)
-
  
 class NodeGroupStg(NodeStg):
     def __init__(self):
@@ -562,64 +541,17 @@ class CompositorNodeColorBalanceStg(NodeStg):
         elif correction_method == 'OFFSET_POWER_SLOPE':
             self.b = self.b + ("lift", "gamma", "gain")
         self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
-
-# NOTE now node find and set their ref, so dont need to request a late deserialization
-# class NodeRefLateStg(LateStg):
-#     def __init__(self):
-#         super().__init__()
-
-#     def deserialize(self):
-#         # Set Referenced Nodes to The Nodes refering to them
-#         for src_jnode, src_ref_attr, dst_jnode in self.request_list:
-#             src_node = src_jnode["HN@ref"]
-#             dst_node = dst_jnode["HN@ref"]
-#             if src_ref_attr == "paired_output":
-#                 src_node.pair_with_output(dst_node)
-#             elif src_ref_attr == "parent":
-#                 src_node.parent = dst_node
-#             else:
-#                 self.stgs.set.deserialize(src_node, src_ref_attr, dst_node)
-#             src_jnode[src_ref_attr] = None
-#         self.request_list.clear()
-
-#     def request(self, src_jnode: dict, attr_name: str):
-#         """Return True if dst node is found, otherwise return False."""
-#         jvalue = src_jnode.get(attr_name)
-#         # actually, blender wont have a single NodeZone, it must be in pair.
-#         if jvalue is None:
-#             return False
-#         dst_node_name = src_jnode[attr_name]["HN@ref2_node_name"]
-#         dst_jnode = self.context.jnodes.get(dst_node_name)
-#         if dst_jnode is not None:
-#             # if is None, it means we dont have dst node in json, maybe it's user didnt save the node's paired output node.
-#             # when a request is made, the dst node may not be created yet.
-#             self.request_list.append((src_jnode, attr_name, dst_jnode))
-#             return True
-#         else:
-#             return False
-
-
-# NOTE now node find and set their ref, so dont need to request a late deserialization
-# class NodeSetLateStg(LateStg):
-#     def __init__(self):
-#         super().__init__()
-#         self.specific_request_list = [] # for specific attr.
         
-#     def deserialize(self):
-#         for node, jnode, set_func in self.request_list:
-#             set_func(node, jnode)
-#         self.request_list.clear()
-        
-#         for node, jnode, attr in self.specific_request_list:
-#             self.deserializer.dispatch_deserialize(node, jnode, self.stgs.stg_list_node)
-#         self.specific_request_list.clear()
-            
-#     def request(self, node, jnode, set_func):
-#         """set_func should have 2 parameter: node, jnode"""
-#         self.request_list.append((node, jnode, set_func))
-        
-#     def request_attr(self, node, jnode, attr):
-#         self.specific_request_list.append((node, jnode, attr))
+
+class CompositorNodeOutputFileStg(NodeStg):
+    def __init__(self):
+        super().__init__()
+        self.set_types("CompositorNodeOutputFile")
+        self.b += ("file_slots", "format")
+
+    def set(self, node: 'bpy.types.CompositorNodeOutputFile', jnode: dict):
+        self.deserializer.specify_deserialize(node.file_slots, jnode["file_slots"], self.stgs.bpy_prop_collection)
+        self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
 
 
 class NodeSocketStg(Stg):
@@ -722,7 +654,9 @@ class BpyPropCollectionStg(Stg):
             "NodeGeometrySimulationOutputItems": self.new_socket,
             "NodeGeometryRepeatOutputItems": self.new_socket,
             "NodeGeometryBakeItems": self.new_socket,
-            "NodeGeometryCaptureAttributeItems": self.new_capture_items,
+            # "NodeCompositorFileOutputItems": self.new_socket, # 5.0+
+            # "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
+            "NodeGeometryCaptureAttributeItems": self.new_capture_item,
             "ColorRampElements": self.new_color_ramp_element,
             "CurveMapPoints": self.new_curve_map_point,
             "NodeMenuSwitchItems": self.new_node_enum_item,
@@ -746,7 +680,15 @@ class BpyPropCollectionStg(Stg):
             else:
                 new_item_func = self.new_item_func_map.get(obj.rna_type.identifier, None)
                 if new_item_func is None:
-                    print(f"[Hot Node] No new item function found for {obj.rna_type.identifier}.")
+                    print(f"[Hot Node] No new item function found for {obj.rna_type.identifier}. Trying fallback new_socket method...")
+                    try:
+                        for i in range(jobj_length):
+                            if i >= actual_length:
+                                self.new_socket(obj, jobj[str(i)])
+                            self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                        print(f"[Hot Node] {obj.rna_type.identifier} has been set.")
+                    except Exception as e:
+                        print(f"[Hot Node] Failed to run fallback new_socket method for {obj.rna_type.identifier}: {e}")
                 else:
                     for i in range(jobj_length):
                         if i >= actual_length:
@@ -767,20 +709,24 @@ class BpyPropCollectionStg(Stg):
     def new_socket(self, collection_obj, jitem):
         collection_obj.new(jitem["socket_type"], jitem["name"])
         
-    def new_capture_items(self, collection_obj: bpy.types.NodeGeometryCaptureAttributeItems, jitem):
+    def new_file_slot(self, collection_obj, jitem):
+        # BUG TODO cant finish new()
+        collection_obj.new(jitem["name"])
+
+    def new_capture_item(self, collection_obj, jitem):
         # capture items use data_type to determine the type of the item and have different type id like FLOAT_VECTOR
         data_type = jitem["data_type"]
         if "VECTOR" in data_type:
             data_type = 'VECTOR'
         collection_obj.new(data_type, jitem["name"])
 
-    def new_color_ramp_element(self, collection_obj: bpy.types.ColorRampElements, jitem):
+    def new_color_ramp_element(self, collection_obj, jitem):
         collection_obj.new(jitem["position"])
         
-    def new_curve_map_point(self, collection_obj: bpy.types.CurveMapPoints, jitem):
+    def new_curve_map_point(self, collection_obj, jitem):
         collection_obj.new(jitem["location"][0], jitem["location"][1])
         
-    def new_node_enum_item(self, collection_obj: bpy.types.NodeMenuSwitchItems, jitem):
+    def new_node_enum_item(self, collection_obj, jitem):
         collection_obj.new(jitem["name"])
 
    
@@ -820,11 +766,6 @@ class HNStg(Stg):
         # not used, paired_output and parent are now solved in NodeStg.set_ref_node(), they look up the ref2node to set, so dont need late ref/set anymore.
         # TODO clean up
         pass
-        # hn_stg = jvalue["HN@stg"]
-        # if hn_stg == "NodeRef":
-        #     ref2_node_attr = jvalue["HN@ref2_node_attr"]
-        #     if ref2_node_attr == "paired_output":
-        #         is_requested = self.stgs.node_ref_late.request(self.context.jnode, ref2_node_attr)
 
 
 class SetStg(Stg):
