@@ -18,6 +18,9 @@ class Adapter():
             self._blender_version = blender_version
             self.set: SetStg = None
             self.hn: HNStg = None
+            self.color_managed_view_settings: ColorManagedViewSettingsStg = None
+            self.image_format_settings: ImageFormatSettingsStg = None
+            self.compositor_node_output_file_file_slot: CompositorNodeOutputFileFileSlotStg = None
             self.bpy_prop_collection: BpyPropCollectionStg = None
             self.image: ImageStg = None
             self.node_tree_interface_socket_menu_late: NodeTreeInterfaceSocketMenuLateStg = None
@@ -98,6 +101,9 @@ class Adapter():
                 self._stg_list_all = [
                     self.set,
                     self.hn,
+                    self.color_managed_view_settings,
+                    self.image_format_settings,
+                    self.compositor_node_output_file_file_slot,
                     self.bpy_prop_collection,
                     self.image,
                     self.node_tree_interface_socket_menu_late,
@@ -134,6 +140,9 @@ class Adapter():
         else:
             stgs.set = SetStg()
             stgs.hn = HNStg()
+            stgs.image_format_settings = ImageFormatSettingsStg()
+            stgs.color_managed_view_settings = ColorManagedViewSettingsStg()
+            stgs.compositor_node_output_file_file_slot = CompositorNodeOutputFileFileSlotStg()
             stgs.bpy_prop_collection = BpyPropCollectionStg()
             stgs.image = ImageStg()
             stgs.node_tree_interface_socket_menu_late = NodeTreeInterfaceSocketMenuLateStg()

@@ -203,7 +203,7 @@ class HOTNODE_OT_dev_run9(Operator):
     def execute(self, context):
 
         node = context.active_node
-        node.file_output_items.new("Test Slot")
+        node.file_slots.new("Test Slot")
         return {'FINISHED'}
 
 

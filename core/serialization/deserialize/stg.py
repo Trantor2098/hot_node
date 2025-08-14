@@ -330,27 +330,28 @@ class NodeLinksStg(Stg):
         HN_to_socket_bl_idname = jlink["HN@ts_bid"]
         HN_from_socket_identifier = jlink["HN@fs_id"]
         HN_from_socket_bl_idname = jlink["HN@fs_bid"]
-        is_new_to_socket = False
+        
+        new_to_socket = None
         if HN_to_socket_bl_idname != to_socket.bl_idname:
-            is_new_to_socket = True
             for socket in to_node.inputs:
                 if socket.bl_idname == HN_to_socket_bl_idname and socket.identifier == HN_to_socket_identifier:
                     new_to_socket = socket
                     break
-        is_new_from_socket = False
+                
+        new_from_socket = None
         if HN_from_socket_bl_idname != from_socket.bl_idname:
-            is_new_from_socket = True
             for socket in from_node.outputs:
                 if socket.bl_idname == HN_from_socket_bl_idname and socket.identifier == HN_from_socket_identifier:
                     new_from_socket = socket
                     break
-        if is_new_to_socket and is_new_from_socket:
+        
+        if new_to_socket and new_from_socket:
             node_links.remove(link)
             link = node_links.new(new_from_socket, new_to_socket)
-        elif is_new_to_socket:
+        elif new_to_socket:
             node_links.remove(link)
             link = node_links.new(from_socket, new_to_socket)
-        elif is_new_from_socket:
+        elif new_from_socket:
             node_links.remove(link)
             link = node_links.new(new_from_socket, to_socket)
         return link
@@ -372,16 +373,22 @@ class NodesStg(Stg):
             if jnode.get("HN@ref"):
                 continue 
             bl_idname = jnode["bl_idname"]
-            # low Blender may dont have the node type
-            try:
+            
+            # new and set node, no try-except for dev
+            if constants.IS_DEV:
                 node = nodes.new(type=bl_idname)
                 self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
-            except Exception as e:
-                Reporter.report_warning(f"Current blender version dosen't support node: {jnode['name']}")
-                pass
+            else:
+                try:
+                    node = nodes.new(type=bl_idname)
+                    self.deserializer.search_deserialize(node, jnode, bl_idname, self.stgs.stg_list_node)
+                except Exception as e:
+                    # low Blender may dont have the node type
+                    if not hasattr(bpy.types, bl_idname):
+                        Reporter.report_warning("Current blender version does not support node: " + jnode["name"])
+                    else:
+                        Reporter.report_warning("Failed to set node: " + jnode["name"])
 
-        # self.stgs.node_ref_late.deserialize()
-        # self.stgs.node_set_late.deserialize()
         # cursor offset will be handled in NodeStg
 
         jnodes["HN@ref"] = nodes # set late then wont be fond by our setter~
@@ -550,6 +557,15 @@ class CompositorNodeOutputFileStg(NodeStg):
         self.b += ("file_slots", "format")
 
     def set(self, node: 'bpy.types.CompositorNodeOutputFile', jnode: dict):
+        
+        self.deserializer.specify_deserialize(node.format, jnode["format"], self.stgs.image_format_settings)
+                
+        # TODO
+        # 5.0 alpha 2025-08-03 and below: file_slots, layer_slots
+        # 5.0: file_output_items
+        
+        # TODO temp soluction for 0, edit the bpy_prop_collection stg to let items be set in item stgs
+        self.deserializer.specify_deserialize(node.file_slots[0], jnode["file_slots"]["0"], self.stgs.compositor_node_output_file_file_slot)
         self.deserializer.specify_deserialize(node.file_slots, jnode["file_slots"], self.stgs.bpy_prop_collection)
         self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
 
@@ -654,8 +670,8 @@ class BpyPropCollectionStg(Stg):
             "NodeGeometrySimulationOutputItems": self.new_socket,
             "NodeGeometryRepeatOutputItems": self.new_socket,
             "NodeGeometryBakeItems": self.new_socket,
-            # "NodeCompositorFileOutputItems": self.new_socket, # 5.0+
-            # "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
+            "NodeCompositorFileOutputItems": self.new_socket, # 5.0+
+            "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
             "NodeGeometryCaptureAttributeItems": self.new_capture_item,
             "ColorRampElements": self.new_color_ramp_element,
             "CurveMapPoints": self.new_curve_map_point,
@@ -710,8 +726,10 @@ class BpyPropCollectionStg(Stg):
         collection_obj.new(jitem["socket_type"], jitem["name"])
         
     def new_file_slot(self, collection_obj, jitem):
-        # BUG TODO cant finish new()
-        collection_obj.new(jitem["name"])
+        # TODO 0 already exists, cant be set here
+        collection_obj.new(jitem["path"])
+        file_slot = collection_obj[-1]
+        self.deserializer.specify_deserialize(file_slot, jitem, self.stgs.compositor_node_output_file_file_slot)
 
     def new_capture_item(self, collection_obj, jitem):
         # capture items use data_type to determine the type of the item and have different type id like FLOAT_VECTOR
@@ -728,8 +746,52 @@ class BpyPropCollectionStg(Stg):
         
     def new_node_enum_item(self, collection_obj, jitem):
         collection_obj.new(jitem["name"])
+        
+        
+class CompositorNodeOutputFileFileSlotStg(Stg):
+    def __init__(self):
+        super().__init__()
+        self.set_types("CompositorNodeOutputFileFileSlot")
+        
+    def deserialize(self, slot, jslot):
+        juse_node_format = jslot.get("use_node_format", True)
+        if not juse_node_format:
+            # set use_node_format flag to let slot has format attr
+            slot.use_node_format = False
+            format = slot.format
+            jformat = jslot["format"]
+            self.deserializer.specify_deserialize(format, jformat, self.stgs.image_format_settings)
+        
+        
+class ImageFormatSettingsStg(Stg):
+    def __init__(self):
+        super().__init__()
+        self.set_types("ImageFormatSettings")
+        
+    def deserialize(self, format, jformat):
+        jcolor_management = jformat.get("color_management", format.color_management)
+        # if OVERRIDE, set this flag first to let node has view_settings
+        if jcolor_management == 'OVERRIDE':
+            format.color_management = 'OVERRIDE'
+            view_settings = format.view_settings
+            jview_settings = jformat["view_settings"]
+            self.deserializer.specify_deserialize(view_settings, jview_settings, self.stgs.color_managed_view_settings)
 
-   
+
+class ColorManagedViewSettingsStg(Stg):
+    def __init__(self):
+        super().__init__()
+        self.set_types("ColorManagedViewSettings")
+        
+    def deserialize(self, view_settings, jview_settings):
+        # set these flags to let node has attrs to be set
+        view_settings.use_curve_mapping = jview_settings.get("use_curve_mapping", view_settings.use_curve_mapping)
+        view_settings.use_hdr_view = jview_settings.get("use_hdr_view", view_settings.use_hdr_view)
+        # BUG Temperature and Tint cant be set correctly
+        view_settings.use_white_balance = jview_settings.get("use_white_balance", view_settings.use_white_balance)
+        self.deserializer.dispatch_deserialize(view_settings, jview_settings)
+
+
 class NodeTreeInterfaceSocketMenuStg(LateStg):
     def __init__(self):
         super().__init__()
@@ -791,6 +853,8 @@ class SetStg(Stg):
                 print(" | attr:", attr)
                 print(" | jvalue:", jvalue)
                 print(f" | exception: {e}")
+                print()
+                pass
             else:
                 pass
                 # print("[Hot Node] SetStg try_setattr failed silently.")

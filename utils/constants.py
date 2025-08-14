@@ -6,7 +6,7 @@ from pathlib import Path
 
 # Config
 HOT_NODE_APP_DATA_DIR_NAME = "HotNodeAddon" # release "HotNodeAddon"
-HOT_NODE_VERSION = [1, 0, 3] # e.g. [1, 0, 0]. this can be changed automatically by hotnode/dev/tools/build.py
+HOT_NODE_VERSION = [1, 0, 4] # e.g. [1, 0, 0]. this can be changed automatically by hotnode/dev/tools/build.py
 
 # Procedural, do not change manually
 HOT_NODE_VERSION_STR = ".".join(map(str, HOT_NODE_VERSION)) # e.g. "1.0.0"

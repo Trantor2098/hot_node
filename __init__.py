@@ -34,7 +34,7 @@ from . import services
 bl_info = {
     "name": "Hot Node",
     "author": "Trantor",
-    "version": (1, 0, 3),
+    "version": (1, 0, 4),
     "blender": (4, 2, 0),
     "location": "Node Editor > Sidebar > Hot Node",
     "description": "Save nodes, add nodes as adding node",
