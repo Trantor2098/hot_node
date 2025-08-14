@@ -189,7 +189,7 @@ class NodeTreeStg(Stg):
             node_tree.description = jdescription
         if jcolor_tag is not None:
             node_tree.color_tag = jcolor_tag
-        if jdefault_group_node_width is not None:
+        if jdefault_group_node_width is not None and hasattr(node_tree, "default_group_node_width"):
             node_tree.default_group_node_width = jdefault_group_node_width
         
         # Deselect Nodes

@@ -98,12 +98,14 @@ class HOTNODE_OT_add_preset(Operator):
             preset = pack.create_preset(new_name)
             pack.add_preset(preset)
             
-            # change preset name if only one node is selected
+            # save nodes to the new preset
             if getattr(context.space_data, "edit_tree") is not None:
                 pack.overwrite_preset(preset, context)
                 preset_name_when_only_one_node = Context.ser_context.preset_name_when_only_one_node
+                # change preset name if only one node is selected
                 if preset_name_when_only_one_node is not None:
-                    new_name = utils.ensure_unique_name_for_item(preset_name_when_only_one_node, pack.ordered_presets)
+                    new_name = utils.delete_slash_anti_slash_in_string(preset_name_when_only_one_node)
+                    new_name = utils.ensure_unique_name_for_item(new_name, pack.ordered_presets)
                     pack.rename_preset(preset, new_name)
             else:
                 pack.save_preset(preset) # create json

@@ -11,5 +11,5 @@ def dispatch_pkg(src_dir, dst_dir):
 
 if __name__ == "__main__":
     src = r"c:\Users\Trantor\AppData\Roaming\Blender Foundation\Blender\5.0\extensions\user_default\hot_node"
-    dst = r"c:\Users\Trantor\AppData\Roaming\Blender Foundation\Blender\4.5\extensions\user_default\hot_node"
+    dst = r"c:\Users\Trantor\AppData\Roaming\Blender Foundation\Blender\4.2\extensions\user_default\hot_node"
     dispatch_pkg(src, dst)

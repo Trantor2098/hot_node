@@ -197,45 +197,14 @@ class HOTNODE_OT_dev_run8(Operator):
 
 class HOTNODE_OT_dev_run9(Operator):
     bl_idname = "hotnode.dev_run9"
-    bl_label = "load_preset"
+    bl_label = "Add Slot For File Output"
     bl_options = {'REGISTER'}
     
-    @staticmethod
-    def store_mouse_cursor(context: bpy.types.Context, event):
-        space: bpy.types.SpaceNodeEditor = context.space_data
-        tree = space.edit_tree
-
-        if context.region.type == 'WINDOW':
-            # convert mouse position to the View2D for later node placement
-            # this can help cursor location to be accurate. 
-            # if we dont do this, the cursor location will be affected by the zoom level and pan position based on region coordinates.
-            space.cursor_location_from_region(event.mouse_region_x, event.mouse_region_y)
-        else:
-            space.cursor_location = tree.view_center
-    
     def execute(self, context):
-        
-        tree = context.space_data.edit_tree
-        deser_manager = dev_func.load_preset(context)
-        # call translate ops for moving nodes. escaping select NodeFrames because parent's movement will be applied to the child nodes,
-        # which would make child nodes move times far, and cause frame shake. reselect them later.
-        selected_node_frames = []
-        for node in deser_manager.deser_context.newed_main_tree_nodes:
-            if node.bl_idname == "NodeFrame":
-                selected_node_frames.append(node)
-                node.select = False
-                
-        bpy.ops.node.translate_attach_remove_on_cancel('INVOKE_DEFAULT')
-        
-        # reselect the NodeFrames after nodes that should be translated are assigned to the ops, so the selection will only affect deletion, not movement.
-        for node in selected_node_frames:
-            node.select = True
-        
+
+        node = context.active_node
+        node.file_output_items.new("Test Slot")
         return {'FINISHED'}
-    
-    def invoke(self, context, event):
-        self.store_mouse_cursor(context, event)
-        return self.execute(context)
 
 
 class HOTNODE_OT_dev_run10(Operator):
