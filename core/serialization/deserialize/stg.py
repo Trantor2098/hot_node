@@ -35,8 +35,17 @@ class Stg:
     def deserialize(self, obj, jobj: dict):
         print(f"[Hot Node] Deserialization not implemented for {obj.__class__.__name__} (no action was done).")
     
-    def set_types(self, *args: type):
-        self.types = args
+    def set_types(self, *args: type|str):
+        """For compatibility reasons, pass str instead of type."""
+        types = []
+        for arg in args:
+            if isinstance(arg, str):
+                arg_type = getattr(bpy.types, arg, None)
+                if arg_type is not None:
+                    types.append(arg_type)
+            else:
+                types.append(arg)
+        self.types = tuple(types)
 
 
 class LateStg(Stg):
@@ -447,18 +456,18 @@ class NodeZoneOutputStg(NodeStg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            bpy.types.GeometryNodeSimulationOutput,
-            bpy.types.GeometryNodeRepeatOutput,
-            bpy.types.GeometryNodeForeachGeometryElementOutput,
+            "GeometryNodeSimulationOutput",
+            "GeometryNodeRepeatOutput",
+            "GeometryNodeForeachGeometryElementOutput",
         )
         self.items_attrs_map = {
-            bpy.types.GeometryNodeSimulationOutput: ("state_items", ),
-            bpy.types.GeometryNodeRepeatOutput: ("repeat_items", ),
-            bpy.types.GeometryNodeForeachGeometryElementOutput: ("generation_items", "main_items", "input_items"),
+            "GeometryNodeSimulationOutput": ("state_items", ),
+            "GeometryNodeRepeatOutput": ("repeat_items", ),
+            "GeometryNodeForeachGeometryElementOutput": ("generation_items", "main_items", "input_items"),
         }
     
     def set(self, node, jnode: dict = None):
-        items_attrs = self.items_attrs_map.get(node.__class__, ())
+        items_attrs = self.items_attrs_map.get(node.bl_idname, ())
         # set items first, so that NodeInputs and NodeOutputs can be created before setting them
         for items_attr in items_attrs:
             items = getattr(node, items_attr)
@@ -474,9 +483,9 @@ class NodeZoneInputStg(NodeStg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            bpy.types.GeometryNodeSimulationInput,
-            bpy.types.GeometryNodeRepeatInput,
-            bpy.types.GeometryNodeForeachGeometryElementInput,
+            "GeometryNodeSimulationInput",
+            "GeometryNodeRepeatInput",
+            "GeometryNodeForeachGeometryElementInput",
         )
         
     def try_set_node_ref(self, node, jnode):
@@ -544,7 +553,7 @@ class NodeGroupStg(NodeStg):
 class CompositorNodeColorBalanceStg(NodeStg):
     def __init__(self):
         super().__init__()
-        self.set_types(bpy.types.CompositorNodeColorBalance)
+        self.set_types("CompositorNodeColorBalance")
 
     def set(self, node: bpy.types.NodeGroup, jnode: dict):
         correction_method = jnode.get("correction_method", 'LIFT_GAMMA_GAIN')

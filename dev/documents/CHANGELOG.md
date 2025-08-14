@@ -1,7 +1,12 @@
 # ChangeLog
-## [1.0.3] - 2025-08-
+## [1.0.4] - 2025-08-
 ### Fixed
-- 
+- Compositor node `File Output` can not be set.
+
+## [1.0.3] - 2025-08-14
+### Fixed
+- Error when installing Hot Node in Blender 4.2.
+- Error when Clicking `Get` in an empty pack.
 
 ## [1.0.2] - 2025-08-10
 ### Fixed
@@ -28,6 +33,7 @@
 - Changed translation system to blender's.
 - Keywords mode of setting images are removed. Instead, a image name filter is avaliable for matching images by name similarity when the image directory was given.
 - Data is saved in the appdata directory by default, and we add a button to load & update your packs in the old Hot Node version.
+- Pack exporting supports selecting packs.
 
 ### Fixed
 - Significant stability improvement.

@@ -175,13 +175,11 @@ class HOTNODE_OT_dev_run6(Operator):
 
 class HOTNODE_OT_dev_run7(Operator):
     bl_idname = "hotnode.dev_run7"
-    bl_label = "Auto Save"
+    bl_label = "Set Preset Indent"
     bl_options = {'REGISTER'}
     
     def execute(self, context):
-        from ..services.autosave import AutosaveService
-        AutosaveService.autosave_packs()
-
+        Context.pack_selected.save_preset(Context.preset_selected)
         return {'FINISHED'}
 
 

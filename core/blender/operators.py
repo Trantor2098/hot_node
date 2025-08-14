@@ -457,6 +457,10 @@ class HOTNODE_OT_add_preset_nodes_to_tree(Operator):
         uic = context.window_manager.hot_node_ui_context
         pack = Context.packs[self.pack_name]
         preset = pack.get_preset(self.preset_name)
+        if preset is None:
+            Reporter.report_finish("Select a preset first.")
+            Reporter.set_active_ops(None)
+            return {'CANCELLED'}
         space = context.space_data
         deser_context = preset.get_deser_context()
         

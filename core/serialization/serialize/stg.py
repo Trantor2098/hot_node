@@ -76,8 +76,17 @@ class Stg:
         """
         self.attr_lists = []
         
-    def set_types(self, *args: type):
-        self.types = args
+    def set_types(self, *args: type|str):
+        """For compatibility reasons, pass str instead of type."""
+        types = []
+        for arg in args:
+            if isinstance(arg, str):
+                arg_type = getattr(bpy.types, arg, None)
+                if arg_type is not None:
+                    types.append(arg_type)
+            else:
+                types.append(arg)
+        self.types = tuple(types)
 
 
 class FallbackStg(Stg):
@@ -446,13 +455,13 @@ class NodeItemStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            bpy.types.ForeachGeometryElementGenerationItem,
-            bpy.types.ForeachGeometryElementInputItem,
-            bpy.types.ForeachGeometryElementMainItem,
-            bpy.types.RepeatItem,
-            bpy.types.SimulationStateItem,
-            bpy.types.NodeGeometryBakeItem,
-            bpy.types.NodeGeometryCaptureAttributeItem,
+            "ForeachGeometryElementGenerationItem",
+            "ForeachGeometryElementInputItem",
+            "ForeachGeometryElementMainItem",
+            "RepeatItem",
+            "SimulationStateItem",
+            "NodeGeometryBakeItem",
+            "NodeGeometryCaptureAttributeItem",
         )
         self.append_attr_list(
             w=("name", "socket_type", ), 
@@ -570,14 +579,14 @@ class CommonTypeStg(Stg):
     def __init__(self):
         super().__init__()
         self.set_types(
-            bpy.types.ColorRamp,
-            bpy.types.ColorMapping,
-            bpy.types.CurveMapping,
-            bpy.types.ColorManagedViewSettings,
-            bpy.types.ColorManagedDisplaySettings,
-            bpy.types.TexMapping,
-            bpy.types.ImageFormatSettings,
-            bpy.types.ImageUser,
+            "ColorRamp",
+            "ColorMapping",
+            "CurveMapping",
+            "ColorManagedViewSettings",
+            "ColorManagedDisplaySettings",
+            "TexMapping",
+            "ImageFormatSettings",
+            "ImageUser",
         )
         self.cull_default = True
 
