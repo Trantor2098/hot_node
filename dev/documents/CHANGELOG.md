@@ -3,7 +3,7 @@
 - Compositor Node RenderLayers cant be set correctly because it's linked to the scene output settings.
 - Temperature and Tint of ColorManagedViewSettings cant be set correctly.
 
-## [1.0.5] - 2025-08-
+## [1.0.5] - 2025-08-14
 ### Fixed
 - Compositor node `File Output` can not be set correctly.
 
