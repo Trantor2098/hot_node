@@ -9,7 +9,7 @@
 
 ## [1.0.4] - 2025-08-14
 ### Fixed
-- Single node with "/", "\" in it's name can't be saved.
+- Single node with slash and anti-slash in it's name can't be saved.
 - `NodeGroup` can not be set correctly in Blender 4.2.
 
 ## [1.0.3] - 2025-08-14
