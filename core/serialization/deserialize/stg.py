@@ -354,7 +354,55 @@ class NodeLinksStg(Stg):
         elif new_from_socket:
             node_links.remove(link)
             link = node_links.new(new_from_socket, to_socket)
+        else:
+            link = None
         return link
+
+    # not fully tested yet, do not use
+    def build_link2(self, jlink, from_node, to_node, node_links: bpy.types.NodeLinks):
+        HN_from_socket_idx = jlink['HN@fs_i']
+        HN_to_socket_idx = jlink['HN@ts_i']
+        
+        if not HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs):
+            return
+        
+        HN_to_socket_identifier = jlink["HN@ts_id"]
+        HN_from_socket_identifier = jlink["HN@fs_id"]
+        HN_to_socket_bl_idname = jlink["HN@ts_bid"]
+        HN_from_socket_bl_idname = jlink["HN@fs_bid"]
+        
+        from_socket = from_node.outputs[HN_from_socket_idx]
+        to_socket = to_node.inputs[HN_to_socket_idx]
+
+        # try to build link directly by idx
+        if (
+            # identifier check, to ensure the node socket of this idx is exactly the socket we recorded
+            from_socket.identifier == HN_from_socket_identifier 
+            and to_socket.identifier == HN_to_socket_identifier
+        ):
+            link = node_links.new(from_socket, to_socket)
+            return link
+
+        # try to build link by identifier
+        new_to_socket = self.find_socket_by_identifier(to_node.inputs, HN_to_socket_identifier)
+        new_from_socket = self.find_socket_by_identifier(from_node.outputs, HN_from_socket_identifier)
+
+        if new_to_socket and new_from_socket:
+            link = node_links.new(new_from_socket, new_to_socket)
+        elif new_to_socket:
+            link = node_links.new(from_socket, new_to_socket)
+        elif new_from_socket:
+            link = node_links.new(new_from_socket, to_socket)
+        else:
+            return None
+        return link
+
+    def find_socket_by_identifier(self, sockets, identifier):
+        """Find a socket by its identifier."""
+        for socket in sockets:
+            if socket.identifier == identifier:
+                return socket
+        return None
 
 
 class NodesStg(Stg):

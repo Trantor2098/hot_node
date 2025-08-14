@@ -1,8 +1,11 @@
-# ChangeLog
-## Known BUGs
+# TODO
+## BUGs
 - Compositor Node RenderLayers cant be set correctly because it's linked to the scene output settings.
 - Temperature and Tint of ColorManagedViewSettings cant be set correctly.
+- 4.2 Compositor Glare Node changed in 4.5.
 
+
+# ChangeLog
 ## [1.0.5] - 2025-08-14
 ### Fixed
 - Compositor node `File Output` can not be set correctly.
@@ -15,7 +18,7 @@
 ## [1.0.3] - 2025-08-14
 ### Fixed
 - Error when installing Hot Node in Blender 4.2.
-- Error when Clicking `Get` in an empty pack.
+- Error when clicking `Get` in an empty pack.
 
 ## [1.0.2] - 2025-08-10
 ### Fixed
