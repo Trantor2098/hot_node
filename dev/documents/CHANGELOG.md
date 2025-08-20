@@ -6,6 +6,10 @@
 
 
 # ChangeLog
+## [1.0.6] - 2025-08-20
+### Fixed
+- Panel would flicker when multiple types of node editors are present and the pack filter option is enabled.
+
 ## [1.0.5] - 2025-08-14
 ### Fixed
 - Compositor node `File Output` can not be set correctly.
