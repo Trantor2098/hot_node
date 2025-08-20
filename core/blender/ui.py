@@ -495,11 +495,15 @@ class HOTNODE_PT_main(Panel):
     bl_region_type = 'UI'
     bl_category = "Hot Node"
     bl_translation_context = i18n_contexts.default
+    
+    # last_switch_time = 0.0
 
     def draw(self, context):
         SS.ensure_sync_on_interval()
         layout = self.layout
-        uic = context.window_manager.hot_node_ui_context
+        wm = context.window_manager
+        uic = wm.hot_node_ui_context
+        # draw_time = time.time()
         user_prefs = utils.get_user_prefs(context)
         pack = Context.get_pack_selected()
         preset = Context.get_preset_selected()
@@ -521,13 +525,21 @@ class HOTNODE_PT_main(Panel):
             # Filter pack by tree type
             if (
                 user_prefs.is_filter_pack_by_tree_type 
-                and pack 
-                and preset 
-                and context.space_data.tree_type not in pack.meta.tree_types 
+                and pack
+                and preset
+                and context.space_data.tree_type not in pack.meta.tree_types
                 and constants.UNIVERSAL_NODE_TREE_IDNAME not in pack.meta.tree_types
             ):
-                packs_in_type = Context.get_ordered_packs_by_tree_type(context.space_data.tree_type)
-                utils.late_select_pack(packs_in_type[0].name if packs_in_type else "")
+                editor_tree_types = set()
+                for window in wm.windows:
+                    for area in window.screen.areas:
+                        if area.type == 'NODE_EDITOR':
+                            if area.spaces and area.spaces[0].type == 'NODE_EDITOR':
+                                editor_tree_types.add(area.spaces[0].tree_type)
+                # only switch pack if there is one editor tree type. this helps escaping infinite switching.
+                if len(editor_tree_types) == 1:
+                    packs_in_type = Context.get_ordered_packs_by_tree_type(context.space_data.tree_type)
+                    utils.late_select_pack(packs_in_type[0].name if packs_in_type else "")
         else:
             row.operator("hotnode.create_pack", icon='ADD').pack_name = iface_(user_prefs.default_pack_name)
             row.menu("HOTNODE_MT_pack_options", icon='DOWNARROW_HLT', text="")

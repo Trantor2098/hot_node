@@ -19,14 +19,6 @@
 # END GPL LICENSE BLOCK #####
 
 
-# BEGIN DONORS BLOCK #####
-#
-# 热心B民, OR404NGE, 空物体blender, 
-# and others without leaving their name.
-#
-# END DONORS BLOCK #####
-
-
 from . import core
 from . import services
 
