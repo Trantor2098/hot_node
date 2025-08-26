@@ -8,6 +8,12 @@
 # ChangeLog
 ## [1.0.6] - 2025-08-20
 ### Fixed
+- Node `Index Switch` can't be set correctly.
+- Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
+- Loading packs saved in Hot Node 0.7.11 or lower destroies node trees' name of current file.
+
+## [1.0.6] - 2025-08-20
+### Fixed
 - Panel would flicker when multiple types of node editors are present and the pack filter option is enabled.
 
 ## [1.0.5] - 2025-08-14

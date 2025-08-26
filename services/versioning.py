@@ -77,7 +77,8 @@ class VersioningService(ServiceBase):
         node_groups = bpy.data.node_groups
         ori_node_groups = [node_group for node_group in node_groups]
         for node_group in node_groups:
-            node_group.name = "HN@TEMP_NODE_TREE_FOR_ORI_" + node_group.name
+            if not node_group.name.startswith("HN@"):
+                node_group.name = "HN@TEMP_NODE_TREE_FOR_ORI_" + node_group.name
         temp_shader_node_tree = node_groups.new("HN@TEMP_SHADER_NODE_TREE_FOR_CONVERT", constants.SHADER_NODE_TREE_IDNAME)
         temp_geometry_node_tree = node_groups.new("HN@TEMP_GEOMETRY_NODE_TREE_FOR_CONVERT", constants.GEOMETRY_NODE_TREE_IDNAME)
         temp_texture_node_tree = node_groups.new("HN@TEMP_TEXTURE_NODE_TREE_FOR_CONVERT", constants.TEXTURE_NODE_TREE_IDNAME)

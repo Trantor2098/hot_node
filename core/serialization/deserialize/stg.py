@@ -31,10 +31,22 @@ class Stg:
         self.stgs: Adapter.Stgs = None # The stgs instance. Will be set by the serializer.
         self.context: 'DeserializationContext' = None
         self.fm = FileManager()
-        
+
+    # not used yet
+    def deserialize_template(self, obj, jobj: dict):
+        self.deserialize_pre(obj, jobj)
+        self.deserialize(obj, jobj)
+        self.deserialize_post(obj, jobj)
+
+    def deserialize_pre(self, obj, jobj: dict):
+        pass
+
     def deserialize(self, obj, jobj: dict):
         print(f"[Hot Node] Deserialization not implemented for {obj.__class__.__name__} (no action was done).")
-    
+
+    def deserialize_post(self, obj, jobj: dict):
+        pass
+
     def set_types(self, *args: type|str):
         """For compatibility reasons, pass str instead of type."""
         types = []
@@ -195,16 +207,16 @@ class NodeTreeStg(Stg):
         # Deselect Nodes
         for node in nodes:
             node.select = False
-            
+        
+        # Generate Nodes & Set Node Attributes & Set IO Socket Value
+        jnodes = jnode_tree["nodes"]
+        self.stgs.nodes.deserialize(nodes, jnodes)
+        
         # Setup Tree Interface if there are group io nodes in the preset or it's a ng
         if self.is_set_tree_io:
             jinterface = jnode_tree["interface"]
             node_tree
             self.stgs.interface.deserialize(interface, jinterface)
-                
-        # Generate Nodes & Set Node Attributes & Set IO Socket Value
-        jnodes = jnode_tree["nodes"]
-        self.stgs.nodes.deserialize(nodes, jnodes)
         
         # Generate Links
         jlinks = jnode_tree["links"]
@@ -633,6 +645,8 @@ class NodeSocketStg(Stg):
                 b = ("identifier", "type", "label", "default_value")
             else:
                 b = ("identifier", "type", "label")
+        elif socket.bl_idname == "NodeSocketMenu":
+            return
         else:
             b = ("identifier", "type", "label")
         self.deserializer.dispatch_deserialize(socket, jsocket, b=b)
@@ -720,6 +734,7 @@ class BpyPropCollectionStg(Stg):
             "NodeGeometryBakeItems": self.new_socket,
             "NodeCompositorFileOutputItems": self.new_socket, # 5.0+
             "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
+            "NodeIndexSwitchItems": self.new_index_switch_item,
             "NodeGeometryCaptureAttributeItems": self.new_capture_item,
             "ColorRampElements": self.new_color_ramp_element,
             "CurveMapPoints": self.new_curve_map_point,
@@ -778,6 +793,9 @@ class BpyPropCollectionStg(Stg):
         collection_obj.new(jitem["path"])
         file_slot = collection_obj[-1]
         self.deserializer.specify_deserialize(file_slot, jitem, self.stgs.compositor_node_output_file_file_slot)
+        
+    def new_index_switch_item(self, collection_obj, jitem):
+        collection_obj.new()
 
     def new_capture_item(self, collection_obj, jitem):
         # capture items use data_type to determine the type of the item and have different type id like FLOAT_VECTOR
