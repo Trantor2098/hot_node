@@ -656,10 +656,11 @@ class NodeTreeInterfaceSocketStg(Stg):
 
     def deserialize(self, socket: bpy.types.NodeTreeInterfaceSocket, jsocket: dict):
 
-        if socket.socket_type == "NodeSocketMenu":
-            # default value of menu is defined after menu node linked to group io node
-            def handle_node_tree_interface_socket_menu(socket = socket, jsocket = jsocket):
-                socket.default_value = jsocket.get("default_value", 1)
+        # default value of NodeSocketMenu is defined after menu node linked to group io node
+        default_value = jsocket.get("default_value")
+        if socket.socket_type == "NodeSocketMenu" and default_value is not None:
+            def handle_node_tree_interface_socket_menu(socket = socket, default_value = default_value):
+                socket.default_value = default_value
             self.stgs.node_links.add_on_deserialize_post(handle_node_tree_interface_socket_menu)
 
         self.deserializer.dispatch_deserialize(socket, jsocket, b=self.b)

@@ -265,7 +265,7 @@ class NodeTreeInterfaceItemStg(Stg):
             # bpy.types.NodeTreeInterfacePanel # Panel is a subclass of Item
         )
         self.append_attr_list(
-            w=("item_type", "index", "socket_type", "in_out", "position"),
+            w=("item_type", "index", "socket_type", "in_out", "position", "default_value"),
             b=("interface_items", "identifier", "parent")
         )
         self.cull_default = True

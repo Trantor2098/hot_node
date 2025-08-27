@@ -224,7 +224,7 @@ def build(
 
 
 def main():
-    hot_node_version = "1.0.8"
+    hot_node_version = "1.0.9"
     is_overwrite_build = False
     
     blender_path=r"D:\Software\Software_B\Blender\Blender 4.5\blender.exe"

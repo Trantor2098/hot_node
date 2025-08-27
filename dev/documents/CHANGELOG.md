@@ -6,9 +6,14 @@
 
 
 # ChangeLog of Preset Json Structure
-
+## [1.0.9] - 2025-08-27
+- NodeTreeInterfaceItemStg: Add "default_value" to w.
 
 # ChangeLog of Features
+## [1.0.9] - 2025-08-27
+### Fixed
+- A few Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
+
 ## [1.0.8] - 2025-08-27
 ### Fixed
 - Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
