@@ -12,7 +12,7 @@
 # ChangeLog of Features
 ## [1.0.9] - 2025-08-27
 ### Fixed
-- A few Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
+- A few Node groups with node `Menu Switch` linked to it's interface can't be set correctly. Save these nodes with the new add-on version then the problem would be solved.
 
 ## [1.0.8] - 2025-08-27
 ### Fixed
