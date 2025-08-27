@@ -49,36 +49,146 @@ def write_version_to_files(version_str: str):
         f.writelines(lines)
 
 
-def check_code():
+def _collect_python_files():
+    """Collect all python file contents (excluding dev directory)."""
+    root_dir = Path(__file__).parent.parent.parent
+    dev_dir = root_dir / "dev"
+    files = {}
+    for path in root_dir.rglob('*.py'):
+        try:
+            path.relative_to(dev_dir)
+            continue
+        except ValueError:
+            pass
+        try:
+            files[path] = path.read_text(encoding='utf-8')
+        except Exception:
+            continue
+    return root_dir, files
+
+
+def check_file_indent(file_text: str):
     import ast
-    constants_path = Path(__file__).parent.parent.parent / "utils" / "constants.py"
-    with constants_path.open("r", encoding="utf-8") as f:
-        content = f.read()
     file_indent = None
-    app_data_dir_name = None
-    for line in content.splitlines():
+    for line in file_text.splitlines():
         if line.strip().startswith("FILE_INDENT"):
             try:
                 file_indent = ast.literal_eval(line.split("=", 1)[1].strip())
             except Exception:
                 file_indent = line.split("=", 1)[1].strip()
+            break
+    if file_indent is None:
+        print("✔  FILE_INDENT")
+    else:
+        print(f"⚠  FILE_INDENT: {file_indent} (should be None in release)")
+        return False
+    return True
+
+
+def check_app_data_dir_name(file_text: str):
+    import ast
+    app_data_dir_name = None
+    for line in file_text.splitlines():
         if line.strip().startswith("HOT_NODE_APP_DATA_DIR_NAME"):
             try:
                 app_data_dir_name = ast.literal_eval(line.split("=", 1)[1].strip())
             except Exception:
                 app_data_dir_name = line.split("=", 1)[1].strip()
-    
-    print()
-    print("---------------- Code Checking Results ----------------")
-    if file_indent is None:
-        print("✔  FILE_INDENT")
-    else:
-        print(f"⚠  FILE_INDENT: {file_indent} (should be None in release)")
+            break
     if app_data_dir_name == "HotNodeAddon":
         print("✔  HOT_NODE_APP_DATA_DIR_NAME")
     else:
-        print(f"⚠  HOT_NODE_APP_DATA_DIR_NAME: {app_data_dir_name} (should be HotNodeAddon in release)")
-    print("-------------------------------------------------------")
+        print(f"⚠  HOT_NODE_APP_DATA_DIR_NAME: {app_data_dir_name} (should be \"HotNodeAddon\" in release)")
+        return False
+    return True
+
+
+def check_print_statements(root_dir: Path, files: dict):
+    import tokenize, io
+
+    def first_arg_starts_with_hot_node(args_src: str) -> bool:
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(args_src).readline))
+        except tokenize.TokenError:
+            return False
+        for tok_type, tok_str, *_ in tokens:
+            if tok_type == tokenize.STRING:
+                m = re.match(r'(?i)^[furb]*([\'\"])(.*)\1$', tok_str)
+                if not m:
+                    inner = tok_str.lstrip('fFrRuUbB')
+                    if len(inner) >= 2 and inner[0] in ('"', "'") and inner[-1] == inner[0]:
+                        inner = inner[1:-1]
+                else:
+                    inner = m.group(2)
+                return inner.startswith('[Hot Node]')
+            elif tok_type in (tokenize.NL, tokenize.NEWLINE, tokenize.COMMENT, tokenize.INDENT, tokenize.DEDENT):
+                continue
+            else:
+                return False
+        return False
+
+    offenders = []
+    for path, text in files.items():
+        lines = text.splitlines()
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            code_part = line.split('#', 1)[0]
+            idx = code_part.find('print(')
+            if idx == -1:
+                i += 1
+                continue
+            after = code_part[idx + len('print('):]
+            paren_depth = 1
+            collected = after
+            j = i
+            while paren_depth > 0 and j < len(lines):
+                tmp = re.sub(r'".*?"|\'.*?\'', '', collected)
+                paren_depth = paren_depth - tmp.count(')') + tmp.count('(')
+                if paren_depth > 0:
+                    j += 1
+                    if j < len(lines):
+                        collected += '\n' + lines[j]
+            args_src = collected.rsplit(')', 1)[0]
+            if not first_arg_starts_with_hot_node(args_src):
+                rel_path = path.relative_to(root_dir)
+                offenders.append((str(rel_path), i + 1, line.strip()))
+            i = j + 1 if j > i else i + 1
+
+    if not offenders:
+        print("✔  No unexpected print statements.")
+    else:
+        for rel_path, lineno, snippet in offenders:
+            print(f"⚠  {rel_path}:{lineno}: {snippet}")
+        return False
+    return True
+
+
+def check_existing_builds(output_dir, hot_node_version, is_overwrite_build):
+    if not os.path.exists(output_dir):
+        print(f"⚠  {output_dir} does not exist.")
+        return False
+
+    output_zip = os.path.join(output_dir, f"hot_node-{hot_node_version}.zip")
+    if os.path.exists(output_zip) and not is_overwrite_build:
+        print(f"⚠  {output_zip} already exists.")
+        return False
+    return True
+
+
+def check(output_dir, hot_node_version, is_overwrite_build):
+    root_dir, files = _collect_python_files()
+    constants_path = root_dir / 'utils' / 'constants.py'
+    constants_text = files.get(constants_path, '')
+    print()
+    print("---------------- Start Code Checking Results ----------------")
+    result = check_existing_builds(output_dir, hot_node_version, is_overwrite_build)
+    result &= check_file_indent(constants_text)
+    result &= check_app_data_dir_name(constants_text)
+    result &= check_print_statements(root_dir, files)
+    print("----------------- End Code Checking Results -----------------")
+    print()
+    return result
 
 
 def build(
@@ -113,16 +223,25 @@ def build(
 
 
 def main():
-    # Write the version to __init__.py, blender_manifest.toml, and utils/constants.py
-    write_version_to_files("1.0.7")
+    hot_node_version = "1.0.7"
+    is_overwrite_build = False
+    
+    blender_path=r"D:\Software\Software_B\Blender\Blender 4.5\blender.exe"
+    source_dir=str(Path(__file__).parent.parent.parent)
+    output_dir=r"E:\Alpha\Proj\hot_node\builds"
+
+    if not check(output_dir, hot_node_version, is_overwrite_build):
+        print("Build Canceled")
+        return
+
+    write_version_to_files(hot_node_version)
     
     # build settings are defined in blender_manifest.toml
     build(
-        blender_path=r"D:\Software\Software_B\Blender\Blender 4.5\blender.exe",
-        source_dir=str(Path(__file__).parent.parent.parent),
-        output_dir=r"E:\Alpha\Proj\hot_node\builds",
+        blender_path=blender_path,
+        source_dir=source_dir,
+        output_dir=output_dir,
     )
-    check_code()
     
 if __name__ == "__main__":
     main()

@@ -94,11 +94,11 @@ class FallbackStg(Stg):
         super().__init__()
     def serialize(self, attr, obj, fobj):
         if constants.IS_DEV:
-            print(f"[HOT NODE] Ser FallbackStg Accessed:")
-            print(f" |-node: {self.context.node}")
-            print(f" |-value's attr: {attr}")
-            print(f" |-value's type: {type(obj)}")
-            print()
+            print(f"[Hot Node] Ser FallbackStg Accessed:")
+            print(f"[Hot Node] |-node: {self.context.node}")
+            print(f"[Hot Node] |-value's attr: {attr}")
+            print(f"[Hot Node] |-value's type: {type(obj)}")
+            print("[Hot Node]")
         return None, False
 
 
@@ -216,7 +216,6 @@ class NodeTreeStg(Stg):
         jnodes = self.serializer.specify_serialize(nodes, None, self.stgs.nodes)
         # Node Group or Main Tree with IO Nodes, serialize the interface.
         if not self.is_main_tree or self.has_group_io_node(jnodes):
-            # make sure the interface is in front of the nodes to let setter set the interface first.
             jnode_tree["interface"] = self.serializer.specify_serialize(node_tree.interface, None, self.stgs.interface)
         jnode_tree['nodes'] = jnodes
         jnode_tree["links"] = self.serializer.specify_serialize(links, None, self.stgs.links )
@@ -445,6 +444,12 @@ class NodeSocketStg(Stg):
 
     def serialize(self, attr, obj: bpy.types.NodeSocket, fobj):
         jobj = self.serializer.dispatch_serialize(obj, fobj, self)
+        
+        # the default-default_value is defined by user so keep empty cant get the right value, we must record it.
+        if isinstance(obj, bpy.types.NodeTreeInterfaceSocket):
+            if obj.bl_idname == "NodeTreeInterfaceSocketMenu":
+                jobj["default_value"] = obj.default_value
+
         need = jobj != {}
         if need:
             jobj["identifier"] = obj.identifier # for future use.

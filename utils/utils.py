@@ -361,18 +361,17 @@ def is_str_only_dash(s: str) -> bool:
 def print_time_cost(header, identifier, start_time, end_time, threshold: float = 0.005):
         time_taken = end_time - start_time
         if time_taken > threshold:
-            print(f"[HOT NODE DEV] {header}: ".ljust(40) + "{:^50}".format(f"{identifier}") + f"  {time_taken:.4f}s")
+            print(f"[Hot Node] {header}: ".ljust(40) + "{:^50}".format(f"{identifier}") + f"  {time_taken:.4f}s")
 
 def print_deser_time(identifier, start_time, end_time, threshold: float = 0.005):
         time_taken = end_time - start_time
         if time_taken > threshold:
-            print("[HOT NODE DEV] Deser Time Cost: " + "{:^50}".format(f"{identifier}") + f"  {time_taken:.4f}s")
+            print("[Hot Node] Deser Time Cost: " + "{:^50}".format(f"{identifier}") + f"  {time_taken:.4f}s")
 
 def print_blobj_deser_time(obj, start_time, end_time, threshold: float = 0.005):
         time_taken = end_time - start_time
         if time_taken > threshold:
-            print("[HOT NODE DEV] Deser Time Cost: " + "{:^50}".format(f"{obj.rna_type.identifier}") + f"  {time_taken:.4f}s")
-            
+            print("[Hot Node] Deser Time Cost: " + "{:^50}".format(f"{obj.rna_type.identifier}") + f"  {time_taken:.4f}s")
             
 def get_user_prefs(bl_context: bpy.types.Context|None = None) -> 'HotNodeUserPrefs':
     "Same as get_user_prefs in core/blender/user_pref.py, just for escaping circular importing."

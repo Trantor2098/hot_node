@@ -131,23 +131,24 @@ class Deserializer:
                     and not callable(getattr(obj, attr)))}
         return vbya, attr_list
     
-    def get_stg(self, obj_or_type_str: object|str, stg_list: 'list[Stg]|Stg' = None) -> 'Stg':
+    def get_stg(self, stg_specifier: object|str, stg_list: 'list[Stg]|Stg' = None) -> 'Stg':
         """Loop the stgs to find the stg of the given object/key(attr_name)."""
         if stg_list is None:
             stg_list = self.stgs.stg_list_core
         if not isinstance(stg_list, list):
             stg_list = [stg_list]
-        if obj_or_type_str is None:
+        if stg_specifier is None:
             return stg_list[-1]
         
-        if isinstance(obj_or_type_str, str):
-            obj_type = getattr(bpy.types, obj_or_type_str, None)
+        if isinstance(stg_specifier, str):
+            obj_type = getattr(bpy.types, stg_specifier, None)
         else:
-            obj_type = obj_or_type_str.__class__
+            obj_type = stg_specifier.__class__
         
         if obj_type is not None:
             for stg in stg_list:
                 for stg_type in stg.types:
+                    # print(f"Checking {obj_type} against {stg_type}: is? {obj_type is stg_type}; subclass? {issubclass(obj_type, stg_type)}")
                     if obj_type is stg_type or issubclass(obj_type, stg_type):
                         return stg
         return stg_list[-1]
@@ -170,13 +171,16 @@ class Deserializer:
                 value = getattr(obj, attr)
                 # HN@stg tag lead to our custom stg
                 if jvalue.get("HN@stg"):
-                    self.stgs.hn.deserialize(value, jvalue)
+                    stg = self.stgs.hn
+                    stg.deserialize(value, jvalue)
                 # HN@type is a back up of class name (usually same as the bl_idname) to find stgs
                 else:
-                    self.get_stg(jvalue.get("HN@type", obj), stg_list).deserialize(value, jvalue)
+                    stg = self.get_stg(jvalue.get("HN@type", obj), stg_list) # use HN@type first because it may be more specific (e.g. NodeTreeInterfaceSocket may be in type NodeGroupInput when using obj)
+                    stg.deserialize(value, jvalue)
+                stg.handle_deserialize_post()
             else:
-                self.stgs.set.deserialize(obj, attr, jvalue)
-                
+                self.stgs.set.deserialize(obj, attr, jvalue) # set dont need post
+
         # end_time = time.time()
         self.context.obj_tree.pop()
         # if obj is not None:
@@ -188,13 +192,14 @@ class Deserializer:
             return
         # start_time = time.time()
         if stg_specifier is None:
-            stg_specifier = obj
+            stg_specifier = jobj.get("HN@type", obj)
         stg = self.get_stg(stg_specifier, stg_list)
         if stg is self.stgs.fallback and is_dispatch_on_fallback:
             # if the stg is fallback, use dispatch_deserialize to deserialize if needed
             self.dispatch_deserialize(obj, jobj, stg_list)
         else:
             stg.deserialize(obj, jobj)
+            stg.handle_deserialize_post()
         self.context.obj_tree.pop()
     
     def specify_deserialize(self, obj, jobj, stg: 'Stg'):
@@ -202,4 +207,5 @@ class Deserializer:
         if jobj is None:
             return
         stg.deserialize(obj, jobj)
+        stg.handle_deserialize_post()
         self.context.obj_tree.pop()

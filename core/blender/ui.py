@@ -505,17 +505,17 @@ class HOTNODE_PT_main(Panel):
         uic = wm.hot_node_ui_context
         # draw_time = time.time()
         user_prefs = utils.get_user_prefs(context)
-        pack = Context.get_pack_selected()
-        preset = Context.get_preset_selected()
-        preset_name = Context.preset_selected.name if Context.preset_selected is not None else ""
-        pack_name = Context.pack_selected.name if Context.pack_selected is not None else ""
+        pack_selected = Context.get_pack_selected()
+        preset_selected = Context.get_preset_selected()
+        preset_selected_name = Context.preset_selected.name if Context.preset_selected is not None else ""
+        pack_selected_name = Context.pack_selected.name if Context.pack_selected is not None else ""
         
         # Pack Bar
         row = layout.row(align=True)
         
-        if pack:
+        if pack_selected:
             row.scale_x = 1.75 # this helps to show the dropdown icon
-            row.menu("HOTNODE_MT_select_pack", icon=pack.meta.icon if pack is not None else 'OUTLINER_COLLECTION', text="")
+            row.menu("HOTNODE_MT_select_pack", icon=pack_selected.meta.icon if pack_selected is not None else 'OUTLINER_COLLECTION', text="")
             row.scale_x = 1.0
             row.prop(uic, "pack_selected_name", text="", placeholder="Select a pack...", translate=False)
             row.menu("HOTNODE_MT_pack_options", icon='DOWNARROW_HLT', text="")
@@ -525,10 +525,10 @@ class HOTNODE_PT_main(Panel):
             # Filter pack by tree type
             if (
                 user_prefs.is_filter_pack_by_tree_type 
-                and pack
-                and preset
-                and context.space_data.tree_type not in pack.meta.tree_types
-                and constants.UNIVERSAL_NODE_TREE_IDNAME not in pack.meta.tree_types
+                and pack_selected
+                and preset_selected
+                and context.space_data.tree_type not in pack_selected.meta.tree_types
+                and constants.UNIVERSAL_NODE_TREE_IDNAME not in pack_selected.meta.tree_types
             ):
                 editor_tree_types = set()
                 for window in wm.windows:
@@ -560,18 +560,18 @@ class HOTNODE_PT_main(Panel):
         # Add / Remove Preset
         rcol = row.column(align=True)
         ops = rcol.operator("hotnode.add_preset", icon='ADD', text="")
-        ops.pack_name = pack_name
+        ops.pack_name = pack_selected_name
         ops.preset_name = iface_(user_prefs.default_preset_name)
         ops.is_duplicate = False
         ops = rcol.operator("hotnode.remove_preset", icon='REMOVE', text="")
-        ops.pack_name = pack_name
-        ops.preset_name = preset_name
+        ops.pack_name = pack_selected_name
+        ops.preset_name = preset_selected_name
         rcol.separator()
         
         # Specials Menu
         rcol.menu("HOTNODE_MT_preset_options", icon='DOWNARROW_HLT', text="")
         
-        rows = 3 if len(pack.presets) < 2 else 5
+        rows = 3 if len(pack_selected.presets) < 2 else 5
         min_rows = rows # count the rows that at least needed
         rows = max(user_prefs.min_ui_list_length, rows)
         
@@ -590,14 +590,17 @@ class HOTNODE_PT_main(Panel):
             rcol.separator(factor=1.5)
             for pack in Context.get_ordered_packs():
                 icon = pack.meta.icon
-                ops = rcol.operator("hotnode.select_pack", icon=icon, text="")
+                if pack is pack_selected:
+                    ops = rcol.operator("hotnode.select_pack", icon=icon, text="", depress=True)
+                else:
+                    ops = rcol.operator("hotnode.select_pack", icon=icon, text="")
                 ops.pack_name = pack.name
                 ops.mode = 'BYNAME'
         if 'TRANSFER_PRESET' in user_prefs.sidebar_items:
             min_rows += 4
             rcol.separator(factor=1.5)
             ops = rcol.operator("hotnode.add_preset", icon='DUPLICATE', text="")
-            ops.preset_name = preset.name if preset else ""
+            ops.preset_name = preset_selected.name if preset_selected else ""
             ops.pack_name = Context.get_pack_selected_name()
             ops.is_duplicate = True
             # cant use menu caller ops because it wont call invoke func of ops
@@ -632,12 +635,12 @@ class HOTNODE_PT_main(Panel):
         row = layout.row()
         # row.scale_y = 1.25
         ops = row.operator("hotnode.add_preset_nodes_to_tree", text="Get")
-        ops.preset_name = preset_name
-        ops.pack_name = pack_name
+        ops.preset_name = preset_selected_name
+        ops.pack_name = pack_selected_name
         
         ops = row.operator("hotnode.overwrite_preset_with_selection", icon='GREASEPENCIL', text="")
-        ops.preset_name = preset_name
-        ops.pack_name = pack_name
+        ops.preset_name = preset_selected_name
+        ops.pack_name = pack_selected_name
     
     def draw_addon_new_version_info(self, layout: UILayout, user_prefs):
         layout.separator(factor=0.5)

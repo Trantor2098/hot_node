@@ -26,26 +26,15 @@ class Stg:
         self.cull_default = False # Whether to cull default value of the obj of this stg.
         self.types: tuple[type] = () # bl_idname/__class__.__name__ to find
         self.b = () # attr in b wont be set
-        
+        self.on_deserialize_post = []
+
         self.deserializer: Deserializer = None # The serializer instance. Will be set by the serializer.
         self.stgs: Adapter.Stgs = None # The stgs instance. Will be set by the serializer.
         self.context: 'DeserializationContext' = None
         self.fm = FileManager()
 
-    # not used yet
-    def deserialize_template(self, obj, jobj: dict):
-        self.deserialize_pre(obj, jobj)
-        self.deserialize(obj, jobj)
-        self.deserialize_post(obj, jobj)
-
-    def deserialize_pre(self, obj, jobj: dict):
-        pass
-
     def deserialize(self, obj, jobj: dict):
         print(f"[Hot Node] Deserialization not implemented for {obj.__class__.__name__} (no action was done).")
-
-    def deserialize_post(self, obj, jobj: dict):
-        pass
 
     def set_types(self, *args: type|str):
         """For compatibility reasons, pass str instead of type."""
@@ -58,6 +47,14 @@ class Stg:
             else:
                 types.append(arg)
         self.types = tuple(types)
+
+    def add_on_deserialize_post(self, callback):
+        self.on_deserialize_post.append(callback)
+
+    def handle_deserialize_post(self):
+        for callback in self.on_deserialize_post:
+            callback()
+        self.on_deserialize_post.clear()
 
 
 class LateStg(Stg):
@@ -81,10 +78,10 @@ class FallbackStg(Stg):
     def deserialize(self, obj, jobj: dict):
         if constants.IS_DEV:
             print("[Hot Node] Deser FallbackStg Accessed:")
-            print(f" | node: {self.context.node}")
-            print(f" | obj: {obj}")
-            print(f" | jobj: {jobj}")
-            print()
+            print(f"[Hot Node] | node: {self.context.node}")
+            print(f"[Hot Node] | obj: {obj}")
+            print(f"[Hot Node] | jobj: {jobj}")
+            print("[Hot Node]")
         self.deserializer.dispatch_deserialize(obj, jobj)
 
 
@@ -207,22 +204,44 @@ class NodeTreeStg(Stg):
         # Deselect Nodes
         for node in nodes:
             node.select = False
-        
-        # Generate Nodes & Set Node Attributes & Set IO Socket Value
-        jnodes = jnode_tree["nodes"]
-        self.stgs.nodes.deserialize(nodes, jnodes)
-        
+            
         # Setup Tree Interface if there are group io nodes in the preset or it's a ng
         if self.is_set_tree_io:
             jinterface = jnode_tree["interface"]
-            node_tree
-            self.stgs.interface.deserialize(interface, jinterface)
+            self.deserializer.specify_deserialize(interface, jinterface, self.stgs.interface)
+                
+        
+        # Generate Nodes & Set Node Attributes & Set IO Socket Value
+        jnodes = jnode_tree["nodes"]
+        self.deserializer.specify_deserialize(nodes, jnodes, self.stgs.nodes)
         
         # Generate Links
         jlinks = jnode_tree["links"]
-        self.stgs.node_links.deserialize(links, jlinks)
+        self.deserializer.specify_deserialize(links, jlinks, self.stgs.node_links)
         
-        self.stgs.node_tree_interface_socket_menu_late.deserialize()
+        # Apply interface default_value for modifier interface
+        if self.is_set_tree_io and self.context.is_setting_main_tree and node_tree.bl_idname == constants.GEOMETRY_NODE_TREE_IDNAME:
+            obj = self.context.bl_context.active_object
+            for mod in obj.modifiers:
+                if mod.type != 'NODES':
+                    continue
+                if getattr(mod, "node_group", None) is not node_tree:
+                        continue
+                for item in interface.items_tree:
+                    if getattr(item, "item_type", None) != 'SOCKET':
+                        print("Item is not a socket")
+                        continue
+                    if getattr(item, "in_out", None) != 'INPUT':
+                        print("Item is not an input socket")
+                        continue
+                    if not hasattr(item, "default_value"):
+                        print("Item has no default value")
+                        continue
+                    try:
+                        mod[item.identifier] = item.default_value
+                    except:
+                        pass
+
         jnode_tree["HN@ref"] = node_tree
         
     def new(self, jnode_tree: dict):
@@ -255,10 +274,10 @@ class InterfaceStg(Stg):
             if key.startswith("HN@"):
                 continue
             name = jitem["name"]
-            # set "" to the socket name will crash blender, so we set it to "UNNAMED"
+            # set "" to the socket name will crash blender, so we set it to "Unamed"
             if name == "":
-                jitem["name"] = "UNNAMED"
-                name = "UNNAMED"
+                jitem["name"] = "Unamed"
+                name = "Unamed"
             item_type = jitem["item_type"]
             # invoke new() to create item
             if item_type == 'SOCKET':
@@ -275,7 +294,7 @@ class InterfaceStg(Stg):
             interface.move(item, jitem["position"])
                 
             # set item attributes
-            self.deserializer.dispatch_deserialize(item, jitem, b=("in_out", "socket_type", "position", "index", "item_type"))
+            self.deserializer.search_deserialize(item, jitem)
             
             # get parent relations
             if jitem["HN@parent_idx"] != -1:
@@ -623,34 +642,59 @@ class CompositorNodeOutputFileStg(NodeStg):
         # TODO
         # 5.0 alpha 2025-08-03 and below: file_slots, layer_slots
         # 5.0: file_output_items
-        
+
         # TODO temp soluction for 0, edit the bpy_prop_collection stg to let items be set in item stgs
         self.deserializer.specify_deserialize(node.file_slots[0], jnode["file_slots"]["0"], self.stgs.compositor_node_output_file_file_slot)
         self.deserializer.specify_deserialize(node.file_slots, jnode["file_slots"], self.stgs.bpy_prop_collection)
         self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
 
 
+class NodeTreeInterfaceSocketStg(Stg):
+    def __init__(self):
+        super().__init__()
+        self.set_types(
+            bpy.types.NodeTreeInterfaceSocket,
+        )
+        self.b = ("in_out", "socket_type", "position", "index", "item_type")
+
+    def deserialize(self, socket: bpy.types.NodeTreeInterfaceSocket, jsocket: dict):
+
+        if socket.socket_type == "NodeSocketMenu":
+            # default value of menu is defined after menu node linked to group io node
+            def handle_node_tree_interface_socket_menu(socket = socket, jsocket = jsocket):
+                socket.default_value = jsocket.get("default_value", 1)
+            self.stgs.node_links.add_on_deserialize_post(handle_node_tree_interface_socket_menu)
+
+        self.deserializer.dispatch_deserialize(socket, jsocket, b=self.b)
+
+    def new(self, socket_collection, jsocket: dict):
+        socket = socket_collection.new(jsocket["type"], jsocket["name"])
+        return socket
+
+
 class NodeSocketStg(Stg):
     def __init__(self):
         super().__init__()
-        self.set_types(bpy.types.NodeSocket)
-        
+        self.set_types(
+            bpy.types.NodeSocket,
+        )
+
     def deserialize(self, socket: bpy.types.NodeSocket, jsocket: dict):
         if socket.bl_idname == "NodeSocketVirtual":
             return
-        elif socket.bl_idname == "NodeSocketColor":
+        
+        if socket.bl_idname == "NodeSocketColor":
             jdefault_value = jsocket.get("default_value", None)
             if jdefault_value == 0.0:
                 jdefault_value = [0.0, 0.0, 0.0, 1.0]
                 b = ("identifier", "type", "label", "default_value")
             else:
                 b = ("identifier", "type", "label")
-        elif socket.bl_idname == "NodeSocketMenu":
-            return
         else:
             b = ("identifier", "type", "label")
+
         self.deserializer.dispatch_deserialize(socket, jsocket, b=b)
-        
+
     def new(self, socket_collection, jsocket: dict):
         socket = socket_collection.new(jsocket["type"], jsocket["name"])
         return socket
@@ -856,34 +900,7 @@ class ColorManagedViewSettingsStg(Stg):
         # BUG Temperature and Tint cant be set correctly
         view_settings.use_white_balance = jview_settings.get("use_white_balance", view_settings.use_white_balance)
         self.deserializer.dispatch_deserialize(view_settings, jview_settings)
-
-
-class NodeTreeInterfaceSocketMenuStg(LateStg):
-    def __init__(self):
-        super().__init__()
-        self.set_types(bpy.types.NodeTreeInterfaceSocketMenu)
-        
-    def deserialize(self, socket, jsocket: dict):
-        # TODO Group the stgs to not let this stg to be visited when deserializing the nodes
-        # because we only need to set this when we are setting the tree interface
-        jdefault_value = jsocket.get("default_value")
-        if jdefault_value is not None:
-            self.stgs.node_tree_interface_socket_menu_late.request(socket, jdefault_value)
-
-
-class NodeTreeInterfaceSocketMenuLateStg(LateStg):
-    def __init__(self):
-        super().__init__()
-        self.set_types(bpy.types.NodeTreeInterfaceSocketMenu)
-        
-    def deserialize(self):
-        for socket, jdefault_value in self.request_list:
-            self.stgs.set.deserialize(socket, "default_value", jdefault_value)
-        
-    def request(self, socket, jdefault_value):
-        # wait for socket order to be set before setting the default_value of the socket menu.
-        self.request_list.append((socket, jdefault_value))
-        
+      
         
 class HNStg(Stg):
     """Attr starts with HN@ or jobj that contains a HN@type: HN@... will be handled by this stg."""
@@ -915,11 +932,11 @@ class SetStg(Stg):
         except Exception as e:
             if constants.IS_DEV:
                 print("[Hot Node] SetStg try_setattr failed, see below:")
-                print(" | obj:", obj)
-                print(" | attr:", attr)
-                print(" | jvalue:", jvalue)
-                print(f" | exception: {e}")
-                print()
+                print("[Hot Node] | obj:", obj)
+                print("[Hot Node] | attr:", attr)
+                print("[Hot Node] | jvalue:", jvalue)
+                print(f"[Hot Node] | exception: {e}")
+                print("[Hot Node]")
                 pass
             else:
                 pass

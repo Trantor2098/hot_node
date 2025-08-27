@@ -23,9 +23,8 @@ class Adapter():
             self.compositor_node_output_file_file_slot: CompositorNodeOutputFileFileSlotStg = None
             self.bpy_prop_collection: BpyPropCollectionStg = None
             self.image: ImageStg = None
-            self.node_tree_interface_socket_menu_late: NodeTreeInterfaceSocketMenuLateStg = None
-            self.node_tree_interface_socket_menu: NodeTreeInterfaceSocketMenuStg = None
             self.node_socket: NodeSocketStg = None
+            self.node_tree_interface_socket: NodeTreeInterfaceSocketStg = None
             self.compositor_node_output_file: CompositorNodeOutputFileStg = None
             self.compositor_node_color_balance: CompositorNodeColorBalanceStg = None
             self.node_zone_input: NodeZoneInputStg = None
@@ -86,8 +85,8 @@ class Adapter():
                 self._stg_list_core = [
                     self.bpy_prop_collection,
                     self.image,
-                    self.node_tree_interface_socket_menu,
                     self.node_socket,
+                    self.node_tree_interface_socket,
                     self.fallback, # fallback is always the last one
                 ]
         
@@ -106,9 +105,8 @@ class Adapter():
                     self.compositor_node_output_file_file_slot,
                     self.bpy_prop_collection,
                     self.image,
-                    self.node_tree_interface_socket_menu_late,
-                    self.node_tree_interface_socket_menu,
                     self.node_socket,
+                    self.node_tree_interface_socket,
                     self.compositor_node_output_file,
                     self.compositor_node_color_balance,
                     self.node_zone_input,
@@ -145,9 +143,8 @@ class Adapter():
             stgs.compositor_node_output_file_file_slot = CompositorNodeOutputFileFileSlotStg()
             stgs.bpy_prop_collection = BpyPropCollectionStg()
             stgs.image = ImageStg()
-            stgs.node_tree_interface_socket_menu_late = NodeTreeInterfaceSocketMenuLateStg()
-            stgs.node_tree_interface_socket_menu = NodeTreeInterfaceSocketMenuStg()
             stgs.node_socket = NodeSocketStg()
+            stgs.node_tree_interface_socket = NodeTreeInterfaceSocketStg()
             stgs.compositor_node_output_file = CompositorNodeOutputFileStg()
             stgs.compositor_node_color_balance = CompositorNodeColorBalanceStg()
             stgs.node_zone_input = NodeZoneInputStg()

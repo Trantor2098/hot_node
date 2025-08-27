@@ -6,10 +6,15 @@
 
 
 # ChangeLog
-## [1.0.6] - 2025-08-20
+
+## [1.0.8] - 2025-08-27
+### Fixed
+- Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
+- UI fine-tuning.
+
+## [1.0.7] - 2025-08-26
 ### Fixed
 - Node `Index Switch` can't be set correctly.
-- Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
 - Loading packs saved in Hot Node 0.7.11 or lower destroies node trees' name of current file.
 
 ## [1.0.6] - 2025-08-20
