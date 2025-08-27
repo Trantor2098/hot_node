@@ -5,11 +5,14 @@
 - 4.2 Compositor Glare Node changed in 4.5.
 
 
-# ChangeLog
+# ChangeLog of Preset Json Structure
 
+
+# ChangeLog of Features
 ## [1.0.8] - 2025-08-27
 ### Fixed
 - Node groups with node `Menu Switch` linked to it's interface can't be set correctly.
+- Geometry node tree interface sockets' default values can't be set to modifier panel.
 - UI fine-tuning.
 
 ## [1.0.7] - 2025-08-26

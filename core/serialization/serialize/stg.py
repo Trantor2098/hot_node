@@ -316,7 +316,7 @@ class NodeLinksStg(Stg):
                         jlink["HN@ts_id"] = to_socket.identifier
                         break
                 if not link.is_valid:
-                    jlink["HN@is_valid"] = False
+                    jlink["HN@is_valid"] = False # only record user-made invalid links
                 jlinks.append(jlink)
         return jlinks, True
 
@@ -444,12 +444,6 @@ class NodeSocketStg(Stg):
 
     def serialize(self, attr, obj: bpy.types.NodeSocket, fobj):
         jobj = self.serializer.dispatch_serialize(obj, fobj, self)
-        
-        # the default-default_value is defined by user so keep empty cant get the right value, we must record it.
-        if isinstance(obj, bpy.types.NodeTreeInterfaceSocket):
-            if obj.bl_idname == "NodeTreeInterfaceSocketMenu":
-                jobj["default_value"] = obj.default_value
-
         need = jobj != {}
         if need:
             jobj["identifier"] = obj.identifier # for future use.

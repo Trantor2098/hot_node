@@ -229,13 +229,10 @@ class NodeTreeStg(Stg):
                         continue
                 for item in interface.items_tree:
                     if getattr(item, "item_type", None) != 'SOCKET':
-                        print("Item is not a socket")
                         continue
                     if getattr(item, "in_out", None) != 'INPUT':
-                        print("Item is not an input socket")
                         continue
                     if not hasattr(item, "default_value"):
-                        print("Item has no default value")
                         continue
                     try:
                         mod[item.identifier] = item.default_value
@@ -405,9 +402,9 @@ class NodeLinksStg(Stg):
         from_socket = from_node.outputs[HN_from_socket_idx]
         to_socket = to_node.inputs[HN_to_socket_idx]
 
-        # try to build link directly by idx
+        # identifier check, to ensure the node socket of this idx is exactly the socket we recorded. 
+        # if is, try to build link directly by idx
         if (
-            # identifier check, to ensure the node socket of this idx is exactly the socket we recorded
             from_socket.identifier == HN_from_socket_identifier 
             and to_socket.identifier == HN_to_socket_identifier
         ):

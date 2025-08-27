@@ -173,6 +173,7 @@ def check_existing_builds(output_dir, hot_node_version, is_overwrite_build):
     if os.path.exists(output_zip) and not is_overwrite_build:
         print(f"⚠  {output_zip} already exists.")
         return False
+    print(f"✔  Output zip path is valid.")
     return True
 
 
@@ -223,7 +224,7 @@ def build(
 
 
 def main():
-    hot_node_version = "1.0.7"
+    hot_node_version = "1.0.8"
     is_overwrite_build = False
     
     blender_path=r"D:\Software\Software_B\Blender\Blender 4.5\blender.exe"
