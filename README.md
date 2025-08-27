@@ -69,10 +69,10 @@ Feel free to use any code of Hot Node in your program.
 None for now. Join the development!
 
 ### Donors
-热心B民, OR404NGE, 空物体blender, 一颗很辣的猕猴桃, 风凌颖, and others without leaving their name.
+热心B民, OR404NGE, 空物体blender, 一颗很辣的猕猴桃, 风凌颖, IcedDog_冷狗, and others without leaving their name.
 
 ### Test and Report
-VictoryLuode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin, ChyiZ_, 执念净化, et al. And, others who were not recorded due to oversight.
+VictoryLuode, DKPress, m0dest-Wyp, 异次元学者, SatohamaUmika, cc, witty, Colin, ChyiZ_, 执念净化, genesis230, IcedDog, 铭记于心, et al. And, others who were not recorded due to oversight.
 
 ## License
 Hot Node as a whole is licensed under the GNU General Public License, Version 3.
