@@ -2,25 +2,21 @@ import bpy
 import rna_keymap_ui
 
 kms_kmis = []
-add_nodes_menu_kmi = None
-save_nodes_menu_kmi = None
 
 def draw_kmis(box):
-    global add_nodes_menu_kmi
-    global save_nodes_menu_kmi
     
     wm = bpy.context.window_manager
     kc = getattr(wm.keyconfigs, "user", None)
     km = kc.keymaps["Node Editor"]
 
-    if add_nodes_menu_kmi is None or save_nodes_menu_kmi is None:
-        for kmi in km.keymap_items:
-            if kmi.idname == "wm.call_menu":
-                menu_name = getattr(kmi.properties, "name", "")
-                if menu_name == "HOTNODE_MT_merged_add_nodes_packs":
-                    add_nodes_menu_kmi = kmi
-                elif menu_name == "HOTNODE_MT_merged_save_nodes_packs":
-                    save_nodes_menu_kmi = kmi
+    # TODO optimize this search
+    for kmi in km.keymap_items:
+        if kmi.idname == "wm.call_menu":
+            menu_name = getattr(kmi.properties, "name", "")
+            if menu_name == "HOTNODE_MT_merged_add_nodes_packs":
+                add_nodes_menu_kmi = kmi
+            elif menu_name == "HOTNODE_MT_merged_save_nodes_packs":
+                save_nodes_menu_kmi = kmi
         
     box.context_pointer_set("keymap", km)
     rna_keymap_ui.draw_kmi([], kc, km, add_nodes_menu_kmi, box, 0)

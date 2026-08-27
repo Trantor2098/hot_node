@@ -28,8 +28,8 @@ class HOTNODE_MT_merged_add_nodes_packs(Menu):
                 pack_menu_cls = PackMenuManager.get_pack_menu_cls(pack.name)
                 pack_menu_cls.mode = 'ADD_NODES'
                 self.layout.menu(pack_menu_cls.__name__, text=pack.name, translate=False)
-            
-            
+
+
 class HOTNODE_MT_merged_save_nodes_packs(Menu):
     """A menu shows a pack's presets for user to get / modify / create / ..."""
     bl_label = "Save Nodes"
@@ -39,7 +39,11 @@ class HOTNODE_MT_merged_save_nodes_packs(Menu):
         if edit_tree is None:
             return
         SS.ensure_sync_on_interval()
+        
+        user_prefs = utils.get_user_prefs(context)
         for pack in Context.ordered_packs:
+            if user_prefs.is_filter_pack_by_tree_type and edit_tree.bl_idname not in pack.meta.tree_types:
+                continue
             pack_menu_cls = PackMenuManager.get_pack_menu_cls(pack.name)
             pack_menu_cls.mode = 'SAVE_NODES'
             self.layout.menu(pack_menu_cls.__name__, text=pack.name, translate=False)
@@ -111,19 +115,26 @@ class PackMenuManager:
     def draw_list_add_nodes_pack_menu(self: Menu, context):
         user_prefs = utils.get_user_prefs(context)
         if user_prefs.add_nodes_menu_mode == 'LIST':
+            tree_type = context.space_data.tree_type if context.space_data else None
             SS.ensure_sync_on_interval()
+            
             self.layout.separator()
             for pack_name, pack_menu_cls in PackMenuManager.pack_menu_clses.items():
-                pack_menu_cls.mode = 'ADD_NODES'
-                self.layout.menu(pack_menu_cls.__name__, text=pack_name, translate=False)
-                
+                if tree_type in Context.get_pack(pack_name).meta.tree_types:
+                    pack_menu_cls.mode = 'ADD_NODES'
+                    self.layout.menu(pack_menu_cls.__name__, text=pack_name, translate=False)
+
     @staticmethod
     def draw_list_save_nodes_pack_menu(self: Menu, context):
         user_prefs = utils.get_user_prefs(context)
         if user_prefs.add_nodes_menu_mode == 'LIST':
+            tree_type = context.space_data.tree_type if context.space_data else None
             SS.ensure_sync_on_interval()
+            
             self.layout.separator()
             for pack_name, pack_menu_cls in PackMenuManager.pack_menu_clses.items():
+                if user_prefs.is_filter_pack_by_tree_type and tree_type not in Context.get_pack(pack_name).meta.tree_types:
+                    continue
                 pack_menu_cls.mode = 'SAVE_NODES'
                 self.layout.menu(pack_menu_cls.__name__, icon='FILE_TICK', text=pack_name, translate=False)
        
@@ -167,6 +178,7 @@ class PackMenuManager:
         cls.remove_list_save_nodes_pack_menu()
         cls.remove_merged_add_nodes_packs_menu()
         cls.remove_merged_save_nodes_packs_menu()
+        cls.clear_pack_menu_pool()
         
     @classmethod
     def register_new_pack_menus(cls):
@@ -219,6 +231,13 @@ class PackMenuManager:
         menu_cls = type(menu_cls_name, (HOTNODE_MT_pack,), {"bl_label": pack_name})
         cls.pack_menu_clses[pack_name] = menu_cls
         return menu_cls
+    
+    @classmethod
+    def clear_pack_menu_pool(cls):
+        cls.unregister_pack_menus()
+        cls.pack_menu_clses.clear()
+        cls.new_pack_menu_clses.clear()
+        cls.pack_menu_num = 0
 
     @classmethod
     def get_pack_menu_cls(cls, pack_name: str) -> type[Menu]|None:
@@ -646,7 +665,6 @@ class HOTNODE_PT_main(Panel):
         layout.separator(type='LINE')
         layout.separator(factor=0.5)
         
-        # row.operator("hotnode.update_legacy_packs", icon='RECOVER_LAST', text="Load Old Packs")
         col = layout.column()
         col.scale_y = 0.8
         col.label(text="Hot Node 1.0 have a new structure,", icon='INFO')

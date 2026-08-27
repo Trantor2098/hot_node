@@ -27,6 +27,7 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
     if locale == "en_US":
         if (
             user_prefs.sidebar_category == "Hot Node"
+            and user_prefs.addon_panel_label == "Hot Node"
             and user_prefs.default_pack_name == "Nodes Pack"
             and user_prefs.default_preset_name == "Nodes"
             and user_prefs.merged_add_nodes_menu_label == "Add Nodes"
@@ -36,11 +37,14 @@ def translate_default_name(user_prefs: 'HotNodeUserPrefs'):
     
     # loop to find the default translated names.
     default_translated_names = IS.get_msg_from_all_locales("Hot Node")
-    if user_prefs.sidebar_category in default_translated_names.values() and user_prefs.sidebar_category != default_translated_names.get(locale, "Hot Node"):
-        user_prefs.sidebar_category = default_translated_names.get(locale, "Hot Node")
-    
+    text_translated_hot_node = default_translated_names.get(locale, "Hot Node")
+    if user_prefs.sidebar_category in default_translated_names.values() and user_prefs.sidebar_category != text_translated_hot_node:
+        user_prefs.sidebar_category = text_translated_hot_node
+    if user_prefs.addon_panel_label in default_translated_names.values() and user_prefs.addon_panel_label != text_translated_hot_node:
+        user_prefs.addon_panel_label = text_translated_hot_node
+
     default_translated_names = IS.get_msg_from_all_locales("Nodes Pack")
-    if user_prefs.default_pack_name in default_translated_names.values() and user_prefs.default_pack_name != default_translated_names.get(locale, "NodesPack"):
+    if user_prefs.default_pack_name in default_translated_names.values() and user_prefs.default_pack_name != default_translated_names.get(locale, "Nodes Pack"):
         user_prefs.default_pack_name = default_translated_names.get(locale, "Nodes Pack")
     
     default_translated_names = IS.get_msg_from_all_locales("Nodes")
@@ -71,12 +75,20 @@ def sidebar_category_update(self: 'HotNodeUserPrefs', context):
             bpy.utils.unregister_class(cls)
         except:
             pass
-        if cls is ui.HOTNODE_PT_main:
-            cls.bl_label = self.sidebar_category
         cls.bl_category = self.sidebar_category
         bpy.utils.register_class(cls)
         
         
+def addon_panel_label_update(self: 'HotNodeUserPrefs', context):
+    panel = ui.HOTNODE_PT_main
+    try:
+        bpy.utils.unregister_class(panel)
+    except:
+        pass
+    panel.bl_label = self.addon_panel_label
+    bpy.utils.register_class(panel)
+
+
 def add_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
     pmm = ui.PackMenuManager()
     pmm.remove_merged_add_nodes_packs_menu()
@@ -97,7 +109,8 @@ def save_nodes_menu_mode_update(self: 'HotNodeUserPrefs', context):
         pmm.append_merged_save_nodes_packs_menu()
     elif self.save_nodes_menu_mode == 'LIST':
         pmm.append_list_save_nodes_pack_menu()
-        
+
+
 is_skip_data_dir_update = False
 
 def data_dir_update(self: 'HotNodeUserPrefs', context):
@@ -177,6 +190,13 @@ class HotNodeUserPrefs(AddonPreferences):
         update=sidebar_category_update,
     ) # type: ignore
     
+    addon_panel_label: StringProperty(
+        name="Addon Panel Label",
+        description="Addon panel label to show in the UI sidebar.",
+        default="Hot Node",
+        update=addon_panel_label_update,
+    ) # type: ignore
+    
     default_preset_name: StringProperty(
         name="Default Preset Name",
         description="Name of the default preset for creating nodes preset.",
@@ -205,6 +225,7 @@ class HotNodeUserPrefs(AddonPreferences):
             ('LIST', "List", "Extend the add nodes menu with a list of custom pack menu."),
         ],
         default='MERGE',
+        update=add_nodes_menu_mode_update,
     ) # type: ignore
     
     save_nodes_menu_mode: EnumProperty(
@@ -216,6 +237,7 @@ class HotNodeUserPrefs(AddonPreferences):
             ('LIST', "List", "Extend the context menu with a list of custom pack menu."),
         ],
         default='MERGE',
+        update=save_nodes_menu_mode_update,
     ) # type: ignore
     
     merged_add_nodes_menu_label: StringProperty(
@@ -339,19 +361,22 @@ class HotNodeUserPrefs(AddonPreferences):
             iii.active = self.dir_to_match_image != ""
             iii.prop(self, "image_name_filter", icon='FILTER', placeholder="Only match images having this key")
 
-        if self.prefs_ui_sheet == 'CUSTOMIZE':
+        elif self.prefs_ui_sheet == 'CUSTOMIZE':
             col.label(text="Filter")
             col.prop(self, "is_filter_pack_by_tree_type")
             
             col.separator()
             col.separator(type='LINE')
-            col.label(text="UI Performance")
-            
-            col.prop(self, "sidebar_category")
-
-            col.separator()
+            col.label(text="Defaults")
             col.prop(self, "default_pack_name", text="Default Pack Name")
             col.prop(self, "default_preset_name", text="Default Preset Name")
+            
+            col.separator()
+            col.separator(type='LINE')
+            col.label(text="Interface")
+            
+            col.prop(self, "sidebar_category")
+            col.prop(self, "addon_panel_label")
             
             col.separator()
             col.prop(self, "min_ui_list_length")
@@ -374,7 +399,7 @@ class HotNodeUserPrefs(AddonPreferences):
                 iii = sub.row(align=True)
                 iii.prop(self, "merged_save_nodes_menu_label", text="Merged Menu Label")
         
-        if self.prefs_ui_sheet == 'DATA':
+        elif self.prefs_ui_sheet == 'DATA':
             col.label(text="Autosave")
             col.prop(self, "autosave_retention_days", text="Autosave Retention Days")
             
@@ -394,11 +419,11 @@ class HotNodeUserPrefs(AddonPreferences):
             col.label(text="Paths")
             col.prop(self, "data_dir", icon='ASSET_MANAGER')
         
-        if self.prefs_ui_sheet == 'KEYMAP':
-            col.label(text="Keymaps")
+        elif self.prefs_ui_sheet == 'KEYMAP':
+            col.label(text="Keymap")
             keymap.draw_kmis(col)
             
-        if self.prefs_ui_sheet == 'OTHERS':
+        elif self.prefs_ui_sheet == 'OTHERS':
             col.label(text="Others")
             col.prop(self, "is_show_addon_new_version_info")
             
