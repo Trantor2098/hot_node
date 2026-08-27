@@ -4,6 +4,7 @@ from pathlib import Path
 from ...utils import constants
 from ..serialization.manager import SerializationManager
 from ...utils.file_manager import FileManager
+from ...services.versioning import VersioningService
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -90,6 +91,7 @@ class Preset():
 
     def load(self):
         self.jpreset = self.fm.read_json(self.path)
+        self.jpreset = VersioningService.update_preset(self.name, self.jpreset)
         self.meta.deserialize(self.jpreset.get("HN@meta", {}))
 
     def serialize(self, bl_context, main_tree = None):

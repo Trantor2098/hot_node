@@ -276,12 +276,6 @@ class HotNodeUserPrefs(AddonPreferences):
         soft_max=100,
     ) # type: ignore
     
-    is_show_addon_new_version_info: BoolProperty(
-        name="Show Add-on New Version Info",
-        description="Show the infos and special operations for the new version of add-on in the UI.",
-        default=True,
-    ) # type: ignore
-
     # Data
     is_use_custom_undo_steps: BoolProperty(
         name="Use Custom Undo Steps",
@@ -424,11 +418,6 @@ class HotNodeUserPrefs(AddonPreferences):
             keymap.draw_kmis(col)
             
         elif self.prefs_ui_sheet == 'OTHERS':
-            col.label(text="Others")
-            col.prop(self, "is_show_addon_new_version_info")
-            
-            col.separator()
-            col.separator(type='LINE')
             col.label(text="Experimental")
             col.prop(self, "is_dev", text="⚠ Development Mode")
 

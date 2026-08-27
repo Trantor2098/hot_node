@@ -21,7 +21,6 @@ from ...services.autosave import AutosaveService as AS
 from ...services.history import HistoryService as HS
 from ...services.i18n import I18nService as IS
 from ...services.sync import SyncService as SS
-from ...services.versioning import VersioningService as VS
 from .ui_context import UIContext
 from ...utils import utils
 from ...utils import constants
@@ -1131,8 +1130,6 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
                 continue
             if self.is_recovering:
                 timestemp_str, pack_name = AS.parse_autosave_zip_path(src_zip_path)
-                if "_autosave_" in pack_name:
-                    pack_name = utils.get_string_between_words(pack_name, None, ("_autosave_",))
                 pack_name = pack_name + " (Recovered)"
                 pack_name = utils.ensure_unique_name(pack_name, list(Context.packs.keys()))
             else:
@@ -1143,19 +1140,13 @@ class HOTNODE_OT_import_pack(bpy.types.Operator):
             # do import
             dst_pack_dir = Context.fm.packs_dir / pack_name
             Context.fm.unzip_to(src_zip_path, dst_pack_dir)
-            
-            # detect and convert legacy pack
-            legacy_pack_meta_path = dst_pack_dir / ".metadata.json"
-            if legacy_pack_meta_path.exists():
-                pack = Context.create_pack(pack_name)
-                failed_preset_names, legacy_meta = VS.convert_pack_of_0_X_X(context, pack)
-                if failed_preset_names:
-                    Reporter.report_warning("Failed to update presets: [" + pack_name + "] " + ", ".join(failed_preset_names))
-                legacy_ordered_preset_names = legacy_meta.get("order", [])
-                pack.try_match_order(legacy_ordered_preset_names)
-                pack.save_metas()
-            else:
-                pack = Context.load_pack(pack_name)
+
+            if not (dst_pack_dir / ".meta").exists():
+                Context.fm.remove_tree(dst_pack_dir)
+                Reporter.report_warning(f"Unsupported legacy or invalid pack: {file_name}")
+                continue
+
+            pack = Context.load_pack(pack_name)
             Context.add_pack(pack)
             
             imported_packs.append(pack)
@@ -1259,89 +1250,6 @@ class HOTNODE_OT_export_pack(bpy.types.Operator):
         col.prop(self, "packs_to_export", text="Packs to Export")
         
         
-class HOTNODE_OT_update_legacy_packs(Operator):
-    bl_idname = "hotnode.update_legacy_packs"
-    bl_label = "Update Legacy Packs"
-    bl_description = "Load and update all packs saved with previous versions of Hot Node after add-on got a big update."
-    bl_translation_context = i18n_contexts.default
-    bl_options = {'REGISTER'}
-    
-    @staticmethod
-    def undo(uic: UIContext, pack_name_after, pack_name_before, idx_before):
-        SS.sync() # using sync is very shuang O(∩_∩)O~
-        if Context.get_pack_selected_name() == pack_name_after:
-            pack = Context.select_pack(pack_name_before)
-            uic.select_pack(uic, pack)
-            if pack:
-                Context.select_preset(idx_before)
-                uic.select_preset(uic, idx_before)
-
-    @staticmethod
-    def redo(uic: UIContext, pack_name_after):
-        SS.sync()
-        pack = Context.select_pack(pack_name_after)
-        uic.select_pack(uic, pack)
-
-    def execute(self, context):
-        Reporter.set_active_ops(self)
-        uic = context.window_manager.hot_node_ui_context
-        pack_name_before = Context.get_pack_selected_name()
-        idx_before = uic.preset_selected_idx
-        
-        autosave_packs_dir = Context.fm.autosave_dir
-        
-        if not autosave_packs_dir.exists():
-            Reporter.report_finish("No legacy packs found to update.")
-            Reporter.set_active_ops(None)
-            return {'CANCELLED'}
-        
-        zip_names = Context.fm.read_dir_file_names(autosave_packs_dir, ".zip", cull_suffix=False)
-        legacy_autosave_zip_names = [name for name in zip_names if "_autosave_" in name]
-
-        converted_packs = []
-        for zip_name in legacy_autosave_zip_names:
-            pack_name = utils.get_string_between_words(zip_name, None, ("_autosave_",))
-            if pack_name is not None:
-                src_zip_path = autosave_packs_dir / zip_name
-                pack_name = utils.ensure_unique_name_for_item(pack_name, Context.ordered_packs)
-                
-                # unzip to new packs dir
-                dst_pack_dir = Context.fm.packs_dir / pack_name
-                Context.fm.unzip_to(src_zip_path, dst_pack_dir)
-                
-                # convert pack
-                pack = Context.create_pack(pack_name)
-                failed_preset_names, legacy_meta = VS.convert_pack_of_0_X_X(context, pack)
-                if failed_preset_names:
-                    Reporter.report_warning(iface_("Failed to update presets: [") + pack_name + "] " + ", ".join(failed_preset_names))
-                legacy_ordered_preset_names = legacy_meta.get("order", [])
-                pack.try_match_order(legacy_ordered_preset_names)
-                pack.save_metas()
-                Context.add_pack(pack)
-                converted_packs.append(pack)
-
-        if not converted_packs:
-            Reporter.report_finish("No legacy packs found to update.")
-            Reporter.set_active_ops(None)
-            return {'CANCELLED'}
-        
-        Context.select_pack(converted_packs[-1])
-        uic.select_pack(uic, converted_packs[-1])
-        
-        step = HS.step(self.bl_label, self)
-        HS.set_created_paths(step, *[pack.pack_dir for pack in converted_packs])
-        HS.set_undo(step, self.undo, converted_packs[-1].name, pack_name_before, idx_before)
-        HS.set_redo(step, self.redo, converted_packs[-1].name)
-        HS.save_step(step)
-        
-        Reporter.report_finish(
-            f"All packs are updated.",
-            f"Packs are partially updated, please check the previous reports for details."
-        )
-        Reporter.set_active_ops(None)
-        return {'FINISHED'}
-    
-
 class HOTNODE_OT_format_data(Operator):
     bl_idname = "hotnode.format_data"
     bl_label = "Format Data"
@@ -1492,7 +1400,6 @@ classes = (
     HOTNODE_OT_set_pack_icon,
     HOTNODE_OT_import_pack,
     HOTNODE_OT_export_pack,
-    HOTNODE_OT_update_legacy_packs,
     HOTNODE_OT_format_data,
     HOTNODE_OT_show_user_prefs,
     HOTNODE_OT_refresh,

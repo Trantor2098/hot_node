@@ -86,7 +86,3 @@ class AutosaveService(ServiceBase):
                 timestamp_str, pack_name = cls.parse_autosave_zip_stem(zip_stem)
                 if cls.is_timestamp_str_overdated(timestamp_str, days):
                     cls.fm.remove_file(zip_path)
-            else:
-                if "_deprecated_" in zip_stem:
-                    # Handle legacy autosave files, only keep _autosave_ legacy files
-                    cls.fm.remove_file(zip_path)

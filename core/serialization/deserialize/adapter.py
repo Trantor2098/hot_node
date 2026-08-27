@@ -1,162 +1,62 @@
-from .stg import *
+from ..registry import StgRegistry, StgSpec
+from .stg import (
+    BpyPropCollectionStg,
+    ColorManagedViewSettingsStg,
+    CompositorNodeColorBalanceStg,
+    CompositorNodeOutputFileFileSlotStg,
+    CompositorNodeOutputFileStg,
+    FallbackStg,
+    HNStg,
+    ImageFormatSettingsStg,
+    ImageStg,
+    InterfaceStg,
+    NodeGroupStg,
+    NodeLinksStg,
+    NodesStg,
+    NodeSocketStg,
+    NodeStg,
+    NodeTreeInterfaceSocketStg,
+    NodeTreeStg,
+    NodeZoneInputStg,
+    NodeZoneOutputStg,
+    PresetStg,
+    SetStg,
+)
 
 
-# NOTE How to register a new stg:
-# 1. Declare the stg in the Adapter.Stgs.__init__() method.
-# 2. Add the stg to stg_list_all and some other relevant lists. 
-#    stg_list_node is used for node deserialization, 
-#    stg_list_core is used for cases where no specific list is given, 
-#    and stg_list_all is used for registration so must be included.
-# 3. New the instance of the stg in the Adapter._load_stgs() method with the blender version this stg supports.
+SPECS = (
+    StgSpec("set", SetStg, ("all",)),
+    StgSpec("hn", HNStg, ("hn", "all")),
+    StgSpec("color_managed_view_settings", ColorManagedViewSettingsStg, ("all",)),
+    StgSpec("image_format_settings", ImageFormatSettingsStg, ("all",)),
+    StgSpec("compositor_node_output_file_file_slot", CompositorNodeOutputFileFileSlotStg, ("all",)),
+    StgSpec("bpy_prop_collection", BpyPropCollectionStg, ("core", "all")),
+    StgSpec("image", ImageStg, ("core", "all")),
+    StgSpec("node_socket", NodeSocketStg, ("core", "all")),
+    StgSpec("node_tree_interface_socket", NodeTreeInterfaceSocketStg, ("core", "all")),
+    StgSpec("node_zone_output", NodeZoneOutputStg, ("node", "all")),
+    StgSpec("node_zone_input", NodeZoneInputStg, ("node", "all")),
+    StgSpec("node_group", NodeGroupStg, ("node", "all")),
+    StgSpec("compositor_node_color_balance", CompositorNodeColorBalanceStg, ("node", "all")),
+    StgSpec("compositor_node_output_file", CompositorNodeOutputFileStg, ("node", "all")),
+    StgSpec("node", NodeStg, ("node", "all")),
+    StgSpec("nodes", NodesStg, ("all",)),
+    StgSpec("node_links", NodeLinksStg, ("all",)),
+    StgSpec("interface", InterfaceStg, ("all",)),
+    StgSpec("node_tree", NodeTreeStg, ("all",)),
+    StgSpec("preset", PresetStg, ("all",)),
+    StgSpec("fallback", FallbackStg, ("hn", "core", "all")),
+)
 
 
-class Adapter():
-    """This class defines the stgs with adaption to the current Blender version."""
-    class Stgs:
-        """Activative strategies for the current Blender version."""
-        def __init__(self, blender_version: list[int, int, int]):
-            self._blender_version = blender_version
-            self.set: SetStg = None
-            self.hn: HNStg = None
-            self.color_managed_view_settings: ColorManagedViewSettingsStg = None
-            self.image_format_settings: ImageFormatSettingsStg = None
-            self.compositor_node_output_file_file_slot: CompositorNodeOutputFileFileSlotStg = None
-            self.bpy_prop_collection: BpyPropCollectionStg = None
-            self.image: ImageStg = None
-            self.node_socket: NodeSocketStg = None
-            self.node_tree_interface_socket: NodeTreeInterfaceSocketStg = None
-            self.compositor_node_output_file: CompositorNodeOutputFileStg = None
-            self.compositor_node_color_balance: CompositorNodeColorBalanceStg = None
-            self.node_zone_input: NodeZoneInputStg = None
-            self.node_zone_output: NodeZoneOutputStg = None
-            self.node_group: NodeGroupStg = None
-            self.node: NodeStg = None
-            self.nodes: NodesStg = None
-            self.node_links: NodeLinksStg = None
-            self.interface: InterfaceStg = None
-            self.node_tree: NodeTreeStg = None
-            self.preset: PresetStg = None
-            self.fallback: FallbackStg = None
-            self._stg_list_hn: list[Stg] = None
-            self._stg_list_node: list[Stg] = None
-            self._stg_list_core: list[Stg] = None
-            self._stg_list_all: list[Stg] = None
-            
-        @property
-        def stg_list_hn(self) -> list[Stg]:
-            """HN stgs, used for HN@type"""
-            if self._stg_list_hn is not None:
-                return self._stg_list_hn
-            if self._blender_version == [2, 93, 0]:
-                pass
-            else:
-                self._stg_list_hn = [
-                    self.hn,
-                    self.fallback, # fallback is always the last one
-                ]
-            return self._stg_list_hn
-            
-        @property
-        def stg_list_node(self) -> list[Stg]:
-            """node stgs"""
-            if self._stg_list_node is not None:
-                return self._stg_list_node
-            if self._blender_version == [2, 93, 0]:
-                pass
-            else:
-                self._stg_list_node = [
-                    self.node_zone_output,
-                    self.node_zone_input,
-                    self.node_group,
-                    self.compositor_node_color_balance,
-                    self.compositor_node_output_file,
-                    self.node,
-                ]
-            return self._stg_list_node
-        
-        @property
-        def stg_list_core(self) -> list[Stg]:
-            """will be used for dispatching if no list was specified"""
-            if self._stg_list_core is not None:
-                return self._stg_list_core
-            if self._blender_version == [2, 93, 0]:
-                pass
-            else:
-                self._stg_list_core = [
-                    self.bpy_prop_collection,
-                    self.image,
-                    self.node_socket,
-                    self.node_tree_interface_socket,
-                    self.fallback, # fallback is always the last one
-                ]
-        
-        @property
-        def stg_list_all(self) -> list[Stg]:
-            if self._stg_list_all is not None:
-                return self._stg_list_all
-            if self._blender_version == [2, 93, 0]:
-                pass
-            else:
-                self._stg_list_all = [
-                    self.set,
-                    self.hn,
-                    self.color_managed_view_settings,
-                    self.image_format_settings,
-                    self.compositor_node_output_file_file_slot,
-                    self.bpy_prop_collection,
-                    self.image,
-                    self.node_socket,
-                    self.node_tree_interface_socket,
-                    self.compositor_node_output_file,
-                    self.compositor_node_color_balance,
-                    self.node_zone_input,
-                    self.node_zone_output,
-                    self.node_group,
-                    self.node,
-                    self.nodes,
-                    self.node_links,
-                    self.interface,
-                    self.node_tree,
-                    self.preset,
-                    self.fallback, # fallback is always the last one
-                ]
-            return self._stg_list_all
-                
-    def __init__(self, blender_version: list[int, int, int]):
+class Adapter:
+    """Build deserialization strategies and their ordered dispatch roles."""
+
+    registry = StgRegistry(SPECS, ("hn", "node", "core", "all"))
+
+    def __init__(self, blender_version: list[int]):
         self.blender_version = blender_version
-        self.stgs = Adapter.Stgs(blender_version)
-        self.load_stgs(blender_version)
-        # invoke the stg_list and stg_list_all properties to initialize them
-        self.stgs.stg_list_core
-        self.stgs.stg_list_node
-        self.stgs.stg_list_all
-            
-    def load_stgs(self, blender_version: list[int, int, int]):
-        stgs = self.stgs
-        if blender_version == [2, 93, 0]:
-            pass
-        else:
-            stgs.set = SetStg()
-            stgs.hn = HNStg()
-            stgs.image_format_settings = ImageFormatSettingsStg()
-            stgs.color_managed_view_settings = ColorManagedViewSettingsStg()
-            stgs.compositor_node_output_file_file_slot = CompositorNodeOutputFileFileSlotStg()
-            stgs.bpy_prop_collection = BpyPropCollectionStg()
-            stgs.image = ImageStg()
-            stgs.node_socket = NodeSocketStg()
-            stgs.node_tree_interface_socket = NodeTreeInterfaceSocketStg()
-            stgs.compositor_node_output_file = CompositorNodeOutputFileStg()
-            stgs.compositor_node_color_balance = CompositorNodeColorBalanceStg()
-            stgs.node_zone_input = NodeZoneInputStg()
-            stgs.node_zone_output = NodeZoneOutputStg()
-            stgs.node_group = NodeGroupStg()
-            stgs.node = NodeStg()
-            stgs.nodes = NodesStg()
-            stgs.node_links = NodeLinksStg()
-            stgs.interface = InterfaceStg()
-            stgs.node_tree = NodeTreeStg()
-            stgs.preset = PresetStg()
-            stgs.fallback = FallbackStg()
-        
+        self.stgs = self.registry.build(blender_version)
+
     def get_stgs(self):
         return self.stgs

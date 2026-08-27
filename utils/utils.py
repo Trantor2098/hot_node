@@ -1,6 +1,5 @@
 import os
 import difflib
-import time
 import tempfile
 from pathlib import Path
 
@@ -255,29 +254,6 @@ def get_similar_str(example_str:str, str_list: list, tolerance=0.99):
             best_str = str_list[i]
             best_ratio = ratio
     return best_str
-
-def get_autosave_time_str():
-    '''Return: DDHHMM with blanks filled by 0'''
-    timestamp = time.time()
-    local_time = time.localtime(timestamp)
-    day = str(local_time.tm_mday).rjust(2, "0")
-    hour = str(local_time.tm_hour).rjust(2, "0")
-    minute = str(local_time.tm_min).rjust(2, "0")
-    autosave_time_str = "".join((day, hour, minute))
-    return autosave_time_str
-
-def get_autosave_time():
-    '''[D, H, M]'''
-    timestamp = time.time()
-    local_time = time.localtime(timestamp)
-    return [local_time.tm_mday, local_time.tm_hour, local_time.tm_min]
-
-
-def parse_autosave_time_str(autosave_time_str):
-    day = int(autosave_time_str[0:2])
-    hour = int(autosave_time_str[2:4])
-    minute = int(autosave_time_str[4:6])
-    return [day, hour, minute]
 
 def check_slash_anti_slash_in_string(string: str):
     '''Check whether the string contains both slash or anti-slash.'''

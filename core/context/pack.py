@@ -128,11 +128,9 @@ class Pack:
             return
         try:
             preset.load()
-        except:
+        except Exception:
             Reporter.report_warning(f"Failed to load preset {preset.name} in pack {self.name}. The preset file may be corrupted.")
             print(f"[Hot Node] Failed to load preset: {preset.name} in pack: {self.name}")
-            self.remove_preset(preset)
-            self.save_metas()
             
     def load_presets(self):
         for preset in self.ordered_presets:
