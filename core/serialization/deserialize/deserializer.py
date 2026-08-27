@@ -154,9 +154,9 @@ class Deserializer:
         return stg_list[-1]
         
     def dispatch_deserialize(self, obj, jobj: dict, stg_list: 'list[Stg]|Stg|None' = None, b: set[str] = set()):
-        self.context.obj_tree.append(obj)
         if jobj is None:
             return
+        self.context.obj_tree.append(obj)
         # start_time = time.time()
         if stg_list is None:
             stg_list = self.stgs.stg_list_core
@@ -187,9 +187,9 @@ class Deserializer:
         #     utils.print_time_cost("Dispatch Deser Cost", obj.rna_type.identifier, start_time, end_time, threshold=0.002)
         
     def search_deserialize(self, obj, jobj, stg_specifier: object|str|None = None, stg_list: 'list[Stg]' = None, is_dispatch_on_fallback: bool = False):
-        self.context.obj_tree.append(obj)
         if jobj is None:
             return
+        self.context.obj_tree.append(obj)
         # start_time = time.time()
         if stg_specifier is None:
             stg_specifier = jobj.get("HN@type", obj)
@@ -203,9 +203,9 @@ class Deserializer:
         self.context.obj_tree.pop()
     
     def specify_deserialize(self, obj, jobj, stg: 'Stg'):
-        self.context.obj_tree.append(obj)
         if jobj is None:
             return
+        self.context.obj_tree.append(obj)
         stg.deserialize(obj, jobj)
         stg.handle_deserialize_post()
         self.context.obj_tree.pop()

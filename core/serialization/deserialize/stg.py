@@ -339,97 +339,34 @@ class NodeLinksStg(Stg):
         return from_node, to_node
                         
     def build_link(self, jlink, from_node, to_node, node_links: bpy.types.NodeLinks):
-        HN_from_socket_idx = jlink['HN@fs_i']
-        HN_to_socket_idx = jlink['HN@ts_i']
-        
-        if not HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs):
+        from_socket = self.find_socket(from_node.outputs, jlink, "HN@fs")
+        to_socket = self.find_socket(to_node.inputs, jlink, "HN@ts")
+        if from_socket is None or to_socket is None:
             return
-        
-        from_socket = from_node.outputs[HN_from_socket_idx]
-        to_socket = to_node.inputs[HN_to_socket_idx]
-        link = node_links.new(from_socket, to_socket)
-        
-        # if the link valid or is exactly invalid when saving (ser stg only record is_valid when it's False), return
-        if link.is_valid or not jlink.get("HN@is_valid", True):
-            return link
-        
-        # try to handle invalid link (usually caused by node socket map change of blender updation)
-        HN_to_socket_identifier = jlink["HN@ts_id"]
-        HN_to_socket_bl_idname = jlink["HN@ts_bid"]
-        HN_from_socket_identifier = jlink["HN@fs_id"]
-        HN_from_socket_bl_idname = jlink["HN@fs_bid"]
-        
-        new_to_socket = None
-        if HN_to_socket_bl_idname != to_socket.bl_idname:
-            for socket in to_node.inputs:
-                if socket.bl_idname == HN_to_socket_bl_idname and socket.identifier == HN_to_socket_identifier:
-                    new_to_socket = socket
-                    break
-                
-        new_from_socket = None
-        if HN_from_socket_bl_idname != from_socket.bl_idname:
-            for socket in from_node.outputs:
-                if socket.bl_idname == HN_from_socket_bl_idname and socket.identifier == HN_from_socket_identifier:
-                    new_from_socket = socket
-                    break
-        
-        if new_to_socket and new_from_socket:
-            node_links.remove(link)
-            link = node_links.new(new_from_socket, new_to_socket)
-        elif new_to_socket:
-            node_links.remove(link)
-            link = node_links.new(from_socket, new_to_socket)
-        elif new_from_socket:
-            node_links.remove(link)
-            link = node_links.new(new_from_socket, to_socket)
-        else:
-            link = None
-        return link
+        return node_links.new(from_socket, to_socket)
 
-    # not fully tested yet, do not use
-    def build_link2(self, jlink, from_node, to_node, node_links: bpy.types.NodeLinks):
-        HN_from_socket_idx = jlink['HN@fs_i']
-        HN_to_socket_idx = jlink['HN@ts_i']
-        
-        if not HN_from_socket_idx < len(from_node.outputs) and HN_to_socket_idx < len(to_node.inputs):
-            return
-        
-        HN_to_socket_identifier = jlink["HN@ts_id"]
-        HN_from_socket_identifier = jlink["HN@fs_id"]
-        HN_to_socket_bl_idname = jlink["HN@ts_bid"]
-        HN_from_socket_bl_idname = jlink["HN@fs_bid"]
-        
-        from_socket = from_node.outputs[HN_from_socket_idx]
-        to_socket = to_node.inputs[HN_to_socket_idx]
+    @staticmethod
+    def find_socket(sockets, jlink: dict, prefix: str):
+        identifier = jlink.get(f"{prefix}_id")
+        if identifier:
+            for socket in sockets:
+                if socket.identifier == identifier:
+                    return socket
 
-        # identifier check, to ensure the node socket of this idx is exactly the socket we recorded. 
-        # if is, try to build link directly by idx
-        if (
-            from_socket.identifier == HN_from_socket_identifier 
-            and to_socket.identifier == HN_to_socket_identifier
-        ):
-            link = node_links.new(from_socket, to_socket)
-            return link
+        bl_idname = jlink.get(f"{prefix}_bid")
+        name = jlink.get(f"{prefix}_n")
+        if bl_idname and name:
+            for socket in sockets:
+                if socket.bl_idname == bl_idname and socket.name == name:
+                    return socket
+        if name:
+            for socket in sockets:
+                if socket.name == name:
+                    return socket
 
-        # try to build link by identifier
-        new_to_socket = self.find_socket_by_identifier(to_node.inputs, HN_to_socket_identifier)
-        new_from_socket = self.find_socket_by_identifier(from_node.outputs, HN_from_socket_identifier)
-
-        if new_to_socket and new_from_socket:
-            link = node_links.new(new_from_socket, new_to_socket)
-        elif new_to_socket:
-            link = node_links.new(from_socket, new_to_socket)
-        elif new_from_socket:
-            link = node_links.new(new_from_socket, to_socket)
-        else:
-            return None
-        return link
-
-    def find_socket_by_identifier(self, sockets, identifier):
-        """Find a socket by its identifier."""
-        for socket in sockets:
-            if socket.identifier == identifier:
-                return socket
+        index = jlink.get(f"{prefix}_i")
+        if isinstance(index, int) and 0 <= index < len(sockets):
+            return sockets[index]
         return None
 
 
@@ -548,11 +485,13 @@ class NodeZoneOutputStg(NodeStg):
             "GeometryNodeSimulationOutput",
             "GeometryNodeRepeatOutput",
             "GeometryNodeForeachGeometryElementOutput",
+            "NodeClosureOutput",
         )
         self.items_attrs_map = {
             "GeometryNodeSimulationOutput": ("state_items", ),
             "GeometryNodeRepeatOutput": ("repeat_items", ),
             "GeometryNodeForeachGeometryElementOutput": ("generation_items", "main_items", "input_items"),
+            "NodeClosureOutput": ("input_items", "output_items"),
         }
     
     def set(self, node, jnode: dict = None):
@@ -575,6 +514,7 @@ class NodeZoneInputStg(NodeStg):
             "GeometryNodeSimulationInput",
             "GeometryNodeRepeatInput",
             "GeometryNodeForeachGeometryElementInput",
+            "NodeClosureInput",
         )
         
     def try_set_node_ref(self, node, jnode):
@@ -630,20 +570,69 @@ class CompositorNodeOutputFileStg(NodeStg):
     def __init__(self):
         super().__init__()
         self.set_types("CompositorNodeOutputFile")
-        self.b += ("file_slots", "format")
+        self.b += ("file_slots", "layer_slots", "file_output_items", "format")
 
     def set(self, node: 'bpy.types.CompositorNodeOutputFile', jnode: dict):
-        
-        self.deserializer.specify_deserialize(node.format, jnode["format"], self.stgs.image_format_settings)
-                
-        # TODO
-        # 5.0 alpha 2025-08-03 and below: file_slots, layer_slots
-        # 5.0: file_output_items
+        jformat = jnode.get("format")
+        if jformat and node.format is not None:
+            self.deserializer.specify_deserialize(node.format, jformat, self.stgs.image_format_settings)
 
-        # TODO temp soluction for 0, edit the bpy_prop_collection stg to let items be set in item stgs
-        self.deserializer.specify_deserialize(node.file_slots[0], jnode["file_slots"]["0"], self.stgs.compositor_node_output_file_file_slot)
-        self.deserializer.specify_deserialize(node.file_slots, jnode["file_slots"], self.stgs.bpy_prop_collection)
+        if hasattr(node, "file_output_items"):
+            self.set_file_output_items(node, jnode)
+            if "directory" not in jnode and "base_path" in jnode:
+                node.directory = jnode["base_path"]
+        elif hasattr(node, "file_slots"):
+            self.set_file_slots(node, jnode)
+            if "base_path" not in jnode and "directory" in jnode:
+                node.base_path = jnode["directory"]
+
         self.deserializer.dispatch_deserialize(node, jnode, b=self.b)
+
+    def set_file_output_items(self, node, jnode: dict):
+        jitems = jnode.get("file_output_items")
+        if jitems is None:
+            jitems = jnode.get("file_slots", {})
+        if not isinstance(jitems, dict):
+            return
+
+        items = node.file_output_items
+        items.clear()
+        for key in sorted((key for key in jitems if key.isdigit()), key=int):
+            jitem = jitems[key]
+            socket_type = jitem.get("socket_type", "RGBA")
+            socket_type = {"VALUE": "FLOAT", "COLOR": "RGBA"}.get(socket_type, socket_type)
+            name = jitem.get("name", jitem.get("path", "Image"))
+            try:
+                item = items.new(socket_type, name)
+            except (TypeError, ValueError):
+                item = items.new("RGBA", name)
+
+            override_node_format = jitem.get("override_node_format")
+            if override_node_format is None and "use_node_format" in jitem:
+                override_node_format = not jitem["use_node_format"]
+            if override_node_format is not None:
+                item.override_node_format = override_node_format
+
+            if item.override_node_format and jitem.get("format") and item.format is not None:
+                self.deserializer.specify_deserialize(item.format, jitem["format"], self.stgs.image_format_settings)
+
+            self.deserializer.dispatch_deserialize(
+                item,
+                jitem,
+                b=("color", "format", "socket_type", "use_node_format", "path"),
+            )
+
+    def set_file_slots(self, node, jnode: dict):
+        jslots = jnode.get("file_slots")
+        if not isinstance(jslots, dict):
+            return
+        if node.file_slots and jslots.get("0"):
+            self.deserializer.specify_deserialize(
+                node.file_slots[0],
+                jslots["0"],
+                self.stgs.compositor_node_output_file_file_slot,
+            )
+        self.deserializer.specify_deserialize(node.file_slots, jslots, self.stgs.bpy_prop_collection)
 
 
 class NodeTreeInterfaceSocketStg(Stg):
@@ -775,6 +764,13 @@ class BpyPropCollectionStg(Stg):
             "NodeGeometryRepeatOutputItems": self.new_socket,
             "NodeGeometryBakeItems": self.new_socket,
             "NodeCompositorFileOutputItems": self.new_socket, # 5.0+
+            "NodeCombineBundleItems": self.new_socket,
+            "NodeSeparateBundleItems": self.new_socket,
+            "NodeClosureInputItems": self.new_socket,
+            "NodeClosureOutputItems": self.new_socket,
+            "NodeEvaluateClosureInputItems": self.new_socket,
+            "NodeEvaluateClosureOutputItems": self.new_socket,
+            "NodeGeometryViewerItems": self.new_socket,
             "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
             "NodeIndexSwitchItems": self.new_index_switch_item,
             "NodeGeometryCaptureAttributeItems": self.new_capture_item,
@@ -792,7 +788,9 @@ class BpyPropCollectionStg(Stg):
         # if the length is the same, we can set all items.
         if actual_length == jobj_length:
             for i in range(actual_length):
-                self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                jitem = jobj[str(i)]
+                item = self.find_existing_item(obj, i, jitem)
+                self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
         elif actual_length < jobj_length:
             # wtf is this. solve in the future
             if max_jobj_index >= jobj_length:
@@ -806,7 +804,9 @@ class BpyPropCollectionStg(Stg):
                         for i in range(jobj_length):
                             if i >= actual_length:
                                 self.new_socket(obj, jobj[str(i)])
-                            self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                            jitem = jobj[str(i)]
+                            item = self.find_existing_item(obj, i, jitem)
+                            self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
                         print(f"[Hot Node] {obj.rna_type.identifier} has been set.")
                     except Exception as e:
                         print(f"[Hot Node] Failed to run fallback new_socket method for {obj.rna_type.identifier}: {e}")
@@ -814,7 +814,9 @@ class BpyPropCollectionStg(Stg):
                     for i in range(jobj_length):
                         if i >= actual_length:
                             new_item_func(obj, jobj[str(i)])
-                        self.deserializer.search_deserialize(obj[i], jobj[str(i)], is_dispatch_on_fallback=True)
+                        jitem = jobj[str(i)]
+                        item = self.find_existing_item(obj, i, jitem)
+                        self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
         # actual_length > jobj_length, means jobj is partially filled.
         else:
             # wtf is this. solve in the future
@@ -822,10 +824,28 @@ class BpyPropCollectionStg(Stg):
                 print(f"[Hot Node] jobj_length < actual_length < max_jobj_index: {obj.rna_type.identifier}.")
             else:
                 for key in (key for key in jobj.keys() if key.isdigit()):
-                    # if i < actual_length:
-                    #     # we may recorded a virtual input whose idx is bigger than the length, but we dont need to set it.
-                    self.deserializer.search_deserialize(obj[int(key)], jobj[key], is_dispatch_on_fallback=True)
-                    # self.deserializer.dispatch_deserialize(obj[i], jitem)
+                    jitem = jobj[key]
+                    item = self.find_existing_item(obj, int(key), jitem)
+                    if item is not None:
+                        self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+
+    @staticmethod
+    def find_existing_item(collection, index: int, jitem: dict):
+        identifier = jitem.get("identifier") if isinstance(jitem, dict) else None
+        if identifier:
+            for item in collection:
+                if getattr(item, "identifier", None) == identifier:
+                    return item
+
+        name = jitem.get("name") if isinstance(jitem, dict) else None
+        item_type = jitem.get("HN@type") if isinstance(jitem, dict) else None
+        if name and item_type:
+            for item in collection:
+                if item.__class__.__name__ == item_type and getattr(item, "name", None) == name:
+                    return item
+        if 0 <= index < len(collection):
+            return collection[index]
+        return None
                     
     def new_socket(self, collection_obj, jitem):
         collection_obj.new(jitem["socket_type"], jitem["name"])
@@ -877,13 +897,47 @@ class ImageFormatSettingsStg(Stg):
         self.set_types("ImageFormatSettings")
         
     def deserialize(self, format, jformat):
-        jcolor_management = jformat.get("color_management", format.color_management)
-        # if OVERRIDE, set this flag first to let node has view_settings
-        if jcolor_management == 'OVERRIDE':
-            format.color_management = 'OVERRIDE'
-            view_settings = format.view_settings
-            jview_settings = jformat["view_settings"]
-            self.deserializer.specify_deserialize(view_settings, jview_settings, self.stgs.color_managed_view_settings)
+        if format is None or not isinstance(jformat, dict):
+            return
+
+        if hasattr(format, "media_type"):
+            media_type = jformat.get("media_type")
+            if media_type is None:
+                media_type = "MULTI_LAYER_IMAGE" if jformat.get("file_format") == "OPEN_EXR_MULTILAYER" else "IMAGE"
+            try:
+                format.media_type = media_type
+            except (TypeError, ValueError):
+                pass
+
+        if "file_format" in jformat:
+            try:
+                format.file_format = jformat["file_format"]
+            except (TypeError, ValueError):
+                pass
+
+        color_management = jformat.get("color_management", format.color_management)
+        try:
+            format.color_management = color_management
+        except (TypeError, ValueError):
+            pass
+
+        self.deserializer.dispatch_deserialize(
+            format,
+            jformat,
+            b=(
+                "media_type", "file_format", "color_management", "view_settings",
+                "display_settings", "linear_colorspace_settings", "stereo_3d_format",
+                "has_linear_colorspace",
+            ),
+        )
+
+        jview_settings = jformat.get("view_settings")
+        if color_management == 'OVERRIDE' and jview_settings and format.view_settings is not None:
+            self.deserializer.specify_deserialize(
+                format.view_settings,
+                jview_settings,
+                self.stgs.color_managed_view_settings,
+            )
 
 
 class ColorManagedViewSettingsStg(Stg):

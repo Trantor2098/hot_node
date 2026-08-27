@@ -17,8 +17,16 @@ def sync_persistent(_):
         SyncService.sync()
 
 
+def sync_from_timer():
+    SyncService.sync_pending = False
+    if SyncService.is_enabled:
+        SyncService.sync()
+    return None
+
+
 class SyncService(ServiceBase):
     last_check_time = 0.0
+    sync_pending = False
     
     context_cls: 'Context' = None # Context Class, need to inject
     uic_cls: 'UIContext' = None # UIContext Class, need to inject
@@ -33,6 +41,9 @@ class SyncService(ServiceBase):
     def on_disable(cls):
         if sync_persistent in bpy.app.handlers.load_post:
             bpy.app.handlers.load_post.remove(sync_persistent)
+        if bpy.app.timers.is_registered(sync_from_timer):
+            bpy.app.timers.unregister(sync_from_timer)
+        cls.sync_pending = False
 
     @classmethod
     def inject_dependencies(cls, context_cls: 'Context', uic_cls: 'UIContext'):
@@ -51,7 +62,9 @@ class SyncService(ServiceBase):
     @classmethod
     def late_sync(cls):
         """Call this to ensure the context is synced after Blender's UI is ready."""
-        bpy.app.timers.register(cls.sync)
+        if not cls.sync_pending:
+            cls.sync_pending = True
+            bpy.app.timers.register(sync_from_timer)
 
     @classmethod
     def ensure_sync_on_interval(cls, interval: float = 1.0):

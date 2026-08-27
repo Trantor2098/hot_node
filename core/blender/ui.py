@@ -101,6 +101,11 @@ class HOTNODE_MT_pack(Menu):
         #     self.draw_presets_menu_to_apply_geo(self, context)
 
 
+def register_pack_menus_from_timer():
+    PackMenuManager.register_pack_menus()
+    return None
+
+
 class PackMenuManager:
     pack_menu_clses: dict[str, Menu] = {} # menu pool, <pack name>: <menu_cls>
     new_pack_menu_clses = []
@@ -222,7 +227,8 @@ class PackMenuManager:
             cls.new_pack_menu_clses.append(cls.create_pack_menu_cls(pack_name))
         # bpy.app.timers.register(_register_new_menus)
         # XXX More cost but safer
-        bpy.app.timers.register(cls.register_pack_menus)
+        if not bpy.app.timers.is_registered(register_pack_menus_from_timer):
+            bpy.app.timers.register(register_pack_menus_from_timer)
     
     @classmethod
     def create_pack_menu_cls(cls, pack_name: str) -> type[HOTNODE_MT_pack]:
@@ -738,6 +744,9 @@ def register():
 
 
 def unregister():
+    if bpy.app.timers.is_registered(register_pack_menus_from_timer):
+        bpy.app.timers.unregister(register_pack_menus_from_timer)
+
     for cls in classes:
         bpy.utils.unregister_class(cls)
 

@@ -18,6 +18,12 @@ if TYPE_CHECKING:
     from ..core.blender.ui import HOTNODE_PT_main
     from ..core.blender.ui_context import UpdateHandler, UIContext
     from ..core.blender import operators
+
+
+def set_history_service_start_time():
+    if HistoryService.is_enabled and hasattr(bpy.context.window_manager, "hot_node_ui_context"):
+        bpy.context.window_manager.hot_node_ui_context.history_service_start_time = HistoryService.service_start_time
+    return None
     
 # NOTE In our undo/redo func, use str rather than ref to represent the pack, preset, because sync will change the ref.
 
@@ -208,15 +214,14 @@ class HistoryService(ServiceBase):
     @classmethod
     def on_enable(cls):
         cls.service_start_time = str(time.time()) # Blender FloatProperty cuts float tail, use str
-        def set_service_start_time():
-            bpy.context.window_manager.hot_node_ui_context.history_service_start_time = cls.service_start_time
-        bpy.app.timers.register(set_service_start_time)
+        bpy.app.timers.register(set_history_service_start_time)
         
         cls.load_history()
         
     @classmethod
     def on_disable(cls):
-        pass
+        if bpy.app.timers.is_registered(set_history_service_start_time):
+            bpy.app.timers.unregister(set_history_service_start_time)
         
     @classmethod
     def inject_dependencies(cls, main_panel_cls: 'HOTNODE_PT_main', operators_module: 'operators', update_handler_cls: 'UpdateHandler'):

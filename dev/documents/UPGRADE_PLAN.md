@@ -65,6 +65,17 @@ Acceptance criteria:
 
 Do not update the published compatibility claim until the version matrix passes.
 
+Implementation status on the upgrade branch:
+
+- Completed capability-based File Output restore for the old and 5.0+ APIs.
+- Completed ordered `ImageFormatSettings` restore.
+- Completed identifier-first socket matching with type/name and index fallbacks.
+- Added explicit factories for Blender 5.2 Bundle, Closure, Evaluate Closure, and Viewer collections.
+- Added Closure input/output pairing to the zone strategy.
+- Fixed the autosave handler signature and made synchronization, history, UI initialization, and menu timers removable.
+- Added Blender 5.2 background regression coverage for these paths.
+- Remaining release gate: execute the same suite and cross-version preset fixtures in Blender 4.2, 4.5, and 5.0 before changing compatibility metadata.
+
 ## Phase 4: Refresh and Service Lifecycle
 
 The draw-time freshness check stays because Blender has no reliable event that always runs when the user returns to another project/window before the next Hot Node action.

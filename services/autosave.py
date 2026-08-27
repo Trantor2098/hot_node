@@ -70,7 +70,7 @@ class AutosaveService(ServiceBase):
         return int(datetime.now().timestamp()) - timestamp > days * 24 * 3600
     
     @classmethod
-    def autosave_packs(cls):
+    def autosave_packs(cls, _filepath=None):
         """Autosave the current context to disk."""
         for pack in cls.context_cls.get_packs().values():
             dst_zip_path = cls.generate_autosave_zip_path(pack)

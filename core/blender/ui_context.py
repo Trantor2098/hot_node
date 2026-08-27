@@ -476,6 +476,12 @@ classes = (
     UIContext,
 )
 
+
+def initialize_ui_context_from_timer():
+    UIContext.initialize()
+    return None
+
+
 def register():
     for cls in classes:
         try:
@@ -489,10 +495,13 @@ def register():
         type=UIContext
     ) # type: ignore
     
-    bpy.app.timers.register(UIContext.initialize)
+    if not bpy.app.timers.is_registered(initialize_ui_context_from_timer):
+        bpy.app.timers.register(initialize_ui_context_from_timer)
     
 
 def unregister():
+    if bpy.app.timers.is_registered(initialize_ui_context_from_timer):
+        bpy.app.timers.unregister(initialize_ui_context_from_timer)
     for cls in classes:
         try:
             bpy.utils.unregister_class(cls)
