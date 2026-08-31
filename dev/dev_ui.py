@@ -22,7 +22,17 @@ class HOTNODE_PT_dev_run(Panel):
         col.separator()
         for ops in dev_ops.classes:
             if ops.bl_idname.startswith("hotnode.dev_run"):
+                if ops.bl_idname == "hotnode.dev_run_show_roundtrip_tree":
+                    continue
                 col.operator(ops.bl_idname)
+
+        visual_trees = [tree for tree in bpy.data.node_groups if tree.name.startswith("HN RT ")]
+        if visual_trees:
+            col.separator()
+            col.label(text="Round-Trip Trees")
+            for tree in sorted(visual_trees, key=lambda item: item.name):
+                operator = col.operator("hotnode.dev_run_show_roundtrip_tree", text=tree.name)
+                operator.tree_name = tree.name
             
         # Image Test
         tex = bpy.data.textures.get("HotNodeDevImg")

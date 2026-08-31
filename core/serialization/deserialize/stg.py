@@ -784,6 +784,15 @@ class BpyPropCollectionStg(Stg):
         max_jobj_index = int(index_strs[-1]) if index_strs else -1
         jobj_length = len(index_strs)
         actual_length = len(obj)
+
+        collection_identifier = self.get_collection_identifier(obj)
+        if isinstance(obj, (bpy.types.NodeInputs, bpy.types.NodeOutputs)):
+            for key in index_strs:
+                jitem = jobj[key]
+                item = self.find_existing_item(obj, int(key), jitem)
+                if item is not None:
+                    self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+            return
         
         # if the length is the same, we can set all items.
         if actual_length == jobj_length:
@@ -797,9 +806,20 @@ class BpyPropCollectionStg(Stg):
                 pass
             # actual_length < jobj_length < max_jobj_index
             else:
-                new_item_func = self.new_item_func_map.get(obj.rna_type.identifier, None)
+                new_item_func = self.new_item_func_map.get(collection_identifier, None)
                 if new_item_func is None:
-                    print(f"[Hot Node] No new item function found for {obj.rna_type.identifier}. Trying fallback new_socket method...")
+                    cannot_create_items = (
+                        not callable(getattr(obj, "new", None))
+                        or any("socket_type" not in jobj[key] for key in index_strs)
+                    )
+                    if cannot_create_items:
+                        for key in index_strs:
+                            jitem = jobj[key]
+                            item = self.find_existing_item(obj, int(key), jitem)
+                            if item is not None:
+                                self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                        return
+                    print(f"[Hot Node] No new item function found for {collection_identifier}. Trying fallback new_socket method...")
                     try:
                         for i in range(jobj_length):
                             if i >= actual_length:
@@ -807,9 +827,9 @@ class BpyPropCollectionStg(Stg):
                             jitem = jobj[str(i)]
                             item = self.find_existing_item(obj, i, jitem)
                             self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
-                        print(f"[Hot Node] {obj.rna_type.identifier} has been set.")
+                        print(f"[Hot Node] {collection_identifier} has been set.")
                     except Exception as e:
-                        print(f"[Hot Node] Failed to run fallback new_socket method for {obj.rna_type.identifier}: {e}")
+                        print(f"[Hot Node] Failed to run fallback new_socket method for {collection_identifier}: {e}")
                 else:
                     for i in range(jobj_length):
                         if i >= actual_length:
@@ -821,13 +841,22 @@ class BpyPropCollectionStg(Stg):
         else:
             # wtf is this. solve in the future
             if max_jobj_index >= actual_length:
-                print(f"[Hot Node] jobj_length < actual_length < max_jobj_index: {obj.rna_type.identifier}.")
+                print(f"[Hot Node] jobj_length < actual_length < max_jobj_index: {collection_identifier}.")
             else:
                 for key in (key for key in jobj.keys() if key.isdigit()):
                     jitem = jobj[key]
                     item = self.find_existing_item(obj, int(key), jitem)
                     if item is not None:
                         self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+
+    @staticmethod
+    def get_collection_identifier(collection) -> str:
+        rna_type = getattr(collection, "rna_type", None)
+        identifier = getattr(rna_type, "identifier", None)
+        if identifier:
+            return identifier
+        bl_rna = getattr(collection, "bl_rna", None)
+        return getattr(bl_rna, "identifier", type(collection).__name__)
 
     @staticmethod
     def find_existing_item(collection, index: int, jitem: dict):

@@ -20,6 +20,7 @@ def dev_reload():
         "..core.serialization.serialize.serializer",
         "..core.serialization.serialize.stg",
         "..core.serialization.manager",
+        ".roundtrip",
         # "..services", # service cls.ID has problem with reloading
         # "..services.autosave",
         # "..services.history",

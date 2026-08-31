@@ -117,6 +117,28 @@ Acceptance criteria:
 
 Run Blender in background mode for 4.2 LTS, 4.5 LTS, 5.0, and 5.2 LTS.
 
+The semantic round-trip runner is implemented in `dev/roundtrip.py`. It builds isolated source trees, saves them through `SerializationManager`, restores them into new trees, and compares node types, writable properties, socket values, dynamic collections, interfaces, parent/pair references, links, and translation-invariant layout.
+
+Run from Blender UI:
+
+1. Enable Development Mode in Hot Node preferences.
+2. Open the Node Editor sidebar and expand Developer Tools.
+3. Click `Run Node Round-Trip Tests` for an automatic test that cleans up all fixtures.
+4. Click `Build Visual Round-Trip Trees` to retain every source/restored pair as node groups named `HN RT <case> SOURCE` and `HN RT <case> RESTORED`.
+5. Use the generated `Round-Trip Trees` buttons in Developer Tools, or the Node Editor tree selector, to inspect each pair. The first restored tree is opened automatically when possible.
+6. Click `Clear Visual Round-Trip Trees` when inspection is complete.
+7. Read the summary in Blender and detailed mismatches in the console.
+
+Run from PowerShell:
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" `
+	--background --factory-startup `
+	--python dev/tests/blender/run.py
+```
+
+The command succeeds only when both the upgrade smoke tests and all semantic node round trips pass.
+
 Required suites:
 
 - Add-on import, register, unregister, and repeated reload.

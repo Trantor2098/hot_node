@@ -10,6 +10,7 @@ sys.path.insert(0, str(PACKAGE_DIR.parent))
 from hot_node.core.serialization.manager import SerializationManager
 from hot_node.core.serialization.registry import StgRegistry, StgSpec
 from hot_node.core.blender import ui, ui_context
+from hot_node.dev.roundtrip import NodeSemanticRoundTripTester
 from hot_node.services.autosave import AutosaveService
 from hot_node.services.history import HistoryService, set_history_service_start_time
 from hot_node.services.sync import SyncService, sync_from_timer
@@ -180,6 +181,11 @@ def test_empty_deserialization_cleanup():
     assert manager.deser_context.obj_tree == []
 
 
+def test_node_semantic_round_trips():
+    report = NodeSemanticRoundTripTester(bpy.context).run_all()
+    assert report.failed == 0, report.format()
+
+
 def main():
     test_registry()
     test_version_boundary()
@@ -188,6 +194,7 @@ def main():
     test_socket_resolution()
     test_lifecycle_52()
     test_empty_deserialization_cleanup()
+    test_node_semantic_round_trips()
     print("HOT_NODE_UPGRADE_TESTS_OK")
 
 

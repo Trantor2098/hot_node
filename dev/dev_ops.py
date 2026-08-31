@@ -7,7 +7,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.app.translations import pgettext_iface as _
 
 
-from . import dev_func, dev_utils, dev_reload, dev_ui
+from . import dev_func, dev_utils, dev_reload, dev_ui, roundtrip
 from ..core.context.context import Context
 from ..utils import constants
 
@@ -216,6 +216,85 @@ class HOTNODE_OT_dev_run10(Operator):
         fm = Context.fm
         fm.open_path_with_default_browser(fm.app_data_dir)
         return {'FINISHED'}
+
+
+class HOTNODE_OT_dev_run_roundtrip_tests(Operator):
+    bl_idname = "hotnode.dev_run_roundtrip_tests"
+    bl_label = "Run Node Round-Trip Tests"
+    bl_description = "Test node properties, dynamic items, groups, and links through save/load round trips"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        report = roundtrip.NodeSemanticRoundTripTester(context).run_all()
+        if report.failed:
+            self.report({'ERROR'}, f"Round-trip tests: {report.passed} passed, {report.failed} failed. See console.")
+            return {'CANCELLED'}
+        self.report({'INFO'}, f"Round-trip tests passed: {report.passed}")
+        return {'FINISHED'}
+
+
+class HOTNODE_OT_dev_run_visual_roundtrip_tests(Operator):
+    bl_idname = "hotnode.dev_run_visual_roundtrip_tests"
+    bl_label = "Build Visual Round-Trip Trees"
+    bl_description = "Keep source and restored test trees in the file for visual inspection"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        roundtrip.clear_visual_roundtrip_trees()
+        tester = roundtrip.NodeSemanticRoundTripTester(context, keep_trees=True)
+        report = tester.run_all()
+        tester.show_visual_tree()
+        if context.area and context.region:
+            try:
+                bpy.ops.node.view_selected('EXEC_DEFAULT')
+            except RuntimeError:
+                pass
+        if context.area:
+            context.area.tag_redraw()
+        if report.failed:
+            self.report({'ERROR'}, f"Visual round trips: {report.passed} passed, {report.failed} failed. Trees were kept for inspection.")
+            return {'CANCELLED'}
+        self.report({'INFO'}, f"Built {len(tester.visual_trees)} visual test trees. Source and restored trees were kept.")
+        return {'FINISHED'}
+
+
+class HOTNODE_OT_dev_run_clear_roundtrip_trees(Operator):
+    bl_idname = "hotnode.dev_run_clear_roundtrip_trees"
+    bl_label = "Clear Visual Round-Trip Trees"
+    bl_description = "Delete node groups created by the visual round-trip tests"
+    bl_options = {'REGISTER'}
+
+    def execute(self, context):
+        roundtrip.clear_visual_roundtrip_trees()
+        if context.area:
+            context.area.tag_redraw()
+        return {'FINISHED'}
+
+
+class HOTNODE_OT_dev_run_show_roundtrip_tree(Operator):
+    bl_idname = "hotnode.dev_run_show_roundtrip_tree"
+    bl_label = "Show Round-Trip Tree"
+    bl_description = "Open a generated round-trip tree in this Node Editor"
+    bl_options = {'REGISTER'}
+
+    tree_name: StringProperty(options={'HIDDEN'})
+
+    def execute(self, context):
+        tree = bpy.data.node_groups.get(self.tree_name)
+        space = context.space_data
+        if tree is None or not isinstance(space, bpy.types.SpaceNodeEditor):
+            return {'CANCELLED'}
+        space.tree_type = tree.bl_idname
+        space.pin = True
+        space.path.start(tree)
+        for node in tree.nodes:
+            node.select = True
+        tree.nodes.active = next(iter(tree.nodes), None)
+        try:
+            bpy.ops.node.view_selected('EXEC_DEFAULT')
+        except RuntimeError:
+            pass
+        return {'FINISHED'}
     
 classes = (
     HOTNODE_OT_dev_reload,
@@ -229,6 +308,10 @@ classes = (
     HOTNODE_OT_dev_run8,
     HOTNODE_OT_dev_run9,
     HOTNODE_OT_dev_run10,
+    HOTNODE_OT_dev_run_roundtrip_tests,
+    HOTNODE_OT_dev_run_visual_roundtrip_tests,
+    HOTNODE_OT_dev_run_clear_roundtrip_trees,
+    HOTNODE_OT_dev_run_show_roundtrip_tree,
 )
 
 def register():
