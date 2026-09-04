@@ -770,6 +770,7 @@ class BpyPropCollectionStg(Stg):
             "NodeClosureOutputItems": self.new_socket,
             "NodeEvaluateClosureInputItems": self.new_socket,
             "NodeEvaluateClosureOutputItems": self.new_socket,
+            "GeometryNodeClosureToListItems": self.new_socket,
             "NodeGeometryViewerItems": self.new_socket,
             "CompositorNodeOutputFileFileSlots": self.new_file_slot, # 4.5-
             "NodeIndexSwitchItems": self.new_index_switch_item,
@@ -791,7 +792,15 @@ class BpyPropCollectionStg(Stg):
                 jitem = jobj[key]
                 item = self.find_existing_item(obj, int(key), jitem)
                 if item is not None:
-                    self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                    self.deserialize_collection_item(item, jitem)
+            return
+
+        if collection_identifier == "NodeMenuSwitchItems":
+            obj.clear()
+            for key in sorted(index_strs, key=int):
+                jitem = jobj[key]
+                self.new_node_enum_item(obj, jitem)
+                self.deserialize_collection_item(obj[-1], jitem)
             return
         
         # if the length is the same, we can set all items.
@@ -799,7 +808,7 @@ class BpyPropCollectionStg(Stg):
             for i in range(actual_length):
                 jitem = jobj[str(i)]
                 item = self.find_existing_item(obj, i, jitem)
-                self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                self.deserialize_collection_item(item, jitem)
         elif actual_length < jobj_length:
             # wtf is this. solve in the future
             if max_jobj_index >= jobj_length:
@@ -817,7 +826,7 @@ class BpyPropCollectionStg(Stg):
                             jitem = jobj[key]
                             item = self.find_existing_item(obj, int(key), jitem)
                             if item is not None:
-                                self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                                self.deserialize_collection_item(item, jitem)
                         return
                     print(f"[Hot Node] No new item function found for {collection_identifier}. Trying fallback new_socket method...")
                     try:
@@ -826,7 +835,7 @@ class BpyPropCollectionStg(Stg):
                                 self.new_socket(obj, jobj[str(i)])
                             jitem = jobj[str(i)]
                             item = self.find_existing_item(obj, i, jitem)
-                            self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                            self.deserialize_collection_item(item, jitem)
                         print(f"[Hot Node] {collection_identifier} has been set.")
                     except Exception as e:
                         print(f"[Hot Node] Failed to run fallback new_socket method for {collection_identifier}: {e}")
@@ -836,7 +845,7 @@ class BpyPropCollectionStg(Stg):
                             new_item_func(obj, jobj[str(i)])
                         jitem = jobj[str(i)]
                         item = self.find_existing_item(obj, i, jitem)
-                        self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                        self.deserialize_collection_item(item, jitem)
         # actual_length > jobj_length, means jobj is partially filled.
         else:
             # wtf is this. solve in the future
@@ -847,7 +856,7 @@ class BpyPropCollectionStg(Stg):
                     jitem = jobj[key]
                     item = self.find_existing_item(obj, int(key), jitem)
                     if item is not None:
-                        self.deserializer.search_deserialize(item, jitem, is_dispatch_on_fallback=True)
+                        self.deserialize_collection_item(item, jitem)
 
     @staticmethod
     def get_collection_identifier(collection) -> str:
@@ -857,6 +866,19 @@ class BpyPropCollectionStg(Stg):
             return identifier
         bl_rna = getattr(collection, "bl_rna", None)
         return getattr(bl_rna, "identifier", type(collection).__name__)
+
+    def deserialize_collection_item(self, item, jitem):
+        if item is None:
+            return
+        item_data = dict(jitem)
+        item_data.pop("name", None)
+        item_data.pop("socket_type", None)
+        auto_remove = item_data.pop("auto_remove", None)
+        if auto_remove is not None and item.__class__.__name__ == "NodeGeometryViewerItem":
+            def set_viewer_auto_remove(item=item, auto_remove=auto_remove):
+                item.auto_remove = auto_remove
+            self.stgs.node_links.add_on_deserialize_post(set_viewer_auto_remove)
+        self.deserializer.search_deserialize(item, item_data, is_dispatch_on_fallback=True)
 
     @staticmethod
     def find_existing_item(collection, index: int, jitem: dict):
@@ -1000,6 +1022,13 @@ class SetStg(Stg):
         
     def deserialize(self, obj, attr: str, jvalue):
         if jvalue is None:
+            return
+        if obj is None or not hasattr(obj, attr):
+            return
+
+        bl_rna = getattr(obj, "bl_rna", None)
+        prop = bl_rna.properties.get(attr) if bl_rna is not None else None
+        if prop is None or prop.is_readonly or prop.type in ('COLLECTION', 'POINTER'):
             return
         try:
             # BUG sometimes (often after Ctrl + G and the node group interface is autoly created) tree interface socket's subtype is "", 

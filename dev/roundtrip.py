@@ -476,14 +476,13 @@ def build_geometry_dynamic(tree):
     separate.bundle_items.new('VECTOR', "Direction")
     tree.links.new(bundle.outputs[0], separate.inputs[0])
 
-    viewer = add_node(tree, "GeometryNodeViewer", "viewer", (340, -120))
-    viewer.viewer_items.new('FLOAT', "Value")
-    viewer.viewer_items.new('VECTOR', "Vector")
+    viewer_source = add_node(tree, "GeometryNodeInputIndex", "viewer-source", (340, -120))
+    viewer = add_node(tree, "GeometryNodeViewer", "viewer", (600, -120))
+    viewer_item = viewer.viewer_items.new('FLOAT', "Value")
+    viewer_item.auto_remove = False
+    tree.links.new(viewer_source.outputs[0], viewer.inputs[0])
+    viewer_item.auto_remove = True
 
-    evaluate = add_node(tree, "NodeEvaluateClosure", "evaluate-closure", (340, -340))
-    evaluate.input_items.new('FLOAT', "Captured")
-    evaluate.output_items.new('VECTOR', "Result")
-    evaluate.inputs[1].default_value = 3.25
 
 
 def build_geometry_group(tree):

@@ -139,6 +139,17 @@ Run from PowerShell:
 
 The command succeeds only when both the upgrade smoke tests and all semantic node round trips pass.
 
+Run a specific saved preset in an isolated Blender process:
+
+```powershell
+& "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" `
+	--background --factory-startup `
+	--python dev/tests/blender/preset_asset_roundtrip.py -- `
+	"C:\path\to\preset.json"
+```
+
+This path is intended for presets that previously caused native Blender crashes. It validates node/link counts and dynamic Closure, Closure-to-List, and Viewer items without touching the user's pack files.
+
 Required suites:
 
 - Add-on import, register, unregister, and repeated reload.

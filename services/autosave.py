@@ -72,6 +72,7 @@ class AutosaveService(ServiceBase):
     @classmethod
     def autosave_packs(cls, _filepath=None):
         """Autosave the current context to disk."""
+        cls.fm.ensure_dir(cls.fm.autosave_dir)
         for pack in cls.context_cls.get_packs().values():
             dst_zip_path = cls.generate_autosave_zip_path(pack)
             cls.fm.zip_to(pack.pack_dir, dst_zip_path)
