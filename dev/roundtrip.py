@@ -459,6 +459,11 @@ def build_geometry_dynamic(tree):
     switch.inputs[1].default_value = 1.25
     tree.links.new(value.outputs[0], switch.inputs[2])
 
+    geometry_switch = add_node(tree, "GeometryNodeSwitch", "geometry-switch", (-250, 80))
+    geometry_switch.input_type = 'GEOMETRY'
+    vector_switch = add_node(tree, "GeometryNodeSwitch", "vector-switch", (-250, -60))
+    vector_switch.input_type = 'VECTOR'
+
     index_switch = add_node(tree, "GeometryNodeIndexSwitch", "index-switch", (40, 220))
     index_switch.data_type = 'FLOAT'
     index_switch.index_switch_items.new()
@@ -527,12 +532,24 @@ def build_geometry_zones(tree):
 
 def build_geometry_menu(tree):
     menu = add_node(tree, "GeometryNodeMenuSwitch", "menu-switch", (0, 0))
+    menu.data_type = 'INT'
     while len(menu.enum_items) > 0:
         menu.enum_items.remove(menu.enum_items[-1])
     menu.enum_items.new("Low")
     menu.enum_items.new("Medium")
     menu.enum_items.new("High")
     menu.inputs[0].default_value = "Medium"
+    menu.inputs[1].default_value = 0
+    menu.inputs[2].default_value = 1
+    menu.inputs[3].default_value = 2
+
+    index_switch = add_node(tree, "GeometryNodeIndexSwitch", "menu-index-switch", (260, 0))
+    index_switch.data_type = 'FLOAT'
+    index_switch.index_switch_items.new()
+    index_switch.inputs[1].default_value = 0.25
+    index_switch.inputs[2].default_value = 0.5
+    index_switch.inputs[3].default_value = 0.75
+    tree.links.new(menu.outputs[0], index_switch.inputs[0])
 
 
 def build_compositor_file_output(tree):

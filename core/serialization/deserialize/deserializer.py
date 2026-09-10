@@ -79,6 +79,7 @@ class DeserializationContext:
         
         self.existing_node_group_names = list(self.node_groups.keys())
         self.image_names_in_dir = []
+        self.is_create_tree = is_add_nodes_to_new_tree
         self.is_add_nodes_to_new_tree = is_add_nodes_to_new_tree
         
     def cal_cursor_offset(self):

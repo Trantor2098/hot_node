@@ -116,7 +116,7 @@ class PresetStg(Stg):
         # config edit tree deserialization settings
         # for creating geo tree directly
         if context.is_create_tree:
-            if self.has_group_io_node(context.jnode_tree):
+            if self.has_group_io_node(context.jmain_tree):
                 node_tree_stg.is_set_tree_io = True
                 node_links_stg.is_link_group_io = True
             else:
@@ -190,16 +190,20 @@ class NodeTreeStg(Stg):
         links = node_tree.links
         interface = node_tree.interface
         
-        jdescription = jnode_tree.get("description", None)
-        jcolor_tag = jnode_tree.get("color_tag", None)
-        jdefault_group_node_width = jnode_tree.get("default_group_node_width", None)
-        
-        if jdescription is not None:
-            node_tree.description = jdescription
-        if jcolor_tag is not None:
-            node_tree.color_tag = jcolor_tag
-        if jdefault_group_node_width is not None and hasattr(node_tree, "default_group_node_width"):
-            node_tree.default_group_node_width = jdefault_group_node_width
+        # A preset represents nodes, not the settings of an existing destination
+        # tree. Tree properties only belong to node groups created from the
+        # preset, including a newly-created main tree.
+        if node_tree is not self.context.main_tree or self.context.is_add_nodes_to_new_tree:
+            jdescription = jnode_tree.get("description", None)
+            jcolor_tag = jnode_tree.get("color_tag", None)
+            jdefault_group_node_width = jnode_tree.get("default_group_node_width", None)
+
+            if jdescription is not None:
+                node_tree.description = jdescription
+            if jcolor_tag is not None:
+                node_tree.color_tag = jcolor_tag
+            if jdefault_group_node_width is not None and hasattr(node_tree, "default_group_node_width"):
+                node_tree.default_group_node_width = jdefault_group_node_width
         
         # Deselect Nodes
         for node in nodes:

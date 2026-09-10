@@ -181,6 +181,43 @@ def test_empty_deserialization_cleanup():
     assert manager.deser_context.obj_tree == []
 
 
+def test_existing_tree_properties_are_preserved():
+    manager = SerializationManager()
+    tree_stg = manager.deser_stgs.node_tree
+    destination = bpy.data.node_groups.new("HN@Test Existing Destination", "GeometryNodeTree")
+    new_destination = bpy.data.node_groups.new("HN@Test New Destination", "GeometryNodeTree")
+    jtree = {
+        "description": "Preset description",
+        "color_tag": "INPUT",
+        "default_group_node_width": 260,
+        "nodes": {},
+        "links": [],
+    }
+    try:
+        destination.description = "User description"
+        destination.color_tag = "GEOMETRY"
+        destination.default_group_node_width = 180
+        manager.deser_context.__init__()
+        manager.deser_context.main_tree = destination
+        tree_stg.is_set_tree_io = False
+        tree_stg.deserialize(destination, dict(jtree))
+        assert destination.description == "User description"
+        assert destination.color_tag == "GEOMETRY"
+        assert destination.default_group_node_width == 180
+
+        manager.deser_context.__init__()
+        manager.deser_context.main_tree = new_destination
+        manager.deser_context.is_create_tree = True
+        manager.deser_context.is_add_nodes_to_new_tree = True
+        tree_stg.deserialize(new_destination, dict(jtree))
+        assert new_destination.description == "Preset description"
+        assert new_destination.color_tag == "INPUT"
+        assert new_destination.default_group_node_width == 260
+    finally:
+        bpy.data.node_groups.remove(destination)
+        bpy.data.node_groups.remove(new_destination)
+
+
 def test_node_semantic_round_trips():
     report = NodeSemanticRoundTripTester(bpy.context).run_all()
     assert report.failed == 0, report.format()
@@ -194,6 +231,7 @@ def main():
     test_socket_resolution()
     test_lifecycle_52()
     test_empty_deserialization_cleanup()
+    test_existing_tree_properties_are_preserved()
     test_node_semantic_round_trips()
     print("HOT_NODE_UPGRADE_TESTS_OK")
 
