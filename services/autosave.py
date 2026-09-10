@@ -48,6 +48,10 @@ class AutosaveService(ServiceBase):
     def generate_autosave_zip_path(cls, pack: 'Pack'):
         """Generate the autosave zip path for a given pack."""
         timestamp = cls.generate_timestamp_str()
+        # Ensure the autosave directory exists; it lives under the OS temp dir
+        # which may not have been created yet (and can be cleared between runs),
+        # otherwise zipfile.ZipFile(...) raises FileNotFoundError on save.
+        cls.fm.autosave_dir.mkdir(parents=True, exist_ok=True)
         return cls.fm.autosave_dir / f"{timestamp}_{pack.name}.zip"
     
     @classmethod
@@ -70,8 +74,13 @@ class AutosaveService(ServiceBase):
         return int(datetime.now().timestamp()) - timestamp > days * 24 * 3600
     
     @classmethod
-    def autosave_packs(cls):
-        """Autosave the current context to disk."""
+    def autosave_packs(cls, *args):
+        """Autosave the current context to disk.
+
+        Accepts *args so it can be used directly as a bpy.app.handlers.save_post
+        handler; Blender 5.x calls save handlers with extra positional arguments
+        (e.g. scene, depsgraph) which the original single-arg signature rejected.
+        """
         for pack in cls.context_cls.get_packs().values():
             dst_zip_path = cls.generate_autosave_zip_path(pack)
             cls.fm.zip_to(pack.pack_dir, dst_zip_path)
